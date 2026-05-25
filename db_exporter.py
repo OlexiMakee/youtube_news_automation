@@ -1,163 +1,188 @@
+"""
+Модуль для експорту даних із бази SQLite у зручні формати (Excel / CSV).
+
+Цей модуль містить клас DataExporter, який вивантажує інформацію про відео 
+з бази даних, формує таблиці (DataFrame) за допомогою бібліотеки pandas
+та зберігає їх у файли Excel (.xlsx) або CSV.
+Також містить консольне меню для вибору каналів для експорту.
+"""
+
 import os
 import sys
 import subprocess
+import utils
 
 # --- АВТОМАТИЧНЕ НАЛАШТУВАННЯ СЕРЕДОВИЩА ---
-def setup_and_run_venv():
-    """Забезпечує створення venv та встановлення залежностей (pandas, openpyxl)."""
-    if os.environ.get("YOUTUBE_SCRAPER_VENV_ACTIVE") == "1":
-        return
-
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    venv_dir = os.path.join(script_dir, "venv_auto")
-    
-    if sys.platform == "win32":
-        python_exe = os.path.join(venv_dir, "Scripts", "python.exe")
-    else:
-        python_exe = os.path.join(venv_dir, "bin", "python")
-
-    if not os.path.exists(venv_dir):
-        print("[*] Ініціалізація: створюю ізольоване середовище...")
-        subprocess.run([sys.executable, "-m", "venv", venv_dir], check=True)
-    
-    # Перевіряємо залежності для експорту (pandas та openpyxl)
-    check_deps = subprocess.run([python_exe, "-c", "import pandas, openpyxl"], capture_output=True)
-    if check_deps.returncode != 0:
-        print("[*] Встановлюю залежності для експорту (pandas, openpyxl)...")
-        subprocess.run([python_exe, "-m", "pip", "install", "--upgrade", "pip"], stdout=subprocess.DEVNULL)
-        subprocess.run([python_exe, "-m", "pip", "install", "pandas", "openpyxl"])
-
-    env = os.environ.copy()
-    env["YOUTUBE_SCRAPER_VENV_ACTIVE"] = "1"
-    sys.exit(subprocess.call([python_exe, __file__] + sys.argv[1:], env=env))
-
-# Запуск автоналаштування
-setup_and_run_venv()
+# Запускаємо бутстрапер віртуального середовища з додатковими бібліотеками для роботи з таблицями.
+# Для експорту нам потрібні: pandas (для роботи з таблицями) та openpyxl (для запису файлів Excel).
+utils.setup_and_run_venv(__file__, ["pandas", "openpyxl"])
 # --- КІНЕЦЬ АВТОНАЛАШТУВАННЯ ---
 
 import argparse
 from datetime import datetime
 import pandas as pd
-import db_client
+from db_client import DatabaseClient
 
-def clear_screen():
-    """Очищає екран консолі."""
-    os.system('cls' if os.name == 'nt' else 'clear')
 
-def print_header():
-    """Виводить красиву шапку програми."""
-    print("=" * 60)
-    print(f"{'YOUTUBE SQLITE DB EXPORTER':^60}")
-    print("=" * 60)
-
-def get_channels_list():
-    """Повертає список каналів з бази даних разом із кількістю відео."""
-    conn = db_client.get_connection()
-    cursor = conn.cursor()
-    cursor.execute("""
-        SELECT c.channel_id, c.channel_name, c.channel_handle, COUNT(v.video_id) as video_count
-        FROM channels c
-        LEFT JOIN videos v ON c.channel_id = v.channel_id
-        GROUP BY c.channel_id
-        ORDER BY video_count DESC
-    """)
-    rows = cursor.fetchall()
-    conn.close()
-    return [dict(row) for row in rows]
-
-def export_data(channel_id=None, format_choice="xlsx", output_path=None):
+class DataExporter:
     """
-    Вивантажує дані з SQLite та зберігає у вказаному форматі.
-    channel_id: якщо None, то експортує ВСІ канали.
+    Клас для вивантаження даних із бази даних YouTube у зовнішні файли (Excel/CSV).
     """
-    db_client.init_db()  # перевірка ініціалізації
-    
-    conn = db_client.get_connection()
-    
-    query = """
-        SELECT 
-            v.video_id,
-            c.channel_name,
-            c.channel_handle,
-            v.title,
-            v.published_at as date,
-            v.view_count as views,
-            v.like_count as likes,
-            v.comment_count as comments,
-            v.duration as duration_sec,
-            v.description,
-            v.tags,
-            v.scraped_at
-        FROM videos v
-        JOIN channels c ON v.channel_id = c.channel_id
-    """
-    
-    params = []
-    if channel_id:
-        query += " WHERE v.channel_id = ?"
-        params.append(channel_id)
+
+    def __init__(self, db_client=None):
+        """
+        Ініціалізує експортер даних.
+
+        Параметри:
+            db_client (DatabaseClient, optional): Інстанція клієнта бази даних.
+                Якщо не вказано, створює новий DatabaseClient за замовчуванням.
+        """
+        if db_client is None:
+            self.db_client = DatabaseClient()
+        else:
+            self.db_client = db_client
+
+    def get_channels_list(self):
+        """
+        Отримує список усіх каналів, збережених у базі даних,
+        разом із кількістю відео для кожного каналу.
+
+        Повертає:
+            list: Список словників, де кожен словник містить:
+                - channel_id: ID каналу
+                - channel_name: Назва
+                - channel_handle: Нікнейм
+                - video_count: Кількість збережених відео
+        """
+        conn = self.db_client.get_connection()
+        cursor = conn.cursor()
         
-    query += " ORDER BY v.published_at DESC"
-    
-    df = pd.read_sql_query(query, conn, params=params)
-    conn.close()
-    
-    if df.empty:
-        print("[!] Не знайдено даних для експорту.")
-        return None
+        # Запит рахує кількість відео в таблиці videos для кожного каналу
+        cursor.execute("""
+            SELECT c.channel_id, c.channel_name, c.channel_handle, COUNT(v.video_id) as video_count
+            FROM channels c
+            LEFT JOIN videos v ON c.channel_id = v.channel_id
+            GROUP BY c.channel_id
+            ORDER BY video_count DESC
+        """)
+        rows = cursor.fetchall()
+        conn.close()
         
-    # Додаємо зручне посилання на відео
-    df.insert(1, "url", "https://www.youtube.com/watch?v=" + df["video_id"])
-    
-    # Формуємо дефолтне ім'я файлу, якщо шлях не передано
-    date_str = datetime.now().strftime("%d%m%Y")
-    
-    if not output_path:
+        # Перетворюємо sqlite3.Row в класичні словники
+        return [dict(row) for row in rows]
+
+    def export_data(self, channel_id=None, format_choice="xlsx", output_path=None):
+        """
+        Експортує відео з бази даних у Excel (.xlsx) та/каталог CSV (.csv).
+
+        Параметри:
+            channel_id (str, optional): ID каналу, який треба експортувати.
+                Якщо не вказано (None), експортуються відео ВСІХ каналів разом.
+            format_choice (str): Формат експорту. Може бути 'xlsx', 'csv' або 'both'.
+                За замовчуванням 'xlsx'.
+            output_path (str, optional): Шлях до папки чи конкретного файлу, куди зберегти результат.
+                Якщо не вказано, файл збережеться поруч зі скриптом із автоматичною назвою.
+
+        Повертає:
+            list: Список шляхів до успішно створених файлів.
+        """
+        # Ініціалізуємо базу даних (створюємо таблиці, якщо їх чомусь ще немає)
+        self.db_client.init_db()
+        
+        conn = self.db_client.get_connection()
+        
+        # Базовий SQL-запит для отримання даних про відео та відповідний канал
+        query = """
+            SELECT 
+                v.video_id,
+                c.channel_name,
+                c.channel_handle,
+                v.title,
+                v.published_at as date,
+                v.view_count as views,
+                v.like_count as likes,
+                v.comment_count as comments,
+                v.duration as duration_sec,
+                v.description,
+                v.tags,
+                v.scraped_at
+            FROM videos v
+            JOIN channels c ON v.channel_id = c.channel_id
+        """
+        
+        params = []
         if channel_id:
-            # беремо хендл або назву першого рядка
-            handle = df.iloc[0]["channel_handle"] or df.iloc[0]["channel_name"]
-            # очищаємо від пробілів та спецсимволів
-            safe_handle = "".join(c for c in handle if c.isalnum() or c in ['@', '_', '-'])
-            output_base = f"{safe_handle}_export_{date_str}"
-        else:
-            output_base = f"youtube_all_channels_{date_str}"
-    else:
-        # якщо передали директорію або повний шлях
-        if os.path.isdir(output_path):
-            if channel_id:
-                handle = df.iloc[0]["channel_handle"] or df.iloc[0]["channel_name"]
-                safe_handle = "".join(c for c in handle if c.isalnum() or c in ['@', '_', '-'])
-                output_base = os.path.join(output_path, f"{safe_handle}_export_{date_str}")
-            else:
-                output_base = os.path.join(output_path, f"youtube_all_channels_{date_str}")
-        else:
-            # якщо це файл, забираємо розширення
-            output_base, _ = os.path.splitext(output_path)
+            # Фільтруємо за конкретним каналом, якщо його вказали
+            query += " WHERE v.channel_id = ?"
+            params.append(channel_id)
             
-    exported_files = []
-    
-    # Експорт у вибрані формати
-    formats_to_save = []
-    if format_choice.lower() in ["csv", "both"]:
-        formats_to_save.append("csv")
-    if format_choice.lower() in ["xlsx", "excel", "both"]:
-        formats_to_save.append("xlsx")
+        # Сортуємо відео від найновіших до найстаріших за датою публікації
+        query += " ORDER BY v.published_at DESC"
         
-    for fmt in formats_to_save:
-        file_path = f"{output_base}.{fmt}"
-        try:
-            if fmt == "csv":
-                df.to_csv(file_path, index=False, encoding="utf-8-sig")
-            elif fmt == "xlsx":
-                df.to_excel(file_path, index=False)
-            print(f"[+] Дані успішно експортовано у: {file_path} ({len(df)} записів)")
-            exported_files.append(file_path)
-        except Exception as e:
-            print(f"[!] Помилка запису файлу {file_path}: {e}")
+        # Читаємо дані прямо в таблицю pandas (DataFrame)
+        df = pd.read_sql_query(query, conn, params=params)
+        conn.close()
+        
+        if df.empty:
+            print("[!] Не знайдено даних для експорту в базі даних.")
+            return None
             
-    return exported_files
+        # Додаємо зручну колонку з прямим посиланням на відео на YouTube
+        df.insert(1, "url", "https://www.youtube.com/watch?v=" + df["video_id"])
+        
+        # Визначаємо поточну дату для створення імені файлу
+        date_str = datetime.now().strftime("%d%m%Y")
+        
+        # Формуємо базове ім'я файлу без розширення
+        if not output_path:
+            if channel_id:
+                # Використовуємо нікнейм або назву каналу для імені файлу
+                handle = df.iloc[0]["channel_handle"] or df.iloc[0]["channel_name"]
+                # Очищаємо ім'я від спецсимволів
+                safe_handle = "".join(c for c in handle if c.isalnum() or c in ['@', '_', '-'])
+                output_base = f"{safe_handle}_export_{date_str}"
+            else:
+                output_base = f"youtube_all_channels_{date_str}"
+        else:
+            if os.path.isdir(output_path):
+                # Якщо вказана папка, створюємо файл всередині неї
+                if channel_id:
+                    handle = df.iloc[0]["channel_handle"] or df.iloc[0]["channel_name"]
+                    safe_handle = "".join(c for c in handle if c.isalnum() or c in ['@', '_', '-'])
+                    output_base = os.path.join(output_path, f"{safe_handle}_export_{date_str}")
+                else:
+                    output_base = os.path.join(output_path, f"youtube_all_channels_{date_str}")
+            else:
+                # Якщо вказаний безпосередній файл, відкидаємо розширення
+                output_base, _ = os.path.splitext(output_path)
+                
+        exported_files = []
+        
+        # Визначаємо, які саме файли треба створити
+        formats_to_save = []
+        if format_choice.lower() in ["csv", "both"]:
+            formats_to_save.append("csv")
+        if format_choice.lower() in ["xlsx", "excel", "both"]:
+            formats_to_save.append("xlsx")
+            
+        for fmt in formats_to_save:
+            file_path = f"{output_base}.{fmt}"
+            try:
+                if fmt == "csv":
+                    # utf-8-sig дозволяє Excel коректно відображати кирилицю в CSV
+                    df.to_csv(file_path, index=False, encoding="utf-8-sig")
+                elif fmt == "xlsx":
+                    df.to_excel(file_path, index=False)
+                print(f"[+] Дані успішно експортовано у: {file_path} ({len(df)} записів)")
+                exported_files.append(file_path)
+            except Exception as e:
+                print(f"[!] Помилка запису файлу {file_path}: {e}")
+                
+        return exported_files
+
 
 def main():
+    """Головна функція для запуску експорту через консоль."""
     parser = argparse.ArgumentParser(description="Експортує дані з SQLite у CSV чи Excel.")
     parser.add_argument("-c", "--channel-id", type=str, help="ID каналу для експорту (якщо не вказано і активовано --all, то експортує все)")
     parser.add_argument("-f", "--format", type=str, choices=["csv", "xlsx", "both"], default="xlsx", help="Формат файлу: csv, xlsx або both (за замовчуванням xlsx)")
@@ -167,22 +192,25 @@ def main():
     
     args = parser.parse_args()
     
+    db_client = DatabaseClient()
+    exporter = DataExporter(db_client)
+    
     try:
-        # 1. Автоматизований режим
+        # 1. Автоматизований (тихий) режим роботи (наприклад, для запусків по крону)
         if args.silent:
             if not args.all and not args.channel_id:
                 print("[!] Помилка: Вкажіть --channel-id або --all для тихого режиму.")
                 sys.exit(1)
-            export_data(channel_id=args.channel_id, format_choice=args.format, output_path=args.output)
+            exporter.export_data(channel_id=args.channel_id, format_choice=args.format, output_path=args.output)
             sys.exit(0)
             
-        # 2. Інтерактивний режим
-        clear_screen()
-        print_header()
+        # 2. Інтерактивний діалоговий режим
+        utils.clear_screen()
+        utils.print_header("YOUTUBE SQLITE DB EXPORTER")
         
-        channels = get_channels_list()
+        channels = exporter.get_channels_list()
         if not channels:
-            print("[!] База даних порожня. Немає чого експортувати.")
+            print("[!] База даних порожня. Немає даних для експорту.")
             print("[i] Спочатку збережіть відео за допомогою youtube_init_db.py")
             input("\nНатисніть Enter для виходу...")
             sys.exit(0)
@@ -197,6 +225,7 @@ def main():
         all_idx = len(channels) + 1
         print(f"  {all_idx:<3} | {'[Експортувати ВСІ відео разом]':<30} | {'-':<15} | {'-':<5}")
         
+        # Запитуємо користувача, який саме канал експортувати
         choice = input("\nОберіть канал для експорту (введіть номер):\n> ").strip()
         if not choice.isdigit():
             print("[!] Некоректний вибір. Вихід.")
@@ -213,6 +242,7 @@ def main():
             print("[!] Номер поза діапазоном. Вихід.")
             sys.exit(1)
             
+        # Запитуємо бажаний формат файлу
         print("\nОберіть формат:")
         print("  1. Excel (xlsx) - за замовчуванням")
         print("  2. CSV")
@@ -225,17 +255,18 @@ def main():
         elif fmt_choice == "3":
             fmt = "both"
             
-        # Експорт
-        exported = export_data(channel_id=selected_channel_id, format_choice=fmt, output_path=args.output)
+        # Виконуємо експорт
+        exported = exporter.export_data(channel_id=selected_channel_id, format_choice=fmt, output_path=args.output)
         
+        # Пропонуємо автоматично відкрити файл після збереження
         if exported:
             print("\nБажаєте відкрити експортований файл?")
-            print("  1. Так (Excel / системна програма за замовчуванням)")
+            print("  1. Так")
             print("  2. Ні")
             open_choice = input("Оберіть опцію [2]: ").strip()
             
             if open_choice == "1":
-                file_to_open = exported[0] # відкриваємо перший у списку
+                file_to_open = exported[0]  # Відкриваємо перший згенерований файл
                 if sys.platform == 'darwin':
                     subprocess.run(["open", file_to_open])
                 elif sys.platform == 'win32':
@@ -244,11 +275,12 @@ def main():
                     subprocess.run(["xdg-open", file_to_open])
                     
         input("\nЕкспорт завершено. Натисніть Enter для очищення терміналу...")
-        clear_screen()
+        utils.clear_screen()
         
     except KeyboardInterrupt:
         print("\n\n[!] Операцію скасовано користувачем. Вихід...")
         sys.exit(0)
+
 
 if __name__ == "__main__":
     main()

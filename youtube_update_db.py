@@ -1,21 +1,48 @@
+"""
+Модуль для швидкого інкрементального оновлення бази даних YouTube (youtube_update_db.py).
+
+Цей скрипт дозволяє швидко дозавантажувати найновіші відео для каналів, які вже
+є в базі даних. Він підтримує два способи оновлення:
+1. Через офіційне YouTube Data API v3 (якщо у вас є ключ API в змінній YOUTUBE_API_KEY).
+2. Через швидкий скрапінг останніх 20 відео за допомогою YouTubeScraperEngine (якщо ключа API немає).
+При скрапінгу використовуються загальні таймери, паузи та статистика з cli_progress.py.
+Написано простою мовою з детальними коментарями.
+"""
+
 import os
 import sys
+import time
 import json
 import argparse
 import requests
 import utils
-import db_client
-from scraper_engine import YouTubeScraperEngine
 
-# Запуск автоналаштування venv
+# Запуск автоналаштування venv для забезпечення наявності бібліотек yt-dlp та requests
 utils.setup_and_run_venv(__file__)
 
 import re
+from db_client import DatabaseClient
+from scraper_engine import YouTubeScraperEngine
+import cli_progress
+
+# Створюємо екземпляр клієнта бази даних
+db_client = DatabaseClient()
+
 
 def parse_iso8601_duration(duration_str):
-    """Перетворює ISO 8601 тривалість (наприклад, PT15M33S) у секунди."""
+    """
+    Перетворює рядок тривалості у форматі ISO 8601 (наприклад, PT15M33S) у секунди.
+    YouTube API повертає тривалість саме в такому форматі.
+
+    Параметри:
+        duration_str (str): Рядок тривалості, наприклад, "PT1H23M10S" (1 година 23 хв 10 сек).
+
+    Повертає:
+        int: Загальна тривалість відео у секундах.
+    """
     if not duration_str:
         return 0
+    # Регулярний вираз для пошуку годин (H), хвилин (M) та секунд (S)
     pattern = re.compile(r'PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?')
     match = pattern.match(duration_str)
     if not match:
@@ -25,8 +52,23 @@ def parse_iso8601_duration(duration_str):
     seconds = int(match.group(3) or 0)
     return hours * 3600 + minutes * 60 + seconds
 
+
 def update_channel_via_api(channel_id, api_key, known_ids, silent):
-    """Оновлює відео каналу через офіційне YouTube Data API v3."""
+    """
+    Отримує останні відео каналу через офіційне YouTube Data API v3.
+    Цей спосіб є найнадійнішим і найшвидшим.
+
+    Параметри:
+        channel_id (str): ID каналу на YouTube.
+        api_key (str): Ключ доступу до YouTube API.
+        known_ids (set): Набір вже відомих у базі ID відео, щоб не завантажувати їх повторно.
+        silent (bool): Чи працювати у тихому режимі.
+
+    Повертає:
+        int або None: Кількість доданих відео або None, якщо сталася помилка API.
+    """
+    # YouTube автоматично створює плейлист "uploads" для кожного каналу.
+    # Його ID формується заміною 'UC' в ID каналу на 'UU'
     uploads_playlist_id = "UU" + channel_id[2:] if channel_id.startswith("UC") else channel_id
     
     url = "https://www.googleapis.com/youtube/v3/playlistItems"
@@ -50,6 +92,7 @@ def update_channel_via_api(channel_id, api_key, known_ids, silent):
     new_video_ids = []
     video_map = {}
     
+    # Фільтруємо лише ті відео, яких ще немає у нашій базі даних
     for item in items:
         snippet = item.get("snippet", {})
         vid = snippet.get("resourceId", {}).get("videoId")
@@ -60,7 +103,7 @@ def update_channel_via_api(channel_id, api_key, known_ids, silent):
                 "channel_id": channel_id,
                 "title": snippet.get("title", "Без назви"),
                 "description": snippet.get("description", ""),
-                "published_at": snippet.get("publishedAt", "")[:10],
+                "published_at": snippet.get("publishedAt", "")[:10], # Залишаємо тільки дату YYYY-MM-DD
                 "duration": None,
                 "view_count": None,
                 "like_count": None,
@@ -71,6 +114,7 @@ def update_channel_via_api(channel_id, api_key, known_ids, silent):
     if not new_video_ids:
         return 0
         
+    # Робимо додатковий запит до API, щоб отримати статистику (перегляди, лайки) та тривалість для знайдених нових відео
     detail_url = "https://www.googleapis.com/youtube/v3/videos"
     for i in range(0, len(new_video_ids), 50):
         chunk_ids = new_video_ids[i:i+50]
@@ -97,82 +141,77 @@ def update_channel_via_api(channel_id, api_key, known_ids, silent):
                     tags = vd.get("snippet", {}).get("tags", [])
                     video_map[vid]["tags"] = ", ".join(tags) if tags else None
 
+    # Записуємо нові відео у базу даних SQLite
     db_client.add_or_update_videos(list(video_map.values()))
     return len(video_map)
 
+
 def update_channel_via_scraping(channel_id, known_ids, silent):
-    """Оновлює відео каналу через швидкий скрапінг yt-dlp (останні 20 відео)."""
+    """
+    Оновлює відео каналу через швидкий скрапінг за допомогою YouTubeScraperEngine (останні 20 відео).
+    Використовується, якщо немає ключа API.
+    Повністю інтегрований з таймером, паузою через Пробіл та статистикою.
+
+    Параметри:
+        channel_id (str): ID каналу.
+        known_ids (set): ID відомих відео.
+        silent (bool): Чи працювати у тихому режимі.
+
+    Повертає:
+        int: Кількість доданих нових відео.
+    """
     channel_url = f"https://www.youtube.com/channel/{channel_id}/videos"
-    cmd = [sys.executable, "-m", "yt_dlp", "--dump-json", "--playlist-end", "20", channel_url]
     
-    process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+    # Створюємо скрапер з лімітом 20 відео
+    scraper = YouTubeScraperEngine(channel_url, limit=20, silent=silent)
     
-    new_videos = []
-    checked_count = 0
-    for line in process.stdout:
-        if line.strip():
-            try:
-                v = json.loads(line)
-                vid = v.get("id")
-                checked_count += 1
-                
-                if not silent:
-                    sys.stdout.write(f"\r\033[K[*] Перевірено відео на каналі: {checked_count} / 20")
-                    sys.stdout.flush()
-                
-                if vid in known_ids:
-                    break
-                    
-                raw_date = str(v.get("upload_date", ""))
-                formatted_date = f"{raw_date[:4]}-{raw_date[4:6]}-{raw_date[6:]}" if len(raw_date) == 8 else None
-                
-                tags_list = v.get("tags") or []
-                tags_str = ", ".join(tags_list) if tags_list else None
-                
-                new_videos.append({
-                    "video_id": vid,
-                    "channel_id": channel_id,
-                    "title": v.get("title", "Без назви"),
-                    "description": v.get("description", ""),
-                    "published_at": formatted_date,
-                    "duration": v.get("duration"),
-                    "view_count": v.get("view_count"),
-                    "like_count": v.get("like_count"),
-                    "comment_count": v.get("comment_count"),
-                    "tags": tags_str
-                })
-            except Exception:
-                pass
-                
-    process.wait()
+    # Визначаємо час старту
+    start_time = time.time()
+    
+    # Підключаємо спільні калбеки прогресу та паузи
+    on_progress = cli_progress.make_progress_callback(None) if not silent else None
+    on_pause = cli_progress.make_pause_callback(channel_id, start_time, db_client) if not silent else None
+    
+    # Запускаємо скрапінг з параметром stop_on_known=True (зупинка при зустрічі відомого відео)
+    scraper.run_archive_scraping(
+        on_progress=on_progress,
+        on_pause=on_pause,
+        stop_on_known=True
+    )
+    
+    # Виводимо фінальний звіт про оновлення
     if not silent:
-        sys.stdout.write(f"\r\033[K[*] Перевірено відео на каналі: {checked_count} / 20\n")
+        cli_progress.print_final_report(scraper, channel_id, start_time, db_client)
         
-    if new_videos:
-        db_client.add_or_update_videos(new_videos)
-        
-    return len(new_videos)
+    return scraper.total_saved
+
 
 def run_update(target_channel_input=None, silent=False):
-    """Запускає процес оновлення бази даних."""
+    """
+    Запускає процес оновлення бази даних.
+    Оновлює або один вказаний канал, або всі канали, які вже є в базі.
+    """
     db_client.init_db()
     
     conn = db_client.get_connection()
     cursor = conn.cursor()
     
     if target_channel_input:
+        # Нормалізуємо та перевіряємо тільки один вказаний канал
         nickname, url = utils.normalize_url(target_channel_input)
         temp_engine = YouTubeScraperEngine(url, silent=True)
         info = temp_engine.fetch_channel_info()
         if not info or not info["channel_id"]:
-            print(f"[!] Помилка: Не вдалося знайти канал '{target_channel_input}'")
+            print(f"[!] Помилка: Не вдалося знайти канал за запитом '{target_channel_input}'")
             conn.close()
             return False
             
         channel_id = info["channel_id"]
+        # Зберігаємо оновлений канал
         db_client.add_or_update_channel(channel_id, info["channel_name"], nickname)
         channels_to_update = [{"channel_id": channel_id, "channel_name": info["channel_name"]}]
     else:
+        # Оновлюємо абсолютно всі канали, які є в базі
         cursor.execute("SELECT channel_id, channel_name FROM channels")
         channels_to_update = [dict(row) for row in cursor.fetchall()]
         
@@ -180,9 +219,10 @@ def run_update(target_channel_input=None, silent=False):
     
     if not channels_to_update:
         if not silent:
-            print("[!] База даних порожня. Будь ласка, спочатку ініціалізуйте хоча б один канал через youtube_init_db.py")
+            print("[!] База даних порожня. Спочатку додайте хоча б один канал через youtube_init_db.py")
         return False
         
+    # Шукаємо API-ключ у змінних оточення операційної системи
     api_key = os.environ.get("YOUTUBE_API_KEY")
     mode_str = "API" if api_key else "yt-dlp скрапінг (без API)"
     
@@ -198,22 +238,26 @@ def run_update(target_channel_input=None, silent=False):
         if not silent:
             print(f"[*] Оновлення каналу: {ch_name} ({ch_id})...")
             
+        # Завантажуємо вже відомі ID відео для цього каналу
         known_ids = db_client.get_known_video_ids(ch_id)
         
         added_count = None
         if api_key:
             try:
+                # Намагаємось оновити через офіційне API
                 added_count = update_channel_via_api(ch_id, api_key, known_ids, silent)
             except Exception as e:
                 if not silent:
-                    print(f"[!] API збій: {e}. Перехід на скрапінг...")
+                    print(f"[!] API збій: {e}. Перехід на звичайний скрапінг...")
                 added_count = None
                 
+        # Якщо ключа немає або API повернуло помилку, використовуємо скрапер з автоматичною зупинкою
         if added_count is None:
             added_count = update_channel_via_scraping(ch_id, known_ids, silent)
             
         if not silent:
             print(f"[+] Додано нових відео: {added_count}")
+            # Показуємо оновлену кількість відео в базі даних
             stats = db_client.get_channel_stats(ch_id)
             if stats:
                 print(f"[i] Всього відео в БД для цього каналу: {stats['video_count']}")
@@ -221,10 +265,12 @@ def run_update(target_channel_input=None, silent=False):
             
     return True
 
+
 def main():
+    """Точка входу для оновлення бази через консоль."""
     parser = argparse.ArgumentParser(description="Інкрементальне оновлення бази даних YouTube.")
     parser.add_argument("-c", "--channel", type=str, help="Оновити конкретний канал (посилання або @хендл). Якщо не вказано, оновлюються всі канали в базі.")
-    parser.add_argument("--cron", "--silent", action="store_true", help="Автоматизований тихий режим без запитів та очищення")
+    parser.add_argument("--cron", "--silent", action="store_true", help="Тихий автоматизований режим без запитів Enter")
     
     args = parser.parse_args()
     is_silent = args.cron or False
@@ -235,7 +281,6 @@ def main():
             sys.exit(0 if success else 1)
             
         utils.clear_screen()
-        # Друкуємо заголовок оновлювача
         print("=" * 60)
         print(f"{'YOUTUBE INCREMENTAL UPDATER (SQLITE)':^60}")
         print("=" * 60)
@@ -247,6 +292,7 @@ def main():
     except KeyboardInterrupt:
         print("\n\n[!] Процес перервано користувачем. Вихід...")
         sys.exit(0)
+
 
 if __name__ == "__main__":
     main()

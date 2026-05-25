@@ -51,10 +51,11 @@ def setup_and_run_venv(entry_script, required_libs=None):
     """
     if required_libs is None:
         required_libs = []
-        
+
     # Якщо прапорець YOUTUBE_SCRAPER_VENV_ACTIVE вже дорівнює "1",
     # це означає, що скрипт вже успішно перезапущений всередині venv. Виходимо з функції.
     if os.environ.get("YOUTUBE_SCRAPER_VENV_ACTIVE") == "1":
+        load_env()
         return
 
     # Визначаємо шлях до папки venv_auto (відносно директорії точки входу)

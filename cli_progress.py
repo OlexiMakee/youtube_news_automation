@@ -4,6 +4,7 @@
 Цей модуль дозволяє уніфікувати консольний вивід для скрапінгу історії
 та швидкого оновлення бази. Він містить функції для малювання плавного прогресу,
 детектування пауз і виведення детальних часових звітів із точністю до десятих частин секунди.
+У разі помилки відображає детальні логи збою для діагностики бот-блокувань.
 Написано простою мовою з детальними коментарями.
 """
 
@@ -119,15 +120,17 @@ def make_pause_callback(channel_id, start_time, db_client):
     return on_pause
 
 
-def print_final_report(scraper, channel_id, start_time, db_client):
+def print_final_report(scraper, channel_id, start_time, db_client, success=True):
     """
     Виводить підсумковий звіт про роботу скрапера на екрані.
+    Показує повідомлення про помилку, якщо успішність дорівнює False.
 
     Параметри:
         scraper (YouTubeScraperEngine): Скрапер.
         channel_id (str): ID каналу.
         start_time (float): Час запуску скрапінгу (timestamp).
         db_client (DatabaseClient): Клієнт бази даних.
+        success (bool): Результат виконання скрапінгу (True/False).
     """
     if not scraper.silent:
         # Затираємо прогрес-бар
@@ -135,7 +138,16 @@ def print_final_report(scraper, channel_id, start_time, db_client):
             sys.stdout.write(f"\r\033[K[*] Завантажено відео: {scraper.current_count}\n")
         else:
             sys.stdout.write(f"\r\033[K[*] Завантажено відео: {scraper.current_count} / {scraper.limit}\n")
-        print(f"[+] Успішно завершено! Всього збережено нових відео: {scraper.total_saved}")
+            
+        if not success:
+            print("\n" + "=" * 60)
+            print("[!] ПОМИЛКА: Процес збору даних перервався передчасно.")
+            print("Можливо, YouTube заблокував запити як бота (Bot Detection / Rate Limiting).")
+            if hasattr(scraper, "error_msg") and scraper.error_msg:
+                print(f"\nДеталі помилки з терміналу:\n{scraper.error_msg}")
+            print("=" * 60 + "\n")
+        else:
+            print(f"[+] Успішно завершено! Всього збережено нових відео: {scraper.total_saved}")
         
         # Отримуємо з бази інформацію про загальну кількість відео в каналі
         db_info = db_client.get_channel_video_info(channel_id)

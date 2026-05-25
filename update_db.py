@@ -173,7 +173,7 @@ def update_channel_via_scraping(channel_id, known_ids, silent):
     on_pause = cli_progress.make_pause_callback(channel_id, start_time, db_client) if not silent else None
     
     # Запускаємо скрапінг з параметром stop_on_known=True (зупинка при зустрічі відомого відео)
-    scraper.run_archive_scraping(
+    success = scraper.run_archive_scraping(
         on_progress=on_progress,
         on_pause=on_pause,
         stop_on_known=True
@@ -181,7 +181,7 @@ def update_channel_via_scraping(channel_id, known_ids, silent):
     
     # Виводимо фінальний звіт про оновлення
     if not silent:
-        cli_progress.print_final_report(scraper, channel_id, start_time, db_client)
+        cli_progress.print_final_report(scraper, channel_id, start_time, db_client, success=success)
         
     return scraper.total_saved
 

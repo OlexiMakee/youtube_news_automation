@@ -5,7 +5,8 @@
 та обрати режим збору історії відео:
 1. Завантажити останні N відео (наприклад, 2000).
 2. Завантажити відео починаючи з конкретної дати.
-Він також підтримує параметри командного рядка (наприклад: python init_db.py UATVEnglish 1 300).
+Він підтримує параметри командного рядка для зручності запуску 
+(наприклад: python init_db.py UATVEnglish 1 300).
 Спільна логіка прогресу, таймерів та паузи винесена в модуль cli_progress.py.
 Написано простою мовою з детальними коментарями для ентузіастів.
 """
@@ -34,7 +35,13 @@ def execute_scraping_flow(url, limit=2000, start_index=1, date_after=None, silen
     Основний робочий процес: ініціалізує двигун скрапера,
     підключає callback-функції та запускає збір даних.
     """
-    scraper = YouTubeScraperEngine(url, limit=limit, start_index=start_index, date_after=date_after, silent=silent)
+    scraper = YouTubeScraperEngine(
+        url, 
+        limit=limit, 
+        start_index=start_index, 
+        date_after=date_after, 
+        silent=silent
+    )
     
     # Отримуємо метадані каналу
     info = scraper.fetch_channel_info()
@@ -63,22 +70,22 @@ def execute_scraping_flow(url, limit=2000, start_index=1, date_after=None, silen
     on_pause = cli_progress.make_pause_callback(channel_id, start_time, db_client)
     
     # Запуск скрапінгу
-    scraper.run_archive_scraping(
+    success = scraper.run_archive_scraping(
         on_progress=on_progress,
         on_pause=on_pause
     )
     
     # Друкуємо фінальний звіт про процес
-    cli_progress.print_final_report(scraper, channel_id, start_time, db_client)
-    return True
+    cli_progress.print_final_report(scraper, channel_id, start_time, db_client, success=success)
+    return success
 
 
-def handle_args_mode(args):
+def handle_cli_mode(args):
     """
     Обробляє параметри, передані при запуску через термінал (наприклад: python init_db.py UATVEnglish 1 300).
     Здійснює перевірку на коректність параметрів та виводить зрозумілі повідомлення про помилки.
     """
-    channel_input = args[0]
+    channel_input = args.channel
     nickname, url = utils.normalize_url(channel_input)
     
     # Отримуємо інформацію про канал
@@ -92,46 +99,33 @@ def handle_args_mode(args):
     stats = db_client.get_channel_stats(channel_id)
     channel_exists = stats and stats.get("video_count", 0) > 0
     
-    mode = None
+    mode = args.mode
     limit = 2000
     date_after = None
     
-    # Перевіряємо другий аргумент (режим)
-    if len(args) > 1:
-        mode = args[1]
-        if mode not in ["1", "2"]:
-            print(f"[!] Помилка: Другий параметр (режим) має бути 1 або 2.")
-            print(f"    1 — скрапінг історії (лімітований кількістю відео)")
-            print(f"    2 — оновлення новішими відео (або за датою)")
-            sys.exit(1)
-            
-        # Перевіряємо третій аргумент (ліміт або дата)
-        if len(args) > 2:
-            val = args[2]
-            if mode == "1":
+    # Перевіряємо аргументи
+    if mode:
+        val = args.value
+        if mode == "1":
+            if val:
                 if not val.isdigit() or int(val) <= 0:
                     print(f"[!] Помилка: Третій параметр (ліміт записів) має бути позитивним числом.")
                     sys.exit(1)
                 limit = int(val)
-            elif mode == "2":
-                # Якщо канал новий — це має бути дата YYYYMMDD
-                if not channel_exists:
+            else:
+                print(f"[!] Помилка: Для режиму 1 необхідно вказати ліміт (третій параметр).")
+                sys.exit(1)
+        elif mode == "2":
+            if not channel_exists:
+                if val:
                     if not val.isdigit() or len(val) != 8:
                         print(f"[!] Помилка: Третій параметр (дата) має бути у форматі YYYYMMDD (наприклад, 20260101).")
                         sys.exit(1)
                     date_after = val
-        elif mode == "1":
-            print(f"[!] Помилка: Для режиму 1 необхідно вказати ліміт (третій параметр).")
-            sys.exit(1)
-        elif mode == "2" and not channel_exists:
-            print(f"[!] Помилка: Для нового каналу в режимі 2 необхідно вказати дату YYYYMMDD (третій параметр).")
-            sys.exit(1)
+                else:
+                    print(f"[!] Помилка: Для нового каналу в режимі 2 необхідно вказати дату YYYYMMDD (третій параметр).")
+                    sys.exit(1)
             
-    if len(args) > 3:
-        print(f"[!] Помилка: Занадто багато аргументів.")
-        print(f"    Використання: python init_db.py [канал] [режим: 1 або 2] [ліміт або дата]")
-        sys.exit(1)
-        
     # Запускаємо відповідний сценарій збору даних
     if channel_exists:
         if mode is None:
@@ -221,17 +215,8 @@ def run_interactive_flow_new_channel(url):
     execute_scraping_flow(url, limit=limit_val, date_after=date_val, silent=False)
 
 
-def main():
-    """Головний метод запуску програми."""
-    # Перевіряємо та створюємо таблиці при запуску
-    db_client.init_db()
-    
-    # 1. Якщо передано параметри командного рядка
-    if len(sys.argv) > 1:
-        handle_args_mode(sys.argv[1:])
-        return
-        
-    # 2. Інтерактивний ручний режим роботи
+def run_interactive_main():
+    """Основний цикл інтерактивної роботи."""
     try:
         while True:
             utils.clear_screen()
@@ -280,6 +265,23 @@ def main():
     except KeyboardInterrupt:
         print("\n\n[!] Процес перервано користувачем. Вихід...")
         sys.exit(0)
+
+
+def main():
+    """Розбір аргументів командного рядка та вибір режиму роботи."""
+    db_client.init_db()
+    
+    parser = argparse.ArgumentParser(description="Ініціалізація та збір історії каналу YouTube.")
+    parser.add_argument("channel", nargs="?", help="Посилання на YouTube канал або його @хендл")
+    parser.add_argument("mode", nargs="?", choices=["1", "2"], help="Режим роботи: 1 (ліміт) або 2 (за датою)")
+    parser.add_argument("value", nargs="?", help="Ліміт відео (число) або дата (YYYYMMDD)")
+    
+    args = parser.parse_args()
+    
+    if args.channel:
+        handle_cli_mode(args)
+    else:
+        run_interactive_main()
 
 
 if __name__ == "__main__":

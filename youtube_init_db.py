@@ -2,6 +2,11 @@ import os
 import sys
 import subprocess
 
+if sys.platform != "win32":
+    import termios
+    import tty
+    import select
+
 # --- АВТОМАТИЧНЕ НАЛАШТУВАННЯ СЕРЕДОВИЩА ---
 def setup_and_run_venv():
     """Забезпечує створення venv та встановлення залежностей (yt-dlp, requests)."""
@@ -51,6 +56,46 @@ def format_duration(seconds):
     mins = seconds_int // 60
     secs = seconds_int % 60
     return f"{mins}хв {secs}с"
+
+class KeypressDetector:
+    def __init__(self, active=True):
+        self.active = active and sys.platform != "win32" and sys.stdin.isatty()
+        if self.active:
+            try:
+                self.fd = sys.stdin.fileno()
+                self.old_settings = termios.tcgetattr(self.fd)
+                tty.setcbreak(self.fd)
+            except Exception:
+                self.active = False
+            
+    def check_space(self):
+        if sys.platform == "win32":
+            try:
+                import msvcrt
+                if msvcrt.kbhit():
+                    ch = msvcrt.getch()
+                    if ch == b' ':
+                        return True
+            except Exception:
+                pass
+            return False
+            
+        try:
+            rlist, _, _ = select.select([sys.stdin], [], [], 0)
+            if rlist:
+                ch = sys.stdin.read(1)
+                if ch == ' ':
+                    return True
+        except Exception:
+            pass
+        return False
+        
+    def restore(self):
+        if self.active:
+            try:
+                termios.tcsetattr(self.fd, termios.TCSADRAIN, self.old_settings)
+            except Exception:
+                pass
 
 def clear_screen():
     """Очищає екран консолі."""
@@ -197,8 +242,104 @@ def run_archive_scraping(url, limit=2000, start_index=1, date_after=None, silent
     last_added_time = start_time
     durations = []
     
+    # Ініціалізація детектора натискання пробілу
+    detector = KeypressDetector(not silent)
+    
     active = True
     while active:
+        # Перевіряємо натискання пробілу
+        if detector.check_space():
+            detector.restore()
+            
+            # Записуємо залишок з буфера перед паузою
+            if buffer:
+                db_client.add_or_update_videos(buffer)
+                total_saved += len(buffer)
+                buffer = []
+                
+            print(f"\n\n[i] Процес призупинено користувачем (натиснуто Пробіл).")
+            
+            # Отримуємо оновлені дані з бази даних
+            db_info = db_client.get_channel_video_info(channel_id)
+            if db_info:
+                print(f"[*] Поточний стан бази даних для каналу:")
+                print(f"    - Всього відео в базі:              {db_info['video_count']}")
+                if db_info['min_date'] and db_info['max_date']:
+                    print(f"    - Період публікацій у базі:         з {db_info['min_date']} по {db_info['max_date']}")
+            
+            # Виводимо статистику часу
+            total_elapsed = time.time() - start_time
+            if durations:
+                avg_duration = sum(durations) / len(durations)
+                min_duration = min(durations)
+                max_duration = max(durations)
+                print(f"[*] Поточна статистика часу скрапінгу:")
+                print(f"    - Загальний час процесу:            {format_duration(total_elapsed)}")
+                print(f"    - Середній час на один запис:        {avg_duration:.2f}с")
+                print(f"    - Мінімальний час на один запис:     {min_duration:.2f}с")
+                print(f"    - Максимальний час на один запис:    {max_duration:.2f}с")
+            print("-" * 60)
+            
+            # Меню дій
+            print("Оберіть дію:")
+            print("1. Продовжити")
+            print("2. Ввести іншу кількість записів")
+            print("3. Вийти")
+            
+            while True:
+                choice = input("\nВаш вибір (1, 2 або 3):\n> ").strip()
+                if choice in ["1", "2", "3"]:
+                    break
+                print("[!] Невірний вибір. Введіть 1, 2 або 3.")
+                
+            if choice == "1":
+                print("[*] Продовжуємо збір...")
+                detector = KeypressDetector(not silent)
+                last_added_time = time.time()
+            elif choice == "2":
+                while True:
+                    limit_str = input(f"\nВведіть новий ліміт кількості відео (зараз {limit}):\n> ").strip()
+                    if limit_str.isdigit():
+                        new_limit = int(limit_str)
+                        break
+                    print("[!] Будь ласка, введіть число.")
+                    
+                if new_limit <= current_count:
+                    print(f"[*] Новий ліміт ({new_limit}) досягнуто або перевищено (вже завантажено {current_count}). Завершення...")
+                    process.terminate()
+                    process.wait()
+                    active = False
+                else:
+                    # Зупиняємо поточний процес
+                    process.terminate()
+                    process.wait()
+                    
+                    # Перезапускаємо з новими параметрами
+                    limit = new_limit
+                    cmd = [sys.executable, "-m", "yt_dlp", "--dump-json", url]
+                    if date_after:
+                        cmd.extend(["--dateafter", date_after])
+                    else:
+                        cmd.extend(["--playlist-items", f"{start_index + current_count}-{start_index + limit - 1}"])
+                        
+                    process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+                    
+                    stdout_queue = queue.Queue()
+                    t = threading.Thread(target=reader_thread, args=(process.stdout, stdout_queue), daemon=True)
+                    t.start()
+                    
+                    print(f"[*] Ліміт змінено на {limit}. Продовжуємо збір з відео #{start_index + current_count}...")
+                    detector = KeypressDetector(not silent)
+                    last_added_time = time.time()
+            elif choice == "3":
+                print("[*] Завершення процесу...")
+                process.terminate()
+                process.wait()
+                active = False
+
+        if not active:
+            break
+
         got_new_item = False
         while True:
             try:
@@ -229,20 +370,21 @@ def run_archive_scraping(url, limit=2000, start_index=1, date_after=None, silent
             total_saved += len(buffer)
             buffer = []
             
-        # Оновлюємо статус на екрані з таймером (у форматі хвилин і секунд)
+        # Оновлюємо статус на екрані з таймером (з десятою часткою секунди)
         if not silent:
-            elapsed_sec = int(time.time() - last_added_time)
-            if elapsed_sec < 60:
-                time_str = f"{elapsed_sec}с"
+            elapsed = time.time() - last_added_time
+            if elapsed < 60:
+                time_str = f"{elapsed:.1f}с"
             else:
-                mins = elapsed_sec // 60
-                secs = elapsed_sec % 60
-                time_str = f"{mins}хв {secs}с"
+                mins = int(elapsed // 60)
+                secs = elapsed % 60
+                time_str = f"{mins}хв {secs:.1f}с"
                 
+            # Додаємо інструкцію про пробіл у рядок прогресу для зручності
             if date_after:
-                progress_str = f"\r\033[K[*] Завантажено відео: {current_count} (останнє додано: {time_str} тому)"
+                progress_str = f"\r\033[K[*] Завантажено відео: {current_count} (останнє: {time_str} тому) [Пробіл - пауза]"
             else:
-                progress_str = f"\r\033[K[*] Завантажено відео: {current_count} / {limit} (останнє додано: {time_str} тому)"
+                progress_str = f"\r\033[K[*] Завантажено відео: {current_count} / {limit} (останнє: {time_str} тому) [Пробіл - пауза]"
             sys.stdout.write(progress_str)
             sys.stdout.flush()
             
@@ -251,6 +393,7 @@ def run_archive_scraping(url, limit=2000, start_index=1, date_after=None, silent
             time.sleep(0.1)
             
     process.wait()
+    detector.restore()
     
     # Записуємо залишок з буфера
     if buffer:
@@ -264,6 +407,14 @@ def run_archive_scraping(url, limit=2000, start_index=1, date_after=None, silent
         else:
             sys.stdout.write(f"\r\033[K[*] Завантажено відео: {current_count} / {limit}\n")
         print(f"[+] Успішно завершено! Всього збережено нових відео: {total_saved}")
+        
+        # Отримуємо оновлені дані з бази даних
+        db_info = db_client.get_channel_video_info(channel_id)
+        if db_info:
+            print(f"[*] Стан бази даних для каналу:")
+            print(f"    - Всього відео в базі:              {db_info['video_count']}")
+            if db_info['min_date'] and db_info['max_date']:
+                print(f"    - Період публікацій у базі:         з {db_info['min_date']} по {db_info['max_date']}")
         
         # Виводимо статистику часу
         total_elapsed = time.time() - start_time
@@ -380,8 +531,17 @@ def main():
                         
                 run_archive_scraping(url, limit=limit_val, date_after=date_val, silent=False)
             
-            choice = input("\nБажаєте продовжити роботу з іншим каналом? (y/n): ").strip().lower()
-            if choice != 'y' and choice != 'у':
+            print("\nБажаєте продовжити роботу з іншим каналом?")
+            print("1. Так")
+            print("2. Ні")
+            
+            while True:
+                choice = input("\nВаш вибір (1 або 2):\n> ").strip()
+                if choice in ["1", "2"]:
+                    break
+                print("[!] Невірний вибір. Введіть 1 або 2.")
+                
+            if choice == "2":
                 clear_screen()
                 print("Дякуємо за використання YouTube Historical Scraper! До побачення.")
                 break

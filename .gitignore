@@ -39,3 +39,9 @@ __pycache__/
 *.njsproj
 *.sln
 *.swp
+
+# Environment variables
+.env
+
+# Build artifacts
+*.egg-info/

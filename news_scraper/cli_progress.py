@@ -30,12 +30,13 @@ def format_duration_tenths(seconds):
     return f"{mins}хв {secs:.1f}с"
 
 
-def make_progress_callback(date_after):
+def make_progress_callback(date_after, prefix=None):
     """
     Створює функцію зворотного зв'язку (callback) для відмальовки прогресу на екрані.
 
     Параметри:
         date_after (str): Дата-фільтр (якщо використовується збір після дати).
+        prefix (str, optional): Текстовий префікс для відображення перед прогресом.
 
     Повертає:
         callable: Функція прогресу.
@@ -44,12 +45,14 @@ def make_progress_callback(date_after):
         # Вираховуємо час з моменту завантаження останнього запису
         elapsed = time.time() - last_added_time
         time_str = format_duration_tenths(elapsed)
+        
+        prefix_part = f" {prefix}" if prefix else ""
             
         # Малюємо рядок прогресу з десятими частинами секунд
         if date_after:
-            progress_str = f"\r\033[K[*] Завантажено відео: {current_count} (останнє: {time_str} тому) [Пробіл - пауза]"
+            progress_str = f"\r\033[K[*]{prefix_part} Завантажено відео: {current_count} (останнє: {time_str} тому) [Пробіл - пауза]"
         else:
-            progress_str = f"\r\033[K[*] Завантажено відео: {current_count} / {limit} (останнє: {time_str} тому) [Пробіл - пауза]"
+            progress_str = f"\r\033[K[*]{prefix_part} Завантажено відео: {current_count} / {limit} (останнє: {time_str} тому) [Пробіл - пауза]"
         sys.stdout.write(progress_str)
         sys.stdout.flush()
     return on_progress

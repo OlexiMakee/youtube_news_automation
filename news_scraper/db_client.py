@@ -28,15 +28,41 @@ class DatabaseClient:
 
         Параметри:
             db_path (str, optional): Шлях до файлу бази даних.
-                Якщо не вказано, файл бази створюється поруч із цим скриптом.
+                Якщо не вказано, файл бази створюється в папці 'data' у корені проекту.
         """
+        self._conn = None  # Спільне з'єднання для контекстного менеджера
+
         if db_path is None:
-            # Визначаємо папку, в якій лежить цей скрипт
+            # Визначаємо папку, в якій лежить цей скрипт (news_scraper)
             script_dir = os.path.dirname(os.path.abspath(__file__))
-            # Формуємо повний шлях до файлу бази даних youtube_news.db
-            self.db_path = os.path.join(script_dir, DEFAULT_DB_NAME)
+            # Корінь проекту - на рівень вище
+            root_dir = os.path.dirname(script_dir)
+            # Папка для даних
+            data_dir = os.path.join(root_dir, "data")
+            os.makedirs(data_dir, exist_ok=True)
+            # Формуємо повний шлях до файлу бази даних youtube_news.db в папці data
+            self.db_path = os.path.join(data_dir, DEFAULT_DB_NAME)
         else:
             self.db_path = db_path
+            # Переконуємось, що папка для вказаного шляху існує
+            target_dir = os.path.dirname(self.db_path)
+            if target_dir:
+                os.makedirs(target_dir, exist_ok=True)
+
+    def __enter__(self):
+        """
+        Вхід у контекстний менеджер: відкриває спільне з'єднання.
+        """
+        self._conn = self.get_connection()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """
+        Вихід з контекстного менеджера: закриває спільне з'єднання.
+        """
+        if self._conn:
+            self._conn.close()
+            self._conn = None
 
     def get_connection(self):
         """
@@ -44,12 +70,25 @@ class DatabaseClient:
         
         Повертає:
             sqlite3.Connection: Об'єкт підключення до бази даних, 
-            налаштований на повернення рядків у вигляді словників (sqlite3.Row).
+            налаштований на повернення рядків у вигляді словників (sqlite3.Row)
+            та увімкнену підтримку FOREIGN KEY.
         """
+        if self._conn is not None:
+            return self._conn
+
         conn = sqlite3.connect(self.db_path)
+        # Увімкнення підтримки FOREIGN KEY для SQLite
+        conn.execute("PRAGMA foreign_keys = ON;")
         # Налаштовуємо з'єднання так, щоб ми могли звертатися до колонок за назвами, наприклад row['title']
         conn.row_factory = sqlite3.Row
         return conn
+
+    def close_connection(self, conn):
+        """
+        Закриває з'єднання з базою даних, якщо воно не є спільним активним з'єднанням.
+        """
+        if conn is not self._conn:
+            conn.close()
 
     def init_db(self):
         """
@@ -94,7 +133,7 @@ class DatabaseClient:
         """)
         
         conn.commit()
-        conn.close()
+        self.close_connection(conn)
 
     def add_or_update_channel(self, channel_id, channel_name, channel_handle):
         """
@@ -118,7 +157,7 @@ class DatabaseClient:
         """, (channel_id, channel_name, channel_handle))
         
         conn.commit()
-        conn.close()
+        self.close_connection(conn)
 
     def add_or_update_videos(self, videos):
         """
@@ -171,7 +210,7 @@ class DatabaseClient:
             ))
             
         conn.commit()
-        conn.close()
+        self.close_connection(conn)
 
     def get_known_video_ids(self, channel_id):
         """
@@ -188,7 +227,7 @@ class DatabaseClient:
         cursor = conn.cursor()
         cursor.execute("SELECT video_id FROM videos WHERE channel_id = ?", (channel_id,))
         rows = cursor.fetchall()
-        conn.close()
+        self.close_connection(conn)
         # Перетворюємо список рядків на множину для миттєвої перевірки через оператор "in"
         return {row['video_id'] for row in rows}
 
@@ -213,7 +252,7 @@ class DatabaseClient:
         GROUP BY c.channel_id
         """, (channel_id,))
         row = cursor.fetchone()
-        conn.close()
+        self.close_connection(conn)
         return dict(row) if row else None
 
     def get_channel_video_info(self, channel_id):
@@ -235,7 +274,7 @@ class DatabaseClient:
         WHERE channel_id = ?
         """, (channel_id,))
         row = cursor.fetchone()
-        conn.close()
+        self.close_connection(conn)
         
         if row and row['video_count'] > 0:
             return {

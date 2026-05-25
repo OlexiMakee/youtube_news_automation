@@ -12,6 +12,32 @@ import sys
 import subprocess
 
 
+def load_env(env_path=None):
+    """
+    Зчитує файл .env у корені проекту та додає змінні до os.environ.
+    Це дозволяє уникнути потреби у сторонніх бібліотеках (наприклад, python-dotenv).
+    
+    Параметри:
+        env_path (str, optional): Абсолютний шлях до файлу .env.
+    """
+    if env_path is None:
+        # Шукаємо .env в директорії на рівень вище ніж цей файл (корінь проекту)
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        env_path = os.path.join(os.path.dirname(current_dir), ".env")
+        
+    if os.path.exists(env_path):
+        with open(env_path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                if "=" in line:
+                    key, val = line.split("=", 1)
+                    # Видаляємо пробіли та лапки навколо значення
+                    val = val.strip().strip("'\"")
+                    os.environ[key.strip()] = val
+
+
 def setup_and_run_venv(entry_script, required_libs=None):
     """
     Автоматично створює віртуальне середовище Python (папку venv_auto) та встановлює
@@ -44,11 +70,35 @@ def setup_and_run_venv(entry_script, required_libs=None):
     # Якщо папки venv_auto ще немає, створюємо її
     if not os.path.exists(venv_dir):
         print("[*] Ініціалізація: створюю ізольоване середовище...")
-        subprocess.run([sys.executable, "-m", "venv", venv_dir], check=True)
+        try:
+            subprocess.run([sys.executable, "-m", "venv", venv_dir], check=True)
+        except subprocess.CalledProcessError:
+            print("[!] Попередження: Не вдалося створити venv за замовчуванням (можливо, через збій ensurepip).")
+            print("[*] Спроба створення середовища без вбудованого pip...")
+            subprocess.run([sys.executable, "-m", "venv", "--without-pip", venv_dir], check=True)
+            
+            # Завантажуємо та запускаємо get-pip.py для встановлення pip вручну
+            get_pip_path = os.path.join(venv_dir, "get-pip.py")
+            print("[*] Завантаження get-pip.py для встановлення pip...")
+            try:
+                import urllib.request
+                urllib.request.urlretrieve("https://bootstrap.pypa.io/get-pip.py", get_pip_path)
+                print("[*] Встановлення pip у віртуальному середовищі...")
+                subprocess.run([python_exe, get_pip_path], check=True)
+            except Exception as pip_err:
+                print(f"[!] Помилка встановлення pip: {pip_err}")
+                raise pip_err
+            finally:
+                if os.path.exists(get_pip_path):
+                    try:
+                        os.remove(get_pip_path)
+                    except Exception:
+                        pass
     
-    # Перевіряємо, чи встановлений наш пакет news_scraper та додаткові бібліотеки
-    libs_to_check = ["news_scraper"] + required_libs
-    libs_check_str = "import " + ", ".join(libs_to_check)
+    # Перевіряємо, чи встановлений наш пакет news_scraper, його залежності та додаткові бібліотеки
+    libs_to_check = ["yt_dlp", "requests", "news_scraper"] + required_libs
+    # Спробуємо імпортувати кожну бібліотеку
+    libs_check_str = "; ".join(f"import {lib}" for lib in libs_to_check)
     check_deps = subprocess.run([python_exe, "-c", libs_check_str], capture_output=True)
     
     # Якщо перевірка не пройшла (returncode != 0), встановлюємо пакет та залежності
@@ -56,7 +106,7 @@ def setup_and_run_venv(entry_script, required_libs=None):
         print("[*] Налаштування середовища та встановлення пакетів...")
         try:
             # Оновлюємо pip (ігноруючи вивід)
-            subprocess.run([python_exe, "-m", "pip", "install", "--upgrade", "pip"], stdout=subprocess.DEVNULL)
+            subprocess.run([python_exe, "-m", "pip", "--version"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         except Exception:
             pass
             

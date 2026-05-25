@@ -1,414 +1,94 @@
 import os
 import sys
-import subprocess
-
-if sys.platform != "win32":
-    import termios
-    import tty
-    import select
-
-# --- АВТОМАТИЧНЕ НАЛАШТУВАННЯ СЕРЕДОВИЩА ---
-def setup_and_run_venv():
-    """Забезпечує створення venv та встановлення залежностей (yt-dlp, requests)."""
-    if os.environ.get("YOUTUBE_SCRAPER_VENV_ACTIVE") == "1":
-        return
-
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    venv_dir = os.path.join(script_dir, "venv_auto")
-    
-    if sys.platform == "win32":
-        python_exe = os.path.join(venv_dir, "Scripts", "python.exe")
-    else:
-        python_exe = os.path.join(venv_dir, "bin", "python")
-
-    if not os.path.exists(venv_dir):
-        print("[*] Ініціалізація: створюю ізольоване середовище...")
-        subprocess.run([sys.executable, "-m", "venv", venv_dir], check=True)
-    
-    # Перевіряємо залежності (yt-dlp та requests)
-    check_deps = subprocess.run([python_exe, "-c", "import yt_dlp, requests"], capture_output=True)
-    if check_deps.returncode != 0:
-        print("[*] Встановлюю залежності (yt-dlp, requests)...")
-        subprocess.run([python_exe, "-m", "pip", "install", "--upgrade", "pip"], stdout=subprocess.DEVNULL)
-        subprocess.run([python_exe, "-m", "pip", "install", "yt-dlp", "requests"])
-
-    env = os.environ.copy()
-    env["YOUTUBE_SCRAPER_VENV_ACTIVE"] = "1"
-    sys.exit(subprocess.call([python_exe, __file__] + sys.argv[1:], env=env))
-
-# Запуск автоналаштування
-setup_and_run_venv()
-# --- КІНЕЦЬ АВТОНАЛАШТУВАННЯ ---
-
+import time
 import json
 import argparse
-import queue
-import threading
-import time
-from datetime import datetime
+import utils
+
+# Запуск автоналаштування віртуального середовища
+utils.setup_and_run_venv(__file__)
+
 import db_client
+from scraper_engine import YouTubeScraperEngine
 
-def format_duration(seconds):
-    """Форматує секунди у зручний для читання вигляд (хвилини та секунди)."""
-    seconds_int = int(seconds)
-    if seconds_int < 60:
-        return f"{seconds_int}с"
-    mins = seconds_int // 60
-    secs = seconds_int % 60
-    return f"{mins}хв {secs}с"
-
-class KeypressDetector:
-    def __init__(self, active=True):
-        self.active = active and sys.platform != "win32" and sys.stdin.isatty()
-        if self.active:
-            try:
-                self.fd = sys.stdin.fileno()
-                self.old_settings = termios.tcgetattr(self.fd)
-                tty.setcbreak(self.fd)
-            except Exception:
-                self.active = False
-            
-    def check_space(self):
-        if sys.platform == "win32":
-            try:
-                import msvcrt
-                if msvcrt.kbhit():
-                    ch = msvcrt.getch()
-                    if ch == b' ':
-                        return True
-            except Exception:
-                pass
-            return False
-            
-        try:
-            rlist, _, _ = select.select([sys.stdin], [], [], 0)
-            if rlist:
-                ch = sys.stdin.read(1)
-                if ch == ' ':
-                    return True
-        except Exception:
-            pass
-        return False
-        
-    def restore(self):
-        if self.active:
-            try:
-                termios.tcsetattr(self.fd, termios.TCSADRAIN, self.old_settings)
-            except Exception:
-                pass
-
-def clear_screen():
-    """Очищає екран консолі."""
-    os.system('cls' if os.name == 'nt' else 'clear')
-
-def print_header():
-    """Виводить красиву шапку програми."""
-    print("=" * 60)
-    print(f"{'YOUTUBE HISTORICAL SCRAPER (SQLITE)':^60}")
-    print("=" * 60)
-
-def normalize_url(user_input):
-    """
-    Нормалізує ввід користувача у валідний URL каналу та визначає нікнейм/хендл.
-    Повертає кортеж (nickname, url)
-    """
-    user_input = user_input.strip()
-    if not user_input:
-        return None, None
-        
-    nickname = None
-    url = user_input
-    
-    if user_input.startswith("@"):
-        nickname = user_input
-        url = f"https://www.youtube.com/{nickname}/videos"
-    elif "youtube.com/" in user_input:
-        if "/@" in user_input:
-            parts = user_input.split("/@")
-            if len(parts) > 1:
-                nickname_part = parts[1].split("/")[0]
-                nickname = f"@{nickname_part}"
-        if not user_input.endswith("/videos"):
-            if user_input.endswith("/"):
-                url = user_input + "videos"
-            else:
-                url = user_input + "/videos"
-    else:
-        nickname = f"@{user_input}"
-        url = f"https://www.youtube.com/{nickname}/videos"
-        
-    return nickname, url
-
-def fetch_channel_info(url):
-    """Швидко отримує загальні метадані про канал через yt-dlp."""
-    print("[*] Отримання метаданих каналу...")
-    cmd = [sys.executable, "-m", "yt_dlp", "--dump-single-json", "--flat-playlist", "--playlist-end", "1", url]
-    result = subprocess.run(cmd, capture_output=True, text=True)
-    
-    if result.returncode != 0:
-        return None
-        
-    try:
-        data = json.loads(result.stdout.strip())
-        channel_name = data.get("uploader") or data.get("channel") or "Невідомий канал"
-        channel_id = data.get("channel_id") or data.get("uploader_id")
-        
-        # Визначаємо хендл
-        uploader_url = data.get("uploader_url") or ""
-        channel_handle = None
-        if "/@" in uploader_url:
-            channel_handle = "@" + uploader_url.split("/@")[1].split("/")[0]
-            
-        return {
-            "channel_id": channel_id,
-            "channel_name": channel_name,
-            "channel_handle": channel_handle
-        }
-    except Exception:
-        return None
-
-def parse_video_data(v, channel_id):
-    """Перетворює JSON від yt-dlp у структуру для SQLite."""
-    # Форматування дати YYYYMMDD -> YYYY-MM-DD
-    raw_date = str(v.get("upload_date", ""))
-    formatted_date = f"{raw_date[:4]}-{raw_date[4:6]}-{raw_date[6:]}" if len(raw_date) == 8 else None
-    
-    # Теги зливаємо в один рядок через кому
-    tags_list = v.get("tags") or []
-    tags_str = ", ".join(tags_list) if tags_list else None
-
-    return {
-        "video_id": v.get("id"),
-        "channel_id": channel_id,
-        "title": v.get("title", "Без назви"),
-        "description": v.get("description", ""),
-        "published_at": formatted_date,
-        "duration": v.get("duration"),
-        "view_count": v.get("view_count"),
-        "like_count": v.get("like_count"),
-        "comment_count": v.get("comment_count"),
-        "tags": tags_str
-    }
-
-def run_archive_scraping(url, limit=2000, start_index=1, date_after=None, silent=False):
-    """Запускає повний скрапінг історії каналу та зберігає у БД SQLite."""
-    # 1. Ініціалізація бази даних
-    db_client.init_db()
-    
-    # 2. Отримання інфо про канал
-    channel_info = fetch_channel_info(url)
-    if not channel_info or not channel_info["channel_id"]:
-        print("[!] Помилка: Не вдалося отримати ідентифікатор каналу. Перевірте посилання.")
-        return False
-        
-    channel_id = channel_info["channel_id"]
-    channel_name = channel_info["channel_name"]
-    channel_handle = channel_info["channel_handle"]
-    
-    # Зберігаємо канал в базу
-    db_client.add_or_update_channel(channel_id, channel_name, channel_handle)
-    
-    if not silent:
-        print("-" * 60)
-        print(f"Канал:        {channel_name} ({channel_handle or 'без хендлу'})")
-        print(f"ID каналу:    {channel_id}")
-        print("-" * 60)
-        print(f"[*] Починаю завантаження історії відео (діапазон: з {start_index} по {start_index + limit - 1})...")
-
-    # 3. Збір відео
-    cmd = [sys.executable, "-m", "yt_dlp", "--dump-json", url]
-    if date_after:
-        cmd.extend(["--dateafter", date_after])
-    else:
-        cmd.extend(["--playlist-items", f"{start_index}-{start_index + limit - 1}"])
-        
-    process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
-    
-    # Черга та фоновий потік для неблокуючого зчитування
-    stdout_queue = queue.Queue()
-    
-    def reader_thread(stream, q):
-        for line in stream:
-            q.put(line)
-        q.put(None)  # маркер завершення
-        
-    t = threading.Thread(target=reader_thread, args=(process.stdout, stdout_queue), daemon=True)
-    t.start()
-    
-    buffer = []
-    total_saved = 0
-    current_count = 0
-    start_time = time.time()
-    last_added_time = start_time
-    durations = []
-    
-    # Ініціалізація детектора натискання пробілу
-    detector = KeypressDetector(not silent)
-    
-    active = True
-    while active:
-        # Перевіряємо натискання пробілу
-        if detector.check_space():
-            detector.restore()
-            
-            # Записуємо залишок з буфера перед паузою
-            if buffer:
-                db_client.add_or_update_videos(buffer)
-                total_saved += len(buffer)
-                buffer = []
-                
-            print(f"\n\n[i] Процес призупинено користувачем (натиснуто Пробіл).")
-            
-            # Отримуємо оновлені дані з бази даних
-            db_info = db_client.get_channel_video_info(channel_id)
-            if db_info:
-                print(f"[*] Поточний стан бази даних для каналу:")
-                print(f"    - Всього відео в базі:              {db_info['video_count']}")
-                if db_info['min_date'] and db_info['max_date']:
-                    print(f"    - Період публікацій у базі:         з {db_info['min_date']} по {db_info['max_date']}")
-            
-            # Виводимо статистику часу
-            total_elapsed = time.time() - start_time
-            if durations:
-                avg_duration = sum(durations) / len(durations)
-                min_duration = min(durations)
-                max_duration = max(durations)
-                print(f"[*] Поточна статистика часу скрапінгу:")
-                print(f"    - Загальний час процесу:            {format_duration(total_elapsed)}")
-                print(f"    - Середній час на один запис:        {avg_duration:.2f}с")
-                print(f"    - Мінімальний час на один запис:     {min_duration:.2f}с")
-                print(f"    - Максимальний час на один запис:    {max_duration:.2f}с")
-            print("-" * 60)
-            
-            # Меню дій
-            print("Оберіть дію:")
-            print("1. Продовжити")
-            print("2. Ввести іншу кількість записів")
-            print("3. Вийти")
-            
-            while True:
-                choice = input("\nВаш вибір (1, 2 або 3):\n> ").strip()
-                if choice in ["1", "2", "3"]:
-                    break
-                print("[!] Невірний вибір. Введіть 1, 2 або 3.")
-                
-            if choice == "1":
-                print("[*] Продовжуємо збір...")
-                detector = KeypressDetector(not silent)
-                last_added_time = time.time()
-            elif choice == "2":
-                while True:
-                    limit_str = input(f"\nВведіть новий ліміт кількості відео (зараз {limit}):\n> ").strip()
-                    if limit_str.isdigit():
-                        new_limit = int(limit_str)
-                        break
-                    print("[!] Будь ласка, введіть число.")
-                    
-                if new_limit <= current_count:
-                    print(f"[*] Новий ліміт ({new_limit}) досягнуто або перевищено (вже завантажено {current_count}). Завершення...")
-                    process.terminate()
-                    process.wait()
-                    active = False
-                else:
-                    # Зупиняємо поточний процес
-                    process.terminate()
-                    process.wait()
-                    
-                    # Перезапускаємо з новими параметрами
-                    limit = new_limit
-                    cmd = [sys.executable, "-m", "yt_dlp", "--dump-json", url]
-                    if date_after:
-                        cmd.extend(["--dateafter", date_after])
-                    else:
-                        cmd.extend(["--playlist-items", f"{start_index + current_count}-{start_index + limit - 1}"])
-                        
-                    process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
-                    
-                    stdout_queue = queue.Queue()
-                    t = threading.Thread(target=reader_thread, args=(process.stdout, stdout_queue), daemon=True)
-                    t.start()
-                    
-                    print(f"[*] Ліміт змінено на {limit}. Продовжуємо збір з відео #{start_index + current_count}...")
-                    detector = KeypressDetector(not silent)
-                    last_added_time = time.time()
-            elif choice == "3":
-                print("[*] Завершення процесу...")
-                process.terminate()
-                process.wait()
-                active = False
-
-        if not active:
-            break
-
-        got_new_item = False
-        while True:
-            try:
-                line = stdout_queue.get_nowait()
-                if line is None:
-                    active = False
-                    break
-                line_str = line.strip()
-                if line_str:
-                    try:
-                        raw_v = json.loads(line_str)
-                        parsed_v = parse_video_data(raw_v, channel_id)
-                        buffer.append(parsed_v)
-                        current_count += 1
-                        got_new_item = True
-                        
-                        now = time.time()
-                        durations.append(now - last_added_time)
-                        last_added_time = now
-                    except Exception:
-                        pass
-            except queue.Empty:
-                break
-                
-        # Записуємо в базу порціями по 50 для надійності та швидкості
-        if len(buffer) >= 50:
-            db_client.add_or_update_videos(buffer)
-            total_saved += len(buffer)
-            buffer = []
-            
-        # Оновлюємо статус на екрані з таймером (з десятою часткою секунди)
-        if not silent:
-            elapsed = time.time() - last_added_time
-            if elapsed < 60:
-                time_str = f"{elapsed:.1f}с"
-            else:
-                mins = int(elapsed // 60)
-                secs = elapsed % 60
-                time_str = f"{mins}хв {secs:.1f}с"
-                
-            # Додаємо інструкцію про пробіл у рядок прогресу для зручності
-            if date_after:
-                progress_str = f"\r\033[K[*] Завантажено відео: {current_count} (останнє: {time_str} тому) [Пробіл - пауза]"
-            else:
-                progress_str = f"\r\033[K[*] Завантажено відео: {current_count} / {limit} (останнє: {time_str} тому) [Пробіл - пауза]"
-            sys.stdout.write(progress_str)
-            sys.stdout.flush()
-            
-        # Затримка для плавного оновлення таймера
-        if active and not got_new_item:
-            time.sleep(0.1)
-            
-    process.wait()
-    detector.restore()
-    
-    # Записуємо залишок з буфера
-    if buffer:
-        db_client.add_or_update_videos(buffer)
-        total_saved += len(buffer)
-        buffer = []
-        
-    if not silent:
-        if date_after:
-            sys.stdout.write(f"\r\033[K[*] Завантажено відео: {current_count}\n")
+def make_progress_callback(date_after):
+    """Створює callback-функцію для оновлення прогресу в консолі."""
+    def on_progress(current_count, limit, last_added_time):
+        elapsed = time.time() - last_added_time
+        if elapsed < 60:
+            time_str = f"{elapsed:.1f}с"
         else:
-            sys.stdout.write(f"\r\033[K[*] Завантажено відео: {current_count} / {limit}\n")
-        print(f"[+] Успішно завершено! Всього збережено нових відео: {total_saved}")
+            mins = int(elapsed // 60)
+            secs = elapsed % 60
+            time_str = f"{mins}хв {secs:.1f}с"
+            
+        if date_after:
+            progress_str = f"\r\033[K[*] Завантажено відео: {current_count} (останнє: {time_str} тому) [Пробіл - пауза]"
+        else:
+            progress_str = f"\r\033[K[*] Завантажено відео: {current_count} / {limit} (останнє: {time_str} тому) [Пробіл - пауза]"
+        sys.stdout.write(progress_str)
+        sys.stdout.flush()
+    return on_progress
+
+def make_pause_callback(channel_id, start_time):
+    """Створює callback-функцію для обробки паузи в консолі."""
+    def on_pause(scraper):
+        print(f"\n\n[i] Процес призупинено користувачем (натиснуто Пробіл).")
         
-        # Отримуємо оновлені дані з бази даних
+        db_info = db_client.get_channel_video_info(channel_id)
+        if db_info:
+            print(f"[*] Поточний стан бази даних для каналу:")
+            print(f"    - Всього відео в базі:              {db_info['video_count']}")
+            if db_info['min_date'] and db_info['max_date']:
+                print(f"    - Період публікацій у базі:         з {db_info['min_date']} по {db_info['max_date']}")
+        
+        total_elapsed = time.time() - start_time
+        if scraper.durations:
+            avg_duration = sum(scraper.durations) / len(scraper.durations)
+            min_duration = min(scraper.durations)
+            max_duration = max(scraper.durations)
+            print(f"[*] Поточна статистика часу скрапінгу:")
+            print(f"    - Загальний час процесу:            {utils.format_duration(total_elapsed)}")
+            print(f"    - Середній час на один запис:        {avg_duration:.2f}с")
+            print(f"    - Мінімальний час на один запис:     {min_duration:.2f}с")
+            print(f"    - Максимальний час на один запис:    {max_duration:.2f}с")
+        print("-" * 60)
+        
+        print("Оберіть дію:")
+        print("1. Продовжити")
+        print("2. Ввести іншу кількість записів")
+        print("3. Вийти")
+        
+        while True:
+            choice = input("\nВаш вибір (1, 2 або 3):\n> ").strip()
+            if choice in ["1", "2", "3"]:
+                break
+            print("[!] Невірний вибір. Введіть 1, 2 або 3.")
+            
+        if choice == "1":
+            print("[*] Продовжуємо збір...")
+            return 1
+        elif choice == "2":
+            while True:
+                limit_str = input(f"\nВведіть новий ліміт кількості відео (зараз {scraper.limit}):\n> ").strip()
+                if limit_str.isdigit():
+                    new_limit = int(limit_str)
+                    return (2, new_limit)
+                print("[!] Будь ласка, введіть число.")
+        elif choice == "3":
+            print("[*] Завершення процесу...")
+            return 3
+    return on_pause
+
+def print_final_report(scraper, channel_id, start_time):
+    """Виводить фінальний звіт на екрані."""
+    if not scraper.silent:
+        if scraper.date_after:
+            sys.stdout.write(f"\r\033[K[*] Завантажено відео: {scraper.current_count}\n")
+        else:
+            sys.stdout.write(f"\r\033[K[*] Завантажено відео: {scraper.current_count} / {scraper.limit}\n")
+        print(f"[+] Успішно завершено! Всього збережено нових відео: {scraper.total_saved}")
+        
         db_info = db_client.get_channel_video_info(channel_id)
         if db_info:
             print(f"[*] Стан бази даних для каналу:")
@@ -416,120 +96,226 @@ def run_archive_scraping(url, limit=2000, start_index=1, date_after=None, silent
             if db_info['min_date'] and db_info['max_date']:
                 print(f"    - Період публікацій у базі:         з {db_info['min_date']} по {db_info['max_date']}")
         
-        # Виводимо статистику часу
         total_elapsed = time.time() - start_time
-        if durations:
-            avg_duration = sum(durations) / len(durations)
-            min_duration = min(durations)
-            max_duration = max(durations)
+        if scraper.durations:
+            avg_duration = sum(scraper.durations) / len(scraper.durations)
+            min_duration = min(scraper.durations)
+            max_duration = max(scraper.durations)
             print(f"[*] Статистика часу скрапінгу:")
-            print(f"    - Загальний час процесу:            {format_duration(total_elapsed)}")
+            print(f"    - Загальний час процесу:            {utils.format_duration(total_elapsed)}")
             print(f"    - Середній час на один запис:        {avg_duration:.2f}с")
             print(f"    - Мінімальний час на один запис:     {min_duration:.2f}с")
             print(f"    - Максимальний час на один запис:    {max_duration:.2f}с")
         print("-" * 60)
+
+def execute_scraping_flow(url, limit=2000, start_index=1, date_after=None, silent=False):
+    """Створює скрапер, прив'язує callbacks та запускає процес."""
+    scraper = YouTubeScraperEngine(url, limit=limit, start_index=start_index, date_after=date_after, silent=silent)
+    
+    # Швидко отримуємо інформацію про канал перед запуском
+    info = scraper.fetch_channel_info()
+    if not info or not info["channel_id"]:
+        print("[!] Помилка: Не вдалося отримати ідентифікатор каналу. Перевірте посилання.")
+        return False
         
+    channel_id = info["channel_id"]
+    channel_name = info["channel_name"]
+    channel_handle = info["channel_handle"]
+    
+    if not silent:
+        print("-" * 60)
+        print(f"Канал:        {channel_name} ({channel_handle or 'без хендлу'})")
+        print(f"ID каналу:    {channel_id}")
+        print("-" * 60)
+        if date_after:
+            print(f"[*] Починаю завантаження історії відео після дати {date_after}...")
+        else:
+            print(f"[*] Починаю завантаження історії відео (діапазон: з {start_index} по {start_index + limit - 1})...")
+
+    start_time = time.time()
+    
+    # Запускаємо процес скрапінгу
+    scraper.run_archive_scraping(
+        on_progress=make_progress_callback(date_after),
+        on_pause=make_pause_callback(channel_id, start_time)
+    )
+    
+    print_final_report(scraper, channel_id, start_time)
     return True
 
-def main():
-    parser = argparse.ArgumentParser(description="Ініціалізація бази даних YouTube каналу.")
-    parser.add_argument("-c", "--channel", type=str, help="Посилання на YouTube канал або його @хендл")
-    parser.add_argument("-s", "--silent", action="store_true", help="Тихий автоматизований режим без інтерактивних запитів")
-    parser.add_argument("-l", "--limit", type=int, default=2000, help="Максимальна кількість відео для історичного архіву (за замовчуванням 2000)")
-    parser.add_argument("-d", "--date-after", type=str, help="Збирати відео тільки після цієї дати (формат YYYYMMDD)")
+def handle_args_mode(args):
+    """Обробляє запуск скрипта з параметрами командного рядка (sys.argv)."""
+    channel_input = args[0]
+    nickname, url = utils.normalize_url(channel_input)
     
-    args = parser.parse_args()
+    # Створюємо тимчасовий скрапер для отримання метаданих
+    temp_scraper = YouTubeScraperEngine(url, silent=True)
+    info = temp_scraper.fetch_channel_info()
+    if not info or not info["channel_id"]:
+        print(f"[!] Помилка: Не вдалося знайти канал '{channel_input}'")
+        sys.exit(1)
+        
+    channel_id = info["channel_id"]
+    stats = db_client.get_channel_stats(channel_id)
+    channel_exists = stats and stats.get("video_count", 0) > 0
     
-    try:
-        # Режим автоматизації (Silent)
-        if args.silent:
-            if not args.channel:
-                print("[!] Помилка: В тихий режимі необхідно передати параметр --channel (-c)")
-                sys.exit(1)
-            nickname, url = normalize_url(args.channel)
-            success = run_archive_scraping(url, limit=args.limit, date_after=args.date_after, silent=True)
-            sys.exit(0 if success else 1)
+    # Перевіряємо кількість аргументів
+    mode = None
+    limit = 2000
+    date_after = None
+    
+    if len(args) > 1:
+        mode = args[1]
+        if mode not in ["1", "2"]:
+            print(f"[!] Помилка: Другий параметр (режим) має бути 1 або 2.")
+            print(f"    1 — скрапінг історії (лімітований)")
+            print(f"    2 — оновлення (або за датою)")
+            sys.exit(1)
             
-        # Ручний режим (Interactive)
+        if len(args) > 2:
+            val = args[2]
+            if mode == "1":
+                if not val.isdigit() or int(val) <= 0:
+                    print(f"[!] Помилка: Третій параметр (ліміт записів) має бути позитивним числом.")
+                    sys.exit(1)
+                limit = int(val)
+            elif mode == "2":
+                # Якщо канал новий — це дата. Якщо існує — це ігнорується, бо буде запущено youtube_update_db
+                if not channel_exists:
+                    if not val.isdigit() or len(val) != 8:
+                        print(f"[!] Помилка: Третій параметр (дата) має бути у форматі YYYYMMDD (наприклад, 20260101).")
+                        sys.exit(1)
+                    date_after = val
+        elif mode == "1":
+            print(f"[!] Помилка: Для режиму 1 необхідно вказати ліміт (третій параметр).")
+            sys.exit(1)
+        elif mode == "2" and not channel_exists:
+            print(f"[!] Помилка: Для нового каналу в режимі 2 необхідно вказати дату YYYYMMDD (третій параметр).")
+            sys.exit(1)
+            
+    if len(args) > 3:
+        print(f"[!] Помилка: Занадто багато аргументів.")
+        print(f"    Використання: python youtube_init_db.py [канал] [режим: 1 або 2] [ліміт або дата]")
+        sys.exit(1)
+        
+    # Виконуємо відповідний флоу
+    if channel_exists:
+        if mode is None:
+            # Маємо тільки канал, запитуємо режим інтерактивно
+            run_interactive_flow_for_channel(url, channel_id, info["channel_name"], info["channel_handle"] or nickname)
+        elif mode == "1":
+            db_info = db_client.get_channel_video_info(channel_id)
+            count = db_info["video_count"]
+            execute_scraping_flow(url, limit=limit, start_index=count + 1, silent=False)
+        elif mode == "2":
+            print("\n[*] Запуск оновлювача...")
+            import youtube_update_db
+            youtube_update_db.run_update(url, silent=False)
+    else:
+        if mode is None:
+            # Маємо тільки канал, запитуємо режим інтерактивно
+            run_interactive_flow_new_channel(url)
+        elif mode == "1":
+            execute_scraping_flow(url, limit=limit, silent=False)
+        elif mode == "2":
+            execute_scraping_flow(url, date_after=date_after, silent=False)
+
+def run_interactive_flow_for_channel(url, channel_id, channel_name, channel_handle):
+    """Обробка інтерактивного вибору для вже існуючого в базі каналу."""
+    db_info = db_client.get_channel_video_info(channel_id)
+    count = db_info["video_count"]
+    min_date = db_info["min_date"]
+    max_date = db_info["max_date"]
+    
+    print("-" * 60)
+    print(f"[i] Канал \"{channel_name}\" ({channel_handle}) вже є в базі даних.")
+    print(f"    Збережено відео: {count} (період публікацій: з {min_date} по {max_date})")
+    print("-" * 60)
+    print("Оберіть дію:")
+    print("1. Довантажити старіші відео (скрапінг історії)")
+    print("2. Швидко оновити базу новішими відео (через API/скрапінг)")
+    print("3. Скасувати (повернутися до початку)")
+    
+    while True:
+        choice = input("\nВаш вибір (1, 2 або 3):\n> ").strip()
+        if choice in ["1", "2", "3"]:
+            break
+        print("[!] Невірний вибір. Введіть 1, 2 або 3.")
+        
+    if choice == "1":
+        limit_str = input(f"\nСкільки старіших відео довантажити (за замовчуванням 500)?\n> ").strip()
+        limit_val = int(limit_str) if limit_str.isdigit() else 500
+        execute_scraping_flow(url, limit=limit_val, start_index=count + 1, silent=False)
+    elif choice == "2":
+        print("\n[*] Запуск оновлювача...")
+        import youtube_update_db
+        youtube_update_db.run_update(url, silent=False)
+
+def run_interactive_flow_new_channel(url):
+    """Обробка інтерактивного вибору для нового каналу."""
+    print("\nОберіть режим збору історії:")
+    print("1. Зібрати останні N відео (наприклад, 2000)")
+    print("2. Зібрати відео від конкретної дати")
+    
+    while True:
+        choice = input("Ваш вибір (1 або 2): ").strip()
+        if choice in ["1", "2"]:
+            break
+        print("[!] Невірний вибір. Введіть 1 або 2.")
+        
+    limit_val = 2000
+    date_val = None
+    
+    if choice == "2":
         while True:
-            clear_screen()
-            print_header()
+            date_val = input("Введіть дату у форматі YYYYMMDD (наприклад, 20260101):\n> ").strip()
+            if date_val.isdigit() and len(date_val) == 8:
+                break
+            print("[!] Невірний формат дати. Потрібно 8 цифр YYYYMMDD.")
+    else:
+        limit_str = input(f"Введіть ліміт кількості відео (за замовчуванням {limit_val}):\n> ").strip()
+        if limit_str.isdigit():
+            limit_val = int(limit_str)
             
-            # Отримання лінку на канал
-            if args.channel:
-                user_input = args.channel
-                args.channel = None # скидаємо для наступних ітерацій
-            else:
-                user_input = input("\nВведіть посилання на YouTube канал (або його @хендл):\n> ").strip()
-                
+    execute_scraping_flow(url, limit=limit_val, date_after=date_val, silent=False)
+
+def main():
+    db_client.init_db()
+    
+    # 1. Якщо передано параметри командного рядка
+    if len(sys.argv) > 1:
+        handle_args_mode(sys.argv[1:])
+        return
+        
+    # 2. Інтерактивний ручний режим
+    try:
+        while True:
+            utils.clear_screen()
+            utils.print_header()
+            
+            user_input = input("\nВведіть посилання на YouTube канал (або його @хендл):\n> ").strip()
             if not user_input:
                 print("[!] Ввід порожній.")
                 input("\nНатисніть Enter, щоб спробувати знову...")
                 continue
                 
-            nickname, url = normalize_url(user_input)
+            nickname, url = utils.normalize_url(user_input)
             
-            # 1. Швидке отримання метаданих каналу, щоб дізнатися його ID
-            channel_info = fetch_channel_info(url)
-            if not channel_info or not channel_info["channel_id"]:
+            # Тимчасово отримуємо метадані каналу
+            temp_scraper = YouTubeScraperEngine(url, silent=True)
+            info = temp_scraper.fetch_channel_info()
+            if not info or not info["channel_id"]:
                 print("[!] Помилка: Не вдалося отримати ідентифікатор каналу. Перевірте посилання.")
                 input("\nНатисніть Enter, щоб спробувати знову...")
                 continue
                 
-            channel_id = channel_info["channel_id"]
-            channel_name = channel_info["channel_name"]
-            channel_handle = channel_info["channel_handle"] or nickname
-            
-            # 2. Перевіряємо, чи є цей канал у базі даних
+            channel_id = info["channel_id"]
             stats = db_client.get_channel_stats(channel_id)
             
             if stats and stats.get("video_count", 0) > 0:
-                info = db_client.get_channel_video_info(channel_id)
-                count = info["video_count"]
-                min_date = info["min_date"]
-                max_date = info["max_date"]
-                
-                print("-" * 60)
-                print(f"[i] Канал \"{channel_name}\" ({channel_handle}) вже є в базі даних.")
-                print(f"    Збережено відео: {count} (період публікацій: з {min_date} по {max_date})")
-                print("-" * 60)
-                print("Оберіть дію:")
-                print("1. Довантажити старіші відео (скрапінг історії)")
-                print("2. Швидко оновити базу новішими відео (через API/скрапінг)")
-                print("3. Скасувати (повернутися до початку)")
-                
-                choice = input("\nВаш вибір (1, 2 або 3):\n> ").strip()
-                if choice == "1":
-                    limit_str = input(f"\nСкільки старіших відео довантажити (за замовчуванням 500)?\n> ").strip()
-                    limit_val = int(limit_str) if limit_str.isdigit() else 500
-                    
-                    # Довантажуємо історію, починаючи з наступного індексу
-                    run_archive_scraping(url, limit=limit_val, start_index=count + 1, silent=False)
-                elif choice == "2":
-                    print("\n[*] Запуск оновлювача...")
-                    import youtube_update_db
-                    # Оновлюємо саме цей канал
-                    youtube_update_db.run_update(url, silent=False)
-                else:
-                    continue
+                run_interactive_flow_for_channel(url, channel_id, info["channel_name"], info["channel_handle"] or nickname)
             else:
-                # Звичайний перший запуск для нового каналу
-                print("\nОберіть режим збору історії:")
-                print("1. Зібрати останні N відео (наприклад, 2000)")
-                print("2. Зібрати відео від конкретної дати")
-                choice = input("Ваш вибір (1 або 2): ").strip()
-                
-                limit_val = 2000
-                date_val = None
-                
-                if choice == "2":
-                    date_val = input("Введіть дату у форматі YYYYMMDD (наприклад, 20260101 для збору з 1 січня 2026):\n> ").strip()
-                else:
-                    limit_str = input(f"Введіть ліміт кількості відео (за замовчуванням {limit_val}):\n> ").strip()
-                    if limit_str.isdigit():
-                        limit_val = int(limit_str)
-                        
-                run_archive_scraping(url, limit=limit_val, date_after=date_val, silent=False)
+                run_interactive_flow_new_channel(url)
             
             print("\nБажаєте продовжити роботу з іншим каналом?")
             print("1. Так")
@@ -542,7 +328,7 @@ def main():
                 print("[!] Невірний вибір. Введіть 1 або 2.")
                 
             if choice == "2":
-                clear_screen()
+                utils.clear_screen()
                 print("Дякуємо за використання YouTube Historical Scraper! До побачення.")
                 break
     except KeyboardInterrupt:

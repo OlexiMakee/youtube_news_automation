@@ -37,8 +37,20 @@ setup_and_run_venv()
 
 import json
 import argparse
+import queue
+import threading
+import time
 from datetime import datetime
 import db_client
+
+def format_duration(seconds):
+    """Форматує секунди у зручний для читання вигляд (хвилини та секунди)."""
+    seconds_int = int(seconds)
+    if seconds_int < 60:
+        return f"{seconds_int}с"
+    mins = seconds_int // 60
+    secs = seconds_int % 60
+    return f"{mins}хв {secs}с"
 
 def clear_screen():
     """Очищає екран консолі."""
@@ -167,37 +179,76 @@ def run_archive_scraping(url, limit=2000, start_index=1, date_after=None, silent
         
     process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
     
+    # Черга та фоновий потік для неблокуючого зчитування
+    stdout_queue = queue.Queue()
+    
+    def reader_thread(stream, q):
+        for line in stream:
+            q.put(line)
+        q.put(None)  # маркер завершення
+        
+    t = threading.Thread(target=reader_thread, args=(process.stdout, stdout_queue), daemon=True)
+    t.start()
+    
     buffer = []
     total_saved = 0
     current_count = 0
+    start_time = time.time()
+    last_added_time = start_time
+    durations = []
     
-    for line in process.stdout:
-        line_str = line.strip()
-        if not line_str:
-            continue
-            
-        try:
-            raw_v = json.loads(line_str)
-            parsed_v = parse_video_data(raw_v, channel_id)
-        except Exception:
-            continue
-            
-        buffer.append(parsed_v)
-        current_count += 1
-        
-        if not silent:
-            if date_after:
-                progress_str = f"\r\033[K[*] Завантажено відео: {current_count}"
-            else:
-                progress_str = f"\r\033[K[*] Завантажено відео: {current_count} / {limit}"
-            sys.stdout.write(progress_str)
-            sys.stdout.flush()
-            
+    active = True
+    while active:
+        got_new_item = False
+        while True:
+            try:
+                line = stdout_queue.get_nowait()
+                if line is None:
+                    active = False
+                    break
+                line_str = line.strip()
+                if line_str:
+                    try:
+                        raw_v = json.loads(line_str)
+                        parsed_v = parse_video_data(raw_v, channel_id)
+                        buffer.append(parsed_v)
+                        current_count += 1
+                        got_new_item = True
+                        
+                        now = time.time()
+                        durations.append(now - last_added_time)
+                        last_added_time = now
+                    except Exception:
+                        pass
+            except queue.Empty:
+                break
+                
         # Записуємо в базу порціями по 50 для надійності та швидкості
         if len(buffer) >= 50:
             db_client.add_or_update_videos(buffer)
             total_saved += len(buffer)
             buffer = []
+            
+        # Оновлюємо статус на екрані з таймером (у форматі хвилин і секунд)
+        if not silent:
+            elapsed_sec = int(time.time() - last_added_time)
+            if elapsed_sec < 60:
+                time_str = f"{elapsed_sec}с"
+            else:
+                mins = elapsed_sec // 60
+                secs = elapsed_sec % 60
+                time_str = f"{mins}хв {secs}с"
+                
+            if date_after:
+                progress_str = f"\r\033[K[*] Завантажено відео: {current_count} (останнє додано: {time_str} тому)"
+            else:
+                progress_str = f"\r\033[K[*] Завантажено відео: {current_count} / {limit} (останнє додано: {time_str} тому)"
+            sys.stdout.write(progress_str)
+            sys.stdout.flush()
+            
+        # Затримка для плавного оновлення таймера
+        if active and not got_new_item:
+            time.sleep(0.1)
             
     process.wait()
     
@@ -213,6 +264,18 @@ def run_archive_scraping(url, limit=2000, start_index=1, date_after=None, silent
         else:
             sys.stdout.write(f"\r\033[K[*] Завантажено відео: {current_count} / {limit}\n")
         print(f"[+] Успішно завершено! Всього збережено нових відео: {total_saved}")
+        
+        # Виводимо статистику часу
+        total_elapsed = time.time() - start_time
+        if durations:
+            avg_duration = sum(durations) / len(durations)
+            min_duration = min(durations)
+            max_duration = max(durations)
+            print(f"[*] Статистика часу скрапінгу:")
+            print(f"    - Загальний час процесу:            {format_duration(total_elapsed)}")
+            print(f"    - Середній час на один запис:        {avg_duration:.2f}с")
+            print(f"    - Мінімальний час на один запис:     {min_duration:.2f}с")
+            print(f"    - Максимальний час на один запис:    {max_duration:.2f}с")
         print("-" * 60)
         
     return True

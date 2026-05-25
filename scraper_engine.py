@@ -12,6 +12,7 @@
 import sys
 import json
 import time
+import random
 import subprocess
 import queue
 import threading
@@ -139,7 +140,8 @@ class YouTubeScraperEngine:
         """
         Запускає фоновий процес yt-dlp для вивантаження історії відео, зчитує 
         вивід у режимі реального часу, дозволяє ставити процес на паузу.
-        Автоматично зупиняється на 40 секунд, якщо YouTube затримує видачу даних.
+        Автоматично призупиняє збір на випадковий час (1.5-3.5с) кожні 8-12 відео,
+        та робить тривалий кулдаун на 40 секунд, якщо YouTube затримує видачу даних.
 
         Параметри:
             on_progress (callable, optional): Функція зворотного зв'язку, яка викликається
@@ -175,43 +177,16 @@ class YouTubeScraperEngine:
         # Отримуємо набір вже відомих у базі ID відео для цього каналу (для інкрементального оновлення)
         known_ids = self.db_client.get_known_video_ids(self.channel_id)
         
-        # Формуємо команду для запуску yt-dlp
-        cmd = [sys.executable, "-m", "yt_dlp", "--dump-json", self.url]
-        # Застосовуємо маскування під iOS/Web/Android додатки для обходу перевірок на ботів
-        cmd.extend(["--extractor-args", "youtube:player-client=ios,web,android"])
-            
-        if self.date_after:
-            cmd.extend(["--dateafter", self.date_after])
-        else:
-            # Збираємо конкретний діапазон індексів
-            cmd.extend(["--playlist-items", f"{self.start_index}-{self.start_index + self.limit - 1}"])
-            
-        # Запускаємо yt-dlp як підпроцес, перенаправляючи stderr у потік для зчитування помилок
-        self.active_process = subprocess.Popen(
-            cmd, 
-            stdout=subprocess.PIPE, 
-            stderr=subprocess.PIPE, 
-            text=True
-        )
-        
         # Черги та фонові потоки для неблокуючого читання потоків stdout та stderr
-        stdout_queue = queue.Queue()
-        
         def reader_thread(stream, q):
-            for line in stream:
-                q.put(line)
+            for stream_line in stream:
+                q.put(stream_line)
             q.put(None)  # Сигнал завершення
             
-        t_out = threading.Thread(target=reader_thread, args=(self.active_process.stdout, stdout_queue), daemon=True)
-        t_out.start()
-        
         def stderr_thread(stream):
-            for line in stream:
-                self.stderr_lines.append(line.strip())
-                
-        t_err = threading.Thread(target=stderr_thread, args=(self.active_process.stderr,), daemon=True)
-        t_err.start()
-        
+            for stream_line in stream:
+                self.stderr_lines.append(stream_line.strip())
+
         self.buffer = []
         self.total_saved = 0
         self.current_count = 0
@@ -223,196 +198,244 @@ class YouTubeScraperEngine:
         detector = KeypressDetector(not self.silent)
         
         active = True
-        while active:
-            # 1. ПЕРЕВІРКА НА АВТО-КУЛДАУН (якщо затримка перевищує 40 секунд)
-            now = time.time()
-            if now - last_added_time > 40.0:
-                if not self.silent:
-                    sys.stdout.write(f"\n\n[⚠️] Затримка чергового відео перевищила 40с (можливий тротлінг).")
-                    sys.stdout.write(f"\n[*] Ставимо процес на авто-паузу на 40 секунд для кулдауну...\n")
-                    sys.stdout.flush()
-                
-                # Тимчасово відновлюємо консоль
-                detector.restore()
-                
-                # Примусово прибиваємо поточний підпроцес yt-dlp для очищення з'єднання
-                self.active_process.terminate()
-                self.active_process.wait()
-                
-                # Зберігаємо буфер у базу
-                if self.buffer:
-                    self.db_client.add_or_update_videos(self.buffer)
-                    self.total_saved += len(self.buffer)
-                    self.buffer = []
-                
-                # Зворотний відлік 40 секунд
-                cooldown_start = time.time()
-                while time.time() - cooldown_start < 40.0:
-                    remaining = 40.0 - (time.time() - cooldown_start)
-                    if not self.silent:
-                        sys.stdout.write(f"\r[Кулдаун] Залишилось: {remaining:.1f}с... ")
-                        sys.stdout.flush()
-                    time.sleep(0.1)
-                
-                if not self.silent:
-                    sys.stdout.write(f"\r[Кулдаун] Завершено! Автоматично продовжуємо скрапінг...\n")
-                    sys.stdout.flush()
-                
-                # Перезапускаємо процес з поточної позиції
-                next_start = self.start_index + self.current_count
-                next_end = self.start_index + self.limit - 1
-                
-                cmd = [sys.executable, "-m", "yt_dlp", "--dump-json", self.url]
-                cmd.extend(["--extractor-args", "youtube:player-client=ios,web,android"])
-                if self.date_after:
-                    cmd.extend(["--dateafter", self.date_after])
-                else:
-                    cmd.extend(["--playlist-items", f"{next_start}-{next_end}"])
-                
-                self.active_process = subprocess.Popen(
-                    cmd, 
-                    stdout=subprocess.PIPE, 
-                    stderr=subprocess.PIPE, 
-                    text=True
-                )
-                
-                # Створюємо нові потоки зчитування
-                stdout_queue = queue.Queue()
-                t_out = threading.Thread(target=reader_thread, args=(self.active_process.stdout, stdout_queue), daemon=True)
-                t_out.start()
-                
-                t_err = threading.Thread(target=stderr_thread, args=(self.active_process.stderr,), daemon=True)
-                t_err.start()
-                
-                # Скидаємо таймер
-                last_added_time = time.time()
-                detector = KeypressDetector(not self.silent)
-                continue
-
-            # 2. ПЕРЕВІРКА НА РУЧНУ ПАУЗУ (Пробіл)
-            if detector.check_space():
-                detector.restore()
-                
-                # Зберігаємо буфер перед меню
-                if self.buffer:
-                    self.db_client.add_or_update_videos(self.buffer)
-                    self.total_saved += len(self.buffer)
-                    self.buffer = []
+        while active and (self.current_count < self.limit or self.date_after):
+            # Визначаємо випадковий розмір наступної пачки від 8 до 12
+            chunk_size = random.randint(8, 12)
+            
+            # Якщо у нас є ліміт, розмір пачки не повинен перевищувати залишок ліміту
+            if not self.date_after:
+                remaining_limit = self.limit - self.current_count
+                if chunk_size > remaining_limit:
+                    chunk_size = remaining_limit
                     
-                if on_pause:
-                    action = on_pause(self)
-                    
-                    if action == 1:
-                        # Продовжуємо збір
-                        detector = KeypressDetector(not self.silent)
-                        last_added_time = time.time()
-                    elif isinstance(action, tuple) and action[0] == 2:
-                        new_limit = action[1]
-                        if new_limit <= self.current_count:
-                            self.active_process.terminate()
-                            self.active_process.wait()
-                            active = False
-                        else:
-                            self.active_process.terminate()
-                            self.active_process.wait()
-                            
-                            self.limit = new_limit
-                            cmd = [sys.executable, "-m", "yt_dlp", "--dump-json", self.url]
-                            cmd.extend(["--extractor-args", "youtube:player-client=ios,web,android"])
-                            if self.date_after:
-                                cmd.extend(["--dateafter", self.date_after])
-                            else:
-                                next_start = self.start_index + self.current_count
-                                next_end = self.start_index + self.limit - 1
-                                cmd.extend(["--playlist-items", f"{next_start}-{next_end}"])
-                                
-                            self.active_process = subprocess.Popen(
-                                cmd, 
-                                stdout=subprocess.PIPE, 
-                                stderr=subprocess.PIPE, 
-                                text=True
-                            )
-                            
-                            stdout_queue = queue.Queue()
-                            t_out = threading.Thread(target=reader_thread, args=(self.active_process.stdout, stdout_queue), daemon=True)
-                            t_out.start()
-                            
-                            t_err = threading.Thread(target=stderr_thread, args=(self.active_process.stderr,), daemon=True)
-                            t_err.start()
-                            
-                            detector = KeypressDetector(not self.silent)
-                            last_added_time = time.time()
-                    elif action == 3:
-                        # Вихід
-                        self.active_process.terminate()
-                        self.active_process.wait()
-                        active = False
-                        
-            if not active:
+            if chunk_size <= 0:
                 break
                 
-            # 3. ЗЧИТУВАННЯ ЕЛЕМЕНТІВ З ЧЕРГИ
-            got_new_item = False
-            while True:
-                try:
-                    line = stdout_queue.get_nowait()
-                    if line is None:
-                        active = False
-                        break
-                    line_str = line.strip()
-                    if line_str:
-                        try:
-                            raw_v = json.loads(line_str)
-                            parsed_v = self.parse_video_data(raw_v)
-                            
-                            # Якщо активовано режим оновлення і відео вже відоме, припиняємо роботу
-                            if stop_on_known and parsed_v["video_id"] in known_ids:
+            # Визначаємо межі для цієї пачки
+            chunk_start = self.start_index + self.current_count
+            chunk_end = chunk_start + chunk_size - 1
+            
+            # Формуємо команду для запуску yt-dlp для цієї пачки
+            cmd = [sys.executable, "-m", "yt_dlp", "--dump-json", self.url]
+            cmd.extend(["--extractor-args", "youtube:player-client=ios,web,android"])
+            
+            if self.date_after:
+                cmd.extend(["--dateafter", self.date_after])
+                cmd.extend(["--playlist-items", f"{chunk_start}-{chunk_end}"])
+            else:
+                cmd.extend(["--playlist-items", f"{chunk_start}-{chunk_end}"])
+                
+            # Запускаємо підпроцес
+            self.active_process = subprocess.Popen(
+                cmd, 
+                stdout=subprocess.PIPE, 
+                stderr=subprocess.PIPE, 
+                text=True
+            )
+            
+            # Створюємо чергу та потоки зчитування для цієї пачки
+            stdout_queue = queue.Queue()
+            t_out = threading.Thread(target=reader_thread, args=(self.active_process.stdout, stdout_queue), daemon=True)
+            t_out.start()
+            
+            t_err = threading.Thread(target=stderr_thread, args=(self.active_process.stderr,), daemon=True)
+            t_err.start()
+            
+            chunk_videos_fetched = 0
+            chunk_active = True
+            
+            while chunk_active:
+                # 1. ПЕРЕВІРКА НА АВТО-КУЛДАУН (якщо затримка перевищує 40 секунд)
+                now = time.time()
+                if now - last_added_time > 40.0:
+                    if not self.silent:
+                        sys.stdout.write(f"\n\n[⚠️] Затримка чергового відео перевищила 40с (можливий тротлінг).")
+                        sys.stdout.write(f"\n[*] Ставимо процес на авто-паузу на 40 секунд для кулдауну...\n")
+                        sys.stdout.flush()
+                    
+                    detector.restore()
+                    self.active_process.terminate()
+                    self.active_process.wait()
+                    
+                    # Зберігаємо буфер у базу
+                    if self.buffer:
+                        self.db_client.add_or_update_videos(self.buffer)
+                        self.total_saved += len(self.buffer)
+                        self.buffer = []
+                        
+                    # Кулдаун 40 секунд
+                    cooldown_start = time.time()
+                    while time.time() - cooldown_start < 40.0:
+                        remaining = 40.0 - (time.time() - cooldown_start)
+                        if not self.silent:
+                            sys.stdout.write(f"\r[Кулдаун] Залишилось: {remaining:.1f}с... ")
+                            sys.stdout.flush()
+                        time.sleep(0.1)
+                        
+                    if not self.silent:
+                        sys.stdout.write(f"\r[Кулдаун] Завершено! Автоматично продовжуємо скрапінг...\n")
+                        sys.stdout.flush()
+                        
+                    # Перезапускаємо процес для дочитування залишку цієї ж пачки
+                    chunk_start = self.start_index + self.current_count
+                    cmd_retry = [sys.executable, "-m", "yt_dlp", "--dump-json", self.url]
+                    cmd_retry.extend(["--extractor-args", "youtube:player-client=ios,web,android"])
+                    if self.date_after:
+                        cmd_retry.extend(["--dateafter", self.date_after])
+                    cmd_retry.extend(["--playlist-items", f"{chunk_start}-{chunk_end}"])
+                    
+                    self.active_process = subprocess.Popen(
+                        cmd_retry,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        text=True
+                    )
+                    
+                    stdout_queue = queue.Queue()
+                    t_out = threading.Thread(target=reader_thread, args=(self.active_process.stdout, stdout_queue), daemon=True)
+                    t_out.start()
+                    t_err = threading.Thread(target=stderr_thread, args=(self.active_process.stderr,), daemon=True)
+                    t_err.start()
+                    
+                    last_added_time = time.time()
+                    detector = KeypressDetector(not self.silent)
+                    continue
+
+                # 2. ПЕРЕВІРКА НА РУЧНУ ПАУЗУ (Пробіл)
+                if detector.check_space():
+                    detector.restore()
+                    if self.buffer:
+                        self.db_client.add_or_update_videos(self.buffer)
+                        self.total_saved += len(self.buffer)
+                        self.buffer = []
+                        
+                    if on_pause:
+                        action = on_pause(self)
+                        if action == 1:
+                            detector = KeypressDetector(not self.silent)
+                            last_added_time = time.time()
+                        elif isinstance(action, tuple) and action[0] == 2:
+                            new_limit = action[1]
+                            if new_limit <= self.current_count:
                                 self.active_process.terminate()
                                 self.active_process.wait()
+                                chunk_active = False
                                 active = False
-                                break
+                            else:
+                                self.active_process.terminate()
+                                self.active_process.wait()
+                                self.limit = new_limit
+                                chunk_start = self.start_index + self.current_count
+                                remaining_limit = self.limit - self.current_count
+                                if chunk_size > remaining_limit:
+                                    chunk_size = remaining_limit
+                                chunk_end = chunk_start + chunk_size - 1
                                 
-                            self.buffer.append(parsed_v)
-                            self.current_count += 1
-                            got_new_item = True
+                                cmd_retry = [sys.executable, "-m", "yt_dlp", "--dump-json", self.url]
+                                cmd_retry.extend(["--extractor-args", "youtube:player-client=ios,web,android"])
+                                if self.date_after:
+                                    cmd_retry.extend(["--dateafter", self.date_after])
+                                cmd_retry.extend(["--playlist-items", f"{chunk_start}-{chunk_end}"])
+                                
+                                self.active_process = subprocess.Popen(
+                                    cmd_retry,
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE,
+                                    text=True
+                                )
+                                
+                                stdout_queue = queue.Queue()
+                                t_out = threading.Thread(target=reader_thread, args=(self.active_process.stdout, stdout_queue), daemon=True)
+                                t_out.start()
+                                t_err = threading.Thread(target=stderr_thread, args=(self.active_process.stderr,), daemon=True)
+                                t_err.start()
+                                
+                                detector = KeypressDetector(not self.silent)
+                                last_added_time = time.time()
+                        elif action == 3:
+                            self.active_process.terminate()
+                            self.active_process.wait()
+                            chunk_active = False
+                            active = False
                             
-                            # Заміряємо час збирання цього відео
-                            now = time.time()
-                            self.durations.append(now - last_added_time)
-                            last_added_time = now
-                        except Exception:
-                            pass
-                except queue.Empty:
+                if not chunk_active or not active:
+                    break
+
+                # 3. ЗЧИТУВАННЯ ЕЛЕМЕНТІВ З ЧЕРГИ
+                got_new_item = False
+                while True:
+                    try:
+                        line = stdout_queue.get_nowait()
+                        if line is None:
+                            chunk_active = False
+                            break
+                        line_str = line.strip()
+                        if line_str:
+                            try:
+                                raw_v = json.loads(line_str)
+                                parsed_v = self.parse_video_data(raw_v)
+                                
+                                if stop_on_known and parsed_v["video_id"] in known_ids:
+                                    self.active_process.terminate()
+                                    self.active_process.wait()
+                                    chunk_active = False
+                                    active = False
+                                    break
+                                    
+                                self.buffer.append(parsed_v)
+                                self.current_count += 1
+                                chunk_videos_fetched += 1
+                                got_new_item = True
+                                
+                                now = time.time()
+                                self.durations.append(now - last_added_time)
+                                last_added_time = now
+                            except Exception:
+                                pass
+                    except queue.Empty:
+                        break
+                        
+                # Зворотний зв'язок прогресу
+                if not self.silent and on_progress:
+                    on_progress(self.current_count, self.limit, last_added_time)
+                    
+                if chunk_active and not got_new_item:
+                    time.sleep(0.1)
+            
+            # Чекаємо завершення підпроцесу для цієї пачки
+            self.active_process.wait()
+            
+            # Перевірка на помилку
+            if self.active_process.returncode != 0 and active and not stop_on_known:
+                if chunk_videos_fetched == 0:
+                    self.success = False
+                    self.error_msg = "\n".join(self.stderr_lines[-3:]) if self.stderr_lines else "Невідома помилка роботи yt-dlp"
+                    active = False
                     break
             
-            # Пакетний запис кожні 50 відео
-            if len(self.buffer) >= 50:
+            # Якщо за цю пачку було отримано 0 відео, зупиняємо збір
+            if chunk_videos_fetched == 0 and active:
+                active = False
+                break
+                
+            # Записуємо буфер у базу після завершення кожної пачки
+            if self.buffer:
                 self.db_client.add_or_update_videos(self.buffer)
                 self.total_saved += len(self.buffer)
                 self.buffer = []
                 
-            # Зворотний зв'язок прогресу
-            if not self.silent and on_progress:
-                on_progress(self.current_count, self.limit, last_added_time)
+            # Робимо випадкову паузу перед наступною пачкою
+            if active and (self.current_count < self.limit or self.date_after):
+                sleep_time = random.uniform(1.5, 3.5)
+                if not self.silent:
+                    sys.stdout.write(f"\n[*] Пауза для уникнення блокувань: {sleep_time:.1f}с...\n")
+                    sys.stdout.flush()
                 
-            if active and not got_new_item:
-                time.sleep(0.1)
+                detector.restore()
+                time.sleep(sleep_time)
+                detector = KeypressDetector(not self.silent)
+                last_added_time = time.time()
                 
-        # Дочікуємось завершення процесу
-        self.active_process.wait()
+        # Фінальна деініціалізація
         detector.restore()
-        
-        # Перевірка на помилку завершення процесу (блокування)
-        # Якщо код не 0, і при цьому робота не завершилася природним шляхом
-        if self.active_process.returncode != 0 and self.current_count < self.limit and not stop_on_known:
-            self.success = False
-            # Зберігаємо останні 3 рядки помилок з потоку stderr
-            self.error_msg = "\n".join(self.stderr_lines[-3:]) if self.stderr_lines else "Невідома помилка роботи yt-dlp"
-        
-        # Дописуємо залишки з буфера
-        if self.buffer:
-            self.db_client.add_or_update_videos(self.buffer)
-            self.total_saved += len(self.buffer)
-            self.buffer = []
-            
         return self.success

@@ -83,6 +83,7 @@ class YouTubeScraperEngine:
         # Тимчасовий буфер для накопичення відео перед записом у базу пакетно
         self.buffer = []
         self.total_saved = 0
+        self.unsynced_saved = 0
         self.current_count = 0
         self.durations = []
         self.start_time = None
@@ -353,9 +354,28 @@ class YouTubeScraperEngine:
                         
                     # Зберігаємо буфер у базу після завершення кожної пачки
                     if self.buffer:
+                        new_videos_count = len(self.buffer)
                         self.db_client.add_or_update_videos(self.buffer)
-                        self.total_saved += len(self.buffer)
+                        self.total_saved += new_videos_count
+                        self.unsynced_saved += new_videos_count
                         self.buffer = []
+                        
+                    # Перевіряємо ліміт для автоматичної синхронізації з Kaggle (кожні 200 записів)
+                    if self.unsynced_saved >= 200:
+                        if not self.silent:
+                            sys.stdout.write(f"\n[*] Накопичено {self.unsynced_saved} нових записів. Синхронізація з Kaggle...\n")
+                            sys.stdout.flush()
+                        # Тимчасово закриваємо з'єднання перед синхронізацією
+                        self.db_client.__exit__(None, None, None)
+                        try:
+                            from news_scraper.kaggle_sync import sync_db_with_kaggle
+                            sync_db_with_kaggle(self.db_client.db_path, direction="smart", silent=self.silent)
+                            self.unsynced_saved = 0
+                        except Exception as sync_err:
+                            if not self.silent:
+                                print(f"[!] Помилка авто-синхронізації: {sync_err}")
+                        # Відкриваємо з'єднання знову
+                        self.db_client.__enter__()
                         
                     # Робимо випадкову паузу перед наступною пачкою
                     if active and (self.current_count < self.limit or self.date_after):
@@ -378,8 +398,25 @@ class YouTubeScraperEngine:
                 detector.restore()
                 # Зберігаємо залишки буфера
                 if self.buffer:
+                    new_videos_count = len(self.buffer)
                     self.db_client.add_or_update_videos(self.buffer)
-                    self.total_saved += len(self.buffer)
+                    self.total_saved += new_videos_count
+                    self.unsynced_saved += new_videos_count
                     self.buffer = []
+                    
+                # Фінальна перевірка синхронізації залишків пачки
+                if self.unsynced_saved >= 200:
+                    if not self.silent:
+                        sys.stdout.write(f"\n[*] Накопичено {self.unsynced_saved} нових записів. Синхронізація з Kaggle...\n")
+                        sys.stdout.flush()
+                    self.db_client.__exit__(None, None, None)
+                    try:
+                        from news_scraper.kaggle_sync import sync_db_with_kaggle
+                        sync_db_with_kaggle(self.db_client.db_path, direction="smart", silent=self.silent)
+                        self.unsynced_saved = 0
+                    except Exception as sync_err:
+                        if not self.silent:
+                            print(f"[!] Помилка авто-синхронізації: {sync_err}")
+                    self.db_client.__enter__()
                     
         return self.success

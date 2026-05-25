@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=61.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "news-scraper"
+version = "1.0.0"
+description = "YouTube news scraping and database automation system"
+readme = "README.md"
+authors = [
+    { name = "Oleksii" }
+]
+requires-python = ">=3.9"
+dependencies = [
+    "yt-dlp",
+    "requests"
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["news_scraper", "news_scraper.*"]

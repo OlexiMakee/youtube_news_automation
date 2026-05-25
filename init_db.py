@@ -13,18 +13,24 @@
 
 import os
 import sys
+
+# Додаємо поточну директорію до sys.path, щоб імпорти news_scraper працювали безшовно
+root_dir = os.path.dirname(os.path.abspath(__file__))
+if root_dir not in sys.path:
+    sys.path.insert(0, root_dir)
+
 import time
 import json
 import argparse
-import utils
+import news_scraper.utils as utils
 
 # Запуск автоматичного налаштування віртуального середовища
-# Це гарантує, що у нас є всі необхідні бібліотеки (наприклад, yt-dlp, requests)
+# Це гарантує, що у нас є всі необхідні бібліотеки та локальний пакет news_scraper
 utils.setup_and_run_venv(__file__)
 
-from db_client import DatabaseClient
-from scraper_engine import YouTubeScraperEngine
-import cli_progress
+from news_scraper.db_client import DatabaseClient
+from news_scraper.scraper_engine import YouTubeScraperEngine
+import news_scraper.cli_progress as cli_progress
 
 # Створюємо глобальний об'єкт клієнта бази даних для використання у функціях
 db_client = DatabaseClient()

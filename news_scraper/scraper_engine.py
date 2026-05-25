@@ -16,8 +16,8 @@ import random
 import subprocess
 import queue
 import threading
-from db_client import DatabaseClient
-from keypress import KeypressDetector
+from news_scraper.db_client import DatabaseClient
+from news_scraper.keypress import KeypressDetector
 
 
 class YouTubeScraperEngine:
@@ -199,8 +199,8 @@ class YouTubeScraperEngine:
         
         active = True
         while active and (self.current_count < self.limit or self.date_after):
-            # Визначаємо випадковий розмір наступної пачки від 8 до 12
-            chunk_size = random.randint(8, 12)
+            # Визначаємо випадковий розмір наступної пачки від 30 до 40
+            chunk_size = random.randint(30, 40)
             
             # Якщо у нас є ліміт, розмір пачки не повинен перевищувати залишок ліміту
             if not self.date_after:
@@ -426,7 +426,7 @@ class YouTubeScraperEngine:
                 
             # Робимо випадкову паузу перед наступною пачкою
             if active and (self.current_count < self.limit or self.date_after):
-                sleep_time = random.uniform(1.5, 3.5)
+                sleep_time = random.uniform(5.5, 8.5)
                 if not self.silent:
                     sys.stdout.write(f"\n[*] Пауза для уникнення блокувань: {sleep_time:.1f}с...\n")
                     sys.stdout.flush()

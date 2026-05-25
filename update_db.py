@@ -11,19 +11,25 @@
 
 import os
 import sys
+
+# Додаємо поточну директорію до sys.path, щоб імпорти news_scraper працювали безшовно
+root_dir = os.path.dirname(os.path.abspath(__file__))
+if root_dir not in sys.path:
+    sys.path.insert(0, root_dir)
+
 import time
 import json
 import argparse
 import requests
-import utils
+import news_scraper.utils as utils
 
-# Запуск автоналаштування venv для забезпечення наявності бібліотек yt-dlp та requests
+# Запуск автоналаштування venv для забезпечення наявності бібліотек та локального пакету
 utils.setup_and_run_venv(__file__)
 
 import re
-from db_client import DatabaseClient
-from scraper_engine import YouTubeScraperEngine
-import cli_progress
+from news_scraper.db_client import DatabaseClient
+from news_scraper.scraper_engine import YouTubeScraperEngine
+import news_scraper.cli_progress as cli_progress
 
 # Створюємо екземпляр клієнта бази даних
 db_client = DatabaseClient()

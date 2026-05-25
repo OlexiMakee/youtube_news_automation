@@ -9,8 +9,14 @@
 
 import os
 import sys
+
+# Додаємо поточну директорію до sys.path, щоб імпорти news_scraper працювали безшовно
+root_dir = os.path.dirname(os.path.abspath(__file__))
+if root_dir not in sys.path:
+    sys.path.insert(0, root_dir)
+
 import subprocess
-import utils
+import news_scraper.utils as utils
 
 # --- АВТОМАТИЧНЕ НАЛАШТУВАННЯ СЕРЕДОВИЩА ---
 # Запускаємо бутстрапер віртуального середовища з додатковими бібліотеками для роботи з таблицями.
@@ -21,7 +27,7 @@ utils.setup_and_run_venv(__file__, ["pandas", "openpyxl"])
 import argparse
 from datetime import datetime
 import pandas as pd
-from db_client import DatabaseClient
+from news_scraper.db_client import DatabaseClient
 
 
 class DataExporter:
@@ -71,9 +77,9 @@ class DataExporter:
         # Перетворюємо sqlite3.Row в класичні словники
         return [dict(row) for row in rows]
 
-    def export_data(self, channel_id=None, format_choice="xlsx", output_path=None):
+    def export_data(self, channel_id=None, format_choice="xlsx", output_path=None, top_limit=None):
         """
-        Експортує відео з бази даних у Excel (.xlsx) та/каталог CSV (.csv).
+        Експортує відео з бази даних у Excel (.xlsx) та/або CSV (.csv).
 
         Параметри:
             channel_id (str, optional): ID каналу, який треба експортувати.
@@ -82,6 +88,7 @@ class DataExporter:
                 За замовчуванням 'xlsx'.
             output_path (str, optional): Шлях до папки чи конкретного файлу, куди зберегти результат.
                 Якщо не вказано, файл збережеться поруч зі скриптом із автоматичною назвою.
+            top_limit (int, optional): Ліміт вивантаження перших N записів за кількістю переглядів.
 
         Повертає:
             list: Список шляхів до успішно створених файлів.
@@ -116,8 +123,12 @@ class DataExporter:
             query += " WHERE v.channel_id = ?"
             params.append(channel_id)
             
-        # Сортуємо відео від найновіших до найстаріших за датою публікації
-        query += " ORDER BY v.published_at DESC"
+        # Сортуємо відео та застосовуємо ліміти
+        if top_limit:
+            query += " ORDER BY v.view_count DESC LIMIT ?"
+            params.append(top_limit)
+        else:
+            query += " ORDER BY v.published_at DESC"
         
         # Читаємо дані прямо в таблицю pandas (DataFrame)
         df = pd.read_sql_query(query, conn, params=params)
@@ -132,6 +143,7 @@ class DataExporter:
         
         # Визначаємо поточну дату для створення імені файлу
         date_str = datetime.now().strftime("%d%m%Y")
+        top_suffix = f"_top{top_limit}" if top_limit else ""
         
         # Формуємо базове ім'я файлу без розширення
         if not output_path:
@@ -140,18 +152,18 @@ class DataExporter:
                 handle = df.iloc[0]["channel_handle"] or df.iloc[0]["channel_name"]
                 # Очищаємо ім'я від спецсимволів
                 safe_handle = "".join(c for c in handle if c.isalnum() or c in ['@', '_', '-'])
-                output_base = f"{safe_handle}_export_{date_str}"
+                output_base = f"{safe_handle}{top_suffix}_export_{date_str}"
             else:
-                output_base = f"youtube_all_channels_{date_str}"
+                output_base = f"youtube_all_channels{top_suffix}_{date_str}"
         else:
             if os.path.isdir(output_path):
                 # Якщо вказана папка, створюємо файл всередині неї
                 if channel_id:
                     handle = df.iloc[0]["channel_handle"] or df.iloc[0]["channel_name"]
                     safe_handle = "".join(c for c in handle if c.isalnum() or c in ['@', '_', '-'])
-                    output_base = os.path.join(output_path, f"{safe_handle}_export_{date_str}")
+                    output_base = os.path.join(output_path, f"{safe_handle}{top_suffix}_export_{date_str}")
                 else:
-                    output_base = os.path.join(output_path, f"youtube_all_channels_{date_str}")
+                    output_base = os.path.join(output_path, f"youtube_all_channels{top_suffix}_{date_str}")
             else:
                 # Якщо вказаний безпосередній файл, відкидаємо розширення
                 output_base, _ = os.path.splitext(output_path)
@@ -183,12 +195,23 @@ class DataExporter:
 
 def main():
     """Головна функція для запуску експорту через консоль."""
+    # Попередня обробка аргументів для підтримки прапорців типу --top5 або --top333
+    processed_args = []
+    for arg in sys.argv:
+        if arg.startswith("--top") and arg[5:].isdigit():
+            processed_args.append("--top")
+            processed_args.append(arg[5:])
+        else:
+            processed_args.append(arg)
+    sys.argv = processed_args
+
     parser = argparse.ArgumentParser(description="Експортує дані з SQLite у CSV чи Excel.")
     parser.add_argument("-c", "--channel-id", type=str, help="ID каналу для експорту (якщо не вказано і активовано --all, то експортує все)")
     parser.add_argument("-f", "--format", type=str, choices=["csv", "xlsx", "both"], default="xlsx", help="Формат файлу: csv, xlsx або both (за замовчуванням xlsx)")
     parser.add_argument("-o", "--output", type=str, help="Шлях або папка для збереження результату")
     parser.add_argument("-a", "--all", action="store_true", help="Експортувати всі канали разом")
     parser.add_argument("-s", "--silent", action="store_true", help="Тихий режим без інтерактивних запитів")
+    parser.add_argument("-t", "--top", type=int, default=None, help="Вивантажити тільки ТОП N відео за переглядами")
     
     args = parser.parse_args()
     
@@ -201,7 +224,12 @@ def main():
             if not args.all and not args.channel_id:
                 print("[!] Помилка: Вкажіть --channel-id або --all для тихого режиму.")
                 sys.exit(1)
-            exporter.export_data(channel_id=args.channel_id, format_choice=args.format, output_path=args.output)
+            exporter.export_data(
+                channel_id=args.channel_id, 
+                format_choice=args.format, 
+                output_path=args.output,
+                top_limit=args.top
+            )
             sys.exit(0)
             
         # 2. Інтерактивний діалоговий режим
@@ -255,8 +283,19 @@ def main():
         elif fmt_choice == "3":
             fmt = "both"
             
+        # Також запитуємо ліміт топ-відео, якщо користувач хоче
+        top_val = None
+        top_input = input("\nБажаєте вивантажити тільки топ відео за переглядами? (Введіть ліміт або залиште порожнім):\n> ").strip()
+        if top_input.isdigit():
+            top_val = int(top_input)
+            
         # Виконуємо експорт
-        exported = exporter.export_data(channel_id=selected_channel_id, format_choice=fmt, output_path=args.output)
+        exported = exporter.export_data(
+            channel_id=selected_channel_id, 
+            format_choice=fmt, 
+            output_path=args.output,
+            top_limit=args.top if args.top is not None else top_val
+        )
         
         # Пропонуємо автоматично відкрити файл після збереження
         if exported:

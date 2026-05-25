@@ -10,7 +10,7 @@
 
 import sys
 import time
-import utils
+import news_scraper.utils as utils
 
 
 def format_duration_tenths(seconds):

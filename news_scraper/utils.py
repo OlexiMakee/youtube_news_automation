@@ -15,23 +15,23 @@ import subprocess
 def setup_and_run_venv(entry_script, required_libs=None):
     """
     Автоматично створює віртуальне середовище Python (папку venv_auto) та встановлює
-    необхідні бібліотеки, після чого перезапускає поточний скрипт всередині цього середовища.
+    локальний пакет news-scraper у editable режимі разом із додатковими бібліотеками,
+    після чого перезапускає поточний скрипт всередині цього середовища.
     Це усуває потребу користувачу вручну встановлювати залежності через pip.
 
     Параметри:
         entry_script (str): Абсолютний шлях до файлу скрипта, який треба перезапустити (зазвичай __file__).
-        required_libs (list, optional): Список бібліотек для встановлення. 
-            Якщо не вказано, встановлюються бібліотеки за замовчуванням: ["yt-dlp", "requests"].
+        required_libs (list, optional): Список додаткових бібліотек для встановлення (наприклад, ["pandas", "openpyxl"]).
     """
     if required_libs is None:
-        required_libs = ["yt-dlp", "requests"]
+        required_libs = []
         
     # Якщо прапорець YOUTUBE_SCRAPER_VENV_ACTIVE вже дорівнює "1",
     # це означає, що скрипт вже успішно перезапущений всередині venv. Виходимо з функції.
     if os.environ.get("YOUTUBE_SCRAPER_VENV_ACTIVE") == "1":
         return
 
-    # Визначаємо шлях до папки venv_auto
+    # Визначаємо шлях до папки venv_auto (відносно директорії точки входу)
     script_dir = os.path.dirname(os.path.abspath(entry_script))
     venv_dir = os.path.join(script_dir, "venv_auto")
     
@@ -46,20 +46,29 @@ def setup_and_run_venv(entry_script, required_libs=None):
         print("[*] Ініціалізація: створюю ізольоване середовище...")
         subprocess.run([sys.executable, "-m", "venv", venv_dir], check=True)
     
-    # Перевіряємо, чи встановлені необхідні бібліотеки всередині venv
-    libs_check_str = "import " + ", ".join(required_libs)
+    # Перевіряємо, чи встановлений наш пакет news_scraper та додаткові бібліотеки
+    libs_to_check = ["news_scraper"] + required_libs
+    libs_check_str = "import " + ", ".join(libs_to_check)
     check_deps = subprocess.run([python_exe, "-c", libs_check_str], capture_output=True)
     
-    # Якщо імпорт хоча б однієї бібліотеки завершився з помилкою (returncode != 0), встановлюємо їх
+    # Якщо перевірка не пройшла (returncode != 0), встановлюємо пакет та залежності
     if check_deps.returncode != 0:
-        print(f"[*] Встановлюю залежності ({', '.join(required_libs)})...")
+        print("[*] Налаштування середовища та встановлення пакетів...")
         try:
             # Оновлюємо pip (ігноруючи вивід)
             subprocess.run([python_exe, "-m", "pip", "install", "--upgrade", "pip"], stdout=subprocess.DEVNULL)
         except Exception:
             pass
-        # Встановлюємо список потрібних бібліотек
-        subprocess.run([python_exe, "-m", "pip", "install"] + required_libs)
+            
+        # Якщо в директорії скрипта є pyproject.toml, встановлюємо проект у editable режимі
+        if os.path.exists(os.path.join(script_dir, "pyproject.toml")):
+            print("[*] Встановлюю локальний пакет news_scraper у editable-режимі...")
+            subprocess.run([python_exe, "-m", "pip", "install", "-e", script_dir], check=True)
+            
+        # Якщо є додаткові бібліотеки, які не входять до стандартних залежностей, встановлюємо їх
+        if required_libs:
+            print(f"[*] Встановлюю додаткові бібліотеки: {', '.join(required_libs)}...")
+            subprocess.run([python_exe, "-m", "pip", "install"] + required_libs, check=True)
 
     # Копіюємо змінні оточення та додаємо позначку, що ми працюємо у venv
     env = os.environ.copy()

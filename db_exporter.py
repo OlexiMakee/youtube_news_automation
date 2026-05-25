@@ -211,7 +211,7 @@ def main():
         channels = exporter.get_channels_list()
         if not channels:
             print("[!] База даних порожня. Немає даних для експорту.")
-            print("[i] Спочатку збережіть відео за допомогою youtube_init_db.py")
+            print("[i] Спочатку збережіть відео за допомогою init_db.py")
             input("\nНатисніть Enter для виходу...")
             sys.exit(0)
             

@@ -1,11 +1,11 @@
 """
-Головна точка входу для ініціалізації та первинного наповнення бази даних (youtube_init_db.py).
+Головна точка входу для ініціалізації та первинного наповнення бази даних (init_db.py).
 
 Цей скрипт дозволяє користувачеві ввести посилання на канал чи його @нікнейм
 та обрати режим збору історії відео:
 1. Завантажити останні N відео (наприклад, 2000).
 2. Завантажити відео починаючи з конкретної дати.
-Він також підтримує параметри командного рядка (наприклад: python youtube_init_db.py UATVEnglish 1 300).
+Він також підтримує параметри командного рядка (наприклад: python init_db.py UATVEnglish 1 300).
 Спільна логіка прогресу, таймерів та паузи винесена в модуль cli_progress.py.
 Написано простою мовою з детальними коментарями для ентузіастів.
 """
@@ -75,7 +75,7 @@ def execute_scraping_flow(url, limit=2000, start_index=1, date_after=None, silen
 
 def handle_args_mode(args):
     """
-    Обробляє параметри, передані при запуску через термінал (наприклад: python youtube_init_db.py UATVEnglish 1 300).
+    Обробляє параметри, передані при запуску через термінал (наприклад: python init_db.py UATVEnglish 1 300).
     Здійснює перевірку на коректність параметрів та виводить зрозумілі повідомлення про помилки.
     """
     channel_input = args[0]
@@ -129,7 +129,7 @@ def handle_args_mode(args):
             
     if len(args) > 3:
         print(f"[!] Помилка: Занадто багато аргументів.")
-        print(f"    Використання: python youtube_init_db.py [канал] [режим: 1 або 2] [ліміт або дата]")
+        print(f"    Використання: python init_db.py [канал] [режим: 1 або 2] [ліміт або дата]")
         sys.exit(1)
         
     # Запускаємо відповідний сценарій збору даних
@@ -144,8 +144,8 @@ def handle_args_mode(args):
             execute_scraping_flow(url, limit=limit, start_index=count + 1, silent=False)
         elif mode == "2":
             print("\n[*] Запуск оновлювача...")
-            import youtube_update_db
-            youtube_update_db.run_update(url, silent=False)
+            import update_db
+            update_db.run_update(url, silent=False)
     else:
         if mode is None:
             # Запитуємо інтерактивно для нового каналу
@@ -186,8 +186,8 @@ def run_interactive_flow_for_channel(url, channel_id, channel_name, channel_hand
         execute_scraping_flow(url, limit=limit_val, start_index=count + 1, silent=False)
     elif choice == "2":
         print("\n[*] Запуск оновлювача...")
-        import youtube_update_db
-        youtube_update_db.run_update(url, silent=False)
+        import update_db
+        update_db.run_update(url, silent=False)
 
 
 def run_interactive_flow_new_channel(url):

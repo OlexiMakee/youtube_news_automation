@@ -43,22 +43,29 @@ class KeypressDetector:
             
     def check_space(self):
         """
-        Перевіряє, чи натиснув користувач клавішу Пробіл.
+        Перевіряє, чи натиснув користувач клавішу Пробіл або Enter.
         Не блокує виконання коду: якщо клавішу не натиснуто, метод просто повертає False.
 
         Повертає:
-            bool: True, якщо натиснуто Пробіл, інакше False.
+            bool: True, якщо натиснуто Пробіл або Enter, інакше False.
         """
         # Сценарій для Windows
         if sys.platform == "win32":
             try:
                 import msvcrt
-                # Перевіряємо, чи є в черзі натиснута клавіша
-                if msvcrt.kbhit():
+                has_trigger_key = False
+                # Зчитуємо ВСІ накопичені у буфері клавіші, щоб очистити чергу
+                while msvcrt.kbhit():
                     ch = msvcrt.getch()
-                    # Перевіряємо, чи це пробіл
-                    if ch == b' ':
-                        return True
+                    # Спеціальні клавіші (стрілки, F-клавіші) надсилають 2 байти (починаються з 0x00 або 0xE0)
+                    if ch in (b'\x00', b'\xe0'):
+                        if msvcrt.kbhit():
+                            msvcrt.getch()  # Зчитуємо та ігноруємо другий байт
+                    # Перевіряємо на пробіл або Enter (як резервний варіант)
+                    elif ch in (b' ', b'\r', b'\n', ' ', '\r', '\n'):
+                        has_trigger_key = True
+                if has_trigger_key:
+                    return True
             except Exception:
                 pass
             return False
@@ -69,8 +76,8 @@ class KeypressDetector:
             rlist, _, _ = select.select([sys.stdin], [], [], 0)
             if rlist:
                 ch = sys.stdin.read(1)
-                # Перевіряємо, чи зчитаний символ є пробілом
-                if ch == ' ':
+                # Перевіряємо на пробіл або Enter
+                if ch in (' ', '\n', '\r'):
                     return True
         except Exception:
             pass

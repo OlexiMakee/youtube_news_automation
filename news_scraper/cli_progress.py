@@ -50,9 +50,9 @@ def make_progress_callback(date_after, prefix=None):
             
         # Малюємо рядок прогресу з десятими частинами секунд
         if date_after:
-            progress_str = f"\r\033[K[*]{prefix_part} Завантажено відео: {current_count} (останнє: {time_str} тому) [Пробіл - пауза]"
+            progress_str = f"\r\033[K[*]{prefix_part} Завантажено відео: {current_count} (останнє: {time_str} тому) [Пробіл / Enter - пауза]"
         else:
-            progress_str = f"\r\033[K[*]{prefix_part} Завантажено відео: {current_count} / {limit} (останнє: {time_str} тому) [Пробіл - пауза]"
+            progress_str = f"\r\033[K[*]{prefix_part} Завантажено відео: {current_count} / {limit} (останнє: {time_str} тому) [Пробіл / Enter - пауза]"
         sys.stdout.write(progress_str)
         sys.stdout.flush()
     return on_progress

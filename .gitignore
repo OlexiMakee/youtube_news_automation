@@ -9,6 +9,9 @@ venv_auto/
 *.sqlite
 *.sqlite3
 
+# Data directory (logs, databases, downloaded videos)
+data/
+
 # Exported data files (scraped news spreadsheets)
 *.csv
 *.xlsx
@@ -45,3 +48,4 @@ __pycache__/
 
 # Build artifacts
 *.egg-info/
+news_scraper.egg-info/

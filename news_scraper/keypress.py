@@ -1,67 +1,83 @@
 """
-Модуль для неблокуючого детектування натискання клавіш (keypress.py).
+Module for non-blocking keypress detection (keypress.py).
 
-Цей модуль дозволяє відстежувати натискання клавіші Пробіл під час роботи скрапера
-без зупинки основного процесу збору даних. Він містить клас KeypressDetector,
-який автоматично адаптується під операційні системи Windows та Linux/macOS.
-Написано простою мовою з детальними коментарями.
+This module enables monitoring Spacebar/Enter keypresses during scraping execution
+without stalling the main data collection flow. It provides the KeypressDetector class,
+which automatically adapts to Windows and Unix-based (Linux/macOS) platforms.
 """
 
 import sys
+from abc import ABC, abstractmethod
 
-# Якщо це Unix-подібна система (macOS або Linux), імпортуємо бібліотеки для роботи з терміналом
+# If on Unix-like system (macOS or Linux), import terminal I/O libraries
 if sys.platform != "win32":
     import termios
     import tty
     import select
 
 
-class KeypressDetector:
+class BaseKeypressDetector(ABC):
     """
-    Клас, що дозволяє виявити, чи натиснув користувач клавішу Пробіл у консолі.
-    Працює у фоновому неблокуючому режимі (програма не зависає в очікуванні натискання).
+    Abstract base class for non-blocking keyboard input detectors.
+    """
+
+    @abstractmethod
+    def check_space(self):
+        """Checks if the user pressed the trigger key (Spacebar or Enter)."""
+        pass
+
+    @abstractmethod
+    def restore(self):
+        """Restores the terminal attributes to their original state."""
+        pass
+
+
+class KeypressDetector(BaseKeypressDetector):
+    """
+    Class that detects whether the user pressed the Spacebar or Enter in the console.
+    Operates in a background non-blocking manner (execution does not block waiting for input).
     """
 
     def __init__(self, active=True):
         """
-        Ініціалізує детектор клавіш.
+        Initializes the keypress detector.
 
-        Параметри:
-            active (bool): Якщо True, активує детектор (тільки якщо термінал підтримує інтерактивний ввід).
+        Parameters:
+            active (bool): If True, activates the detector (only if the terminal supports interactive input).
         """
-        # Детектор працює лише якщо ввід здійснюється в інтерактивному терміналі (tty)
+        # The detector operates only if input is routed to an interactive terminal (tty)
         self.active = active and sys.platform != "win32" and sys.stdin.isatty()
         if self.active:
             try:
                 self.fd = sys.stdin.fileno()
-                # Зберігаємо старі налаштування терміналу, щоб повернути їх при виході
+                # Save existing terminal attributes to restore them at exit
                 self.old_settings = termios.tcgetattr(self.fd)
-                # Переводимо термінал у режим cbreak (символи зчитуються миттєво без очікування натискання Enter)
+                # Set terminal to cbreak mode (characters read immediately without waiting for Enter)
                 tty.setcbreak(self.fd)
             except Exception:
                 self.active = False
             
     def check_space(self):
         """
-        Перевіряє, чи натиснув користувач клавішу Пробіл або Enter.
-        Не блокує виконання коду: якщо клавішу не натиснуто, метод просто повертає False.
+        Checks if the user pressed the Spacebar or Enter key.
+        Non-blocking: if no target key was pressed, returns False.
 
-        Повертає:
-            bool: True, якщо натиснуто Пробіл або Enter, інакше False.
+        Returns:
+            bool: True if Spacebar or Enter was pressed, False otherwise.
         """
-        # Сценарій для Windows
+        # Windows platform flow
         if sys.platform == "win32":
             try:
                 import msvcrt
                 has_trigger_key = False
-                # Зчитуємо ВСІ накопичені у буфері клавіші, щоб очистити чергу
+                # Consume all accumulated keys in buffer to empty the queue
                 while msvcrt.kbhit():
                     ch = msvcrt.getch()
-                    # Спеціальні клавіші (стрілки, F-клавіші) надсилають 2 байти (починаються з 0x00 або 0xE0)
+                    # Special keys (arrows, function keys) send 2 bytes (prefix 0x00 or 0xE0)
                     if ch in (b'\x00', b'\xe0'):
                         if msvcrt.kbhit():
-                            msvcrt.getch()  # Зчитуємо та ігноруємо другий байт
-                    # Перевіряємо на пробіл або Enter (як резервний варіант)
+                            msvcrt.getch()  # Read and ignore trailing byte
+                    # Check for Spacebar or Enter (fallback trigger)
                     elif ch in (b' ', b'\r', b'\n', ' ', '\r', '\n'):
                         has_trigger_key = True
                 if has_trigger_key:
@@ -70,13 +86,13 @@ class KeypressDetector:
                 pass
             return False
             
-        # Сценарій для macOS та Linux
+        # macOS & Linux flow
         try:
-            # Використовуємо select для неблокуючої перевірки наявності даних у стандартному потоці вводу (stdin)
+            # Use select to poll stdin for available bytes without blocking
             rlist, _, _ = select.select([sys.stdin], [], [], 0)
             if rlist:
                 ch = sys.stdin.read(1)
-                # Перевіряємо на пробіл або Enter
+                # Check for Spacebar or Enter keypresses
                 if ch in (' ', '\n', '\r'):
                     return True
         except Exception:
@@ -85,9 +101,9 @@ class KeypressDetector:
         
     def restore(self):
         """
-        Повертає налаштування терміналу macOS/Linux у початковий стан.
-        Це критично зробити перед тим, як виводити нове інтерактивне меню (наприклад, input()),
-        інакше ввід працюватиме некоректно.
+        Restores macOS/Linux terminal attributes to their original state.
+        Must be executed before prompting user input (e.g. via input()),
+        otherwise standard input will not behave correctly.
         """
         if self.active:
             try:

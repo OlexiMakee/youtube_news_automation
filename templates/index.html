@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>News Research Automation | Dashboard</title>
+    <!-- FontAwesome icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Main Stylesheet -->
+    <link rel="stylesheet" href="/static/css/style.css">
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-brand">
+            <i class="fa-solid fa-square-poll-vertical"></i>
+            <span>News Scraper</span>
+            <span class="sidebar-brand-sub">v1.0.0</span>
+        </div>
+        <ul class="sidebar-menu">
+            <li class="sidebar-menu-item active" id="menu-item-analytics">
+                <a href="#" class="sidebar-menu-link" onclick="switchSection('analytics-tab', this)">
+                    <i class="fa-solid fa-chart-line"></i>
+                    <span data-i18n="menu_dashboard">Data & Analytics</span>
+                </a>
+            </li>
+            <li class="sidebar-menu-item" id="menu-item-operations">
+                <a href="#" class="sidebar-menu-link" onclick="switchSection('operations-tab', this)">
+                    <i class="fa-solid fa-gears"></i>
+                    <span data-i18n="menu_operations">Operations</span>
+                </a>
+            </li>
+        </ul>
+        <div class="sidebar-footer">
+            <p>&copy; 2026 YouTube News Automation</p>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT AREA -->
+    <div class="main-content">
+        <!-- TOP BAR -->
+        <header class="top-bar">
+            <div style="display: flex; align-items: center; gap: 12px; flex-grow: 1; max-width: calc(100% - 250px);">
+                <button class="top-bar-menu-toggle" onclick="toggleSidebar()">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+                
+                <!-- TOP FILTER BAR -->
+                <div class="top-filter-bar" id="top-filter-bar">
+                    <!-- Channel Selector (Custom dropdown with checkboxes and color picker) -->
+                    <div class="top-filter-item custom-dropdown" id="channels-dropdown-container">
+                        <button class="control-select dropdown-trigger" type="button" onclick="toggleChannelsDropdown(event)" id="channels-dropdown-btn">
+                            <span id="dropdown-selected-text" data-i18n="dropdown_choose_channels">Оберіть канали</span>
+                            <i class="fa-solid fa-chevron-down"></i>
+                        </button>
+                        <div class="dropdown-menu-channels" id="channels-dropdown-menu" style="display: none;">
+                            <div class="dropdown-actions">
+                                <button class="btn-dropdown-action" type="button" onclick="toggleSelectAllChannels(true)" data-i18n="dropdown_select_all">Всі</button>
+                                <button class="btn-dropdown-action" type="button" onclick="toggleSelectAllChannels(false)" data-i18n="dropdown_deselect_all">Очистити</button>
+                                <button class="btn-dropdown-action btn-add-channel-action" type="button" onclick="openAddChannelModal(event)" data-i18n="dropdown_add_channel">Додати</button>
+                            </div>
+                            <div class="dropdown-channels-list" id="dropdown-channels-list">
+                                <!-- Dynamically generated checkboxes and color pickers -->
+                            </div>
+                            <div class="dropdown-apply-container">
+                                <button class="btn-primary" type="button" style="width: 100%; padding: 6px; font-size: 11px;" onclick="applyFilters()" data-i18n="btn_apply">Застосувати</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Date Inputs "Від" / "До" -->
+                    <div class="top-filter-item date-inputs-container">
+                        <span class="date-label-inline" data-i18n="lbl_from">Від</span>
+                        <input type="date" class="input-date-compact" id="filter-start-date" onchange="applyFilters()">
+                        <span class="date-label-inline" data-i18n="lbl_to">До</span>
+                        <input type="date" class="input-date-compact" id="filter-end-date" onchange="applyFilters()">
+                    </div>
+                    
+                    <!-- Quick Date Range Presets -->
+                    <div class="quick-date-bar-compact" id="quick-date-bar">
+                        <button class="quick-date-btn-compact" id="qd-1d" onclick="setDateRange('1d')" data-i18n="qd_1d">1 доба</button>
+                        <button class="quick-date-btn-compact" id="qd-1w" onclick="setDateRange('1w')" data-i18n="qd_1w">Тиждень</button>
+                        <button class="quick-date-btn-compact" id="qd-1m" onclick="setDateRange('1m')" data-i18n="qd_1m">Місяць</button>
+                        <button class="quick-date-btn-compact" id="qd-3m" onclick="setDateRange('3m')" data-i18n="qd_3m">3 місяці</button>
+                        <button class="quick-date-btn-compact" id="qd-1y" onclick="setDateRange('1y')" data-i18n="qd_1y">1 рік</button>
+                        <button class="quick-date-btn-compact qd-war-compact" id="qd-war" onclick="setDateRange('war')" data-i18n="qd_war">🇺🇦 З 24.02.2022</button>
+                    </div>
+                    
+                    <!-- Reset Button -->
+                    <button class="btn-reset-compact" onclick="resetFilters()" title="Reset Filters">
+                        <i class="fa-solid fa-rotate-left"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="top-bar-controls">
+                <!-- Theme Chooser -->
+                <select class="control-select" id="theme-selector" onchange="changeTheme(this.value)">
+                    <option value="light" data-i18n="theme_light">Light (White)</option>
+                    <option value="sepia" data-i18n="theme_sepia">Light (Sepia)</option>
+                    <option value="dark-black" data-i18n="theme_dark_black">Dark (Black)</option>
+                    <option value="dark-blue" data-i18n="theme_dark_blue">Dark (Blue)</option>
+                </select>
+                
+                <!-- Language Chooser -->
+                <select class="control-select" id="lang-selector" onchange="changeLanguage(this.value)">
+                    <option value="ua">Українська 🇺🇦</option>
+                    <option value="en">English 🇬🇧</option>
+                </select>
+            </div>
+        </header>
+
+        <!-- APP CONTAINER -->
+        <main class="app-container">
+            
+            <!-- SECTION 1: DATA & ANALYTICS TAB -->
+            <div id="section-data-analytics" class="tab-content">
+                
+                <!-- 1.1 CHANNEL HEADER CARD -->
+                <div id="channel-header-card" style="margin-bottom: 24px;"></div>
+
+                <section class="workspace" style="flex-direction: column;">
+                    
+                    <!-- VISUALIZATIONS (ABOVE TABLE) -->
+                    <div class="card" id="card-visualizations-container" style="margin-bottom: 24px;">
+                        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                            <div>
+                                <span class="card-title" data-i18n="title_visualizations">Visualizations</span>
+                                <span id="active-analytics-channel-name" class="stat-sub" style="margin-left: 12px; font-weight: 600; color: var(--accent-color);"></span>
+                                <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;" id="chart-controls-container">
+                                    <!-- Dynamic buttons, split groups, and dividers built by initChartUI() -->
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <!-- Channel KPIs Row -->
+                            <div class="channel-kpi-row" style="display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; width: 100%;">
+                                <div class="kpi-mini-card" style="flex: 1; min-width: 130px; border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; background-color: var(--bg-color);">
+                                    <span class="stat-label" style="font-size: 10px;" data-i18n="kpi_total_views">Total Views</span>
+                                    <div class="stat-val" id="kpi-total-views" style="font-size: 18px; margin-top: 4px; font-weight: 700;">0</div>
+                                </div>
+                                <div class="kpi-mini-card" style="flex: 1; min-width: 130px; border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; background-color: var(--bg-color);">
+                                    <span class="stat-label" style="font-size: 10px;" data-i18n="kpi_median_views">Median Views</span>
+                                    <div class="stat-val" id="kpi-median-views" style="font-size: 18px; margin-top: 4px; font-weight: 700;">0</div>
+                                </div>
+                                <div class="kpi-mini-card" style="flex: 1; min-width: 130px; border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; background-color: var(--bg-color);">
+                                    <span class="stat-label" style="font-size: 10px;" data-i18n="kpi_like_ratio">Avg Like Ratio</span>
+                                    <div class="stat-val" id="kpi-like-ratio" style="font-size: 18px; margin-top: 4px; font-weight: 700;">0.00%</div>
+                                </div>
+                                <div class="kpi-mini-card" style="flex: 1; min-width: 130px; border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; background-color: var(--bg-color);">
+                                    <span class="stat-label" style="font-size: 10px;" data-i18n="kpi_comment_ratio">Avg Comment Ratio</span>
+                                    <div class="stat-val" id="kpi-comment-ratio" style="font-size: 18px; margin-top: 4px; font-weight: 700;">0.00%</div>
+                                </div>
+                            </div>
+
+                            <div class="chart-container" style="height: 280px; width: 100%;">
+                                <canvas id="analytics-chart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- DATABASE EXPLORER (BELOW CHARTS) -->
+                    <div class="card" id="panel-explorer">
+                        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                            <div>
+                                <span class="card-title" data-i18n="title_database_explorer">Database Explorer</span>
+                                <span id="explorer-records-count" class="stat-sub">0 records found</span>
+                            </div>
+                            <div style="display: flex; gap: 8px; align-items: center; position: relative;">
+                                <button class="btn-primary" id="btn-run-update" onclick="triggerAction('update')" style="padding: 6px 12px; font-size: 11px; display: flex; align-items: center; gap: 6px;">
+                                    <i class="fa-solid fa-arrows-rotate"></i>
+                                    <span data-i18n="btn_update_db">Update DB</span>
+                                </button>
+                                
+                                <div class="dropdown-views-container" style="position: relative; display: inline-block;">
+                                    <button class="btn-secondary" id="btn-run-views-update" onclick="toggleViewsDropdown(event)" style="padding: 6px 12px; font-size: 11px; display: flex; align-items: center; gap: 6px;">
+                                        <i class="fa-solid fa-chart-line"></i>
+                                        <span data-i18n="btn_update_views">Update Views</span>
+                                    </button>
+                                    <div class="dropdown-views-menu" id="views-update-menu" style="display: none; position: absolute; right: 0; top: 32px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; min-width: 150px; padding: 4px 0;">
+                                        <a href="#" onclick="runViewsUpdate('1w', event)" style="display: block; padding: 8px 12px; font-size: 11px; color: var(--text-color); text-decoration: none;" data-i18n="views_1w">Тиждень (Швидко)</a>
+                                        <a href="#" onclick="runViewsUpdate('1m', event)" style="display: block; padding: 8px 12px; font-size: 11px; color: var(--text-color); text-decoration: none;" data-i18n="views_1m">Місяць (Довго)</a>
+                                        <a href="#" onclick="runViewsUpdate('3m', event)" style="display: block; padding: 8px 12px; font-size: 11px; color: var(--text-color); text-decoration: none;" data-i18n="views_3m">3 місяці (Довго)</a>
+                                        <a href="#" onclick="runViewsUpdate('6m', event)" style="display: block; padding: 8px 12px; font-size: 11px; color: var(--text-color); text-decoration: none;" data-i18n="views_6m">6 місяців (Довго)</a>
+                                        <a href="#" onclick="runViewsUpdate('1y', event)" style="display: block; padding: 8px 12px; font-size: 11px; color: var(--text-color); text-decoration: none;" data-i18n="views_1y">Рік і більше (Дуже довго)</a>
+                                    </div>
+                                </div>
+                                
+                                <span class="task-badge idle" id="update-badge" style="font-size: 9px; padding: 2px 6px; display: none;"></span>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            
+                            <!-- Search Form -->
+                            <div class="explorer-filters">
+                                <input type="text" class="input-search" id="filter-search" placeholder="Search title or description..." data-i18n-placeholder="placeholder_search" onkeyup="debounceFilter()">
+                            </div>
+                            
+                            <!-- Columns Selector Button & Panel -->
+                            <div style="margin-bottom: 12px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                                <button class="btn-secondary" style="padding: 6px 12px; font-size: 11px;" onclick="toggleColumnsSelector()">
+                                    <i class="fa-solid fa-list-check"></i>
+                                    <span data-i18n="btn_choose_columns">Select Columns</span>
+                                </button>
+
+                                <button class="btn-secondary" style="padding: 6px 12px; font-size: 11px; display: flex; align-items: center; gap: 6px;" onclick="exportCSV()">
+                                    <i class="fa-solid fa-file-csv"></i>
+                                    <span data-i18n="btn_export_csv">Export CSV</span>
+                                </button>
+                                
+                                <div style="display: flex; align-items: center; gap: 6px; font-size: 11px; margin-left: auto;">
+                                    <span data-i18n="lbl_rows_per_page">Rows per page:</span>
+                                    <select class="control-select" style="padding: 4px 8px; font-size: 11px;" id="per-page-selector" onchange="changePerPage(this.value)">
+                                        <option value="10">10</option>
+                                        <option value="25" selected>25</option>
+                                        <option value="50">50</option>
+                                        <option value="100">100</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="column-chooser" id="columns-chooser-panel" style="display: none; margin-bottom: 16px; width: 100%;">
+                                <label class="column-checkbox"><input type="checkbox" value="video_id" checked onchange="updateColumns()"> Video ID</label>
+                                <label class="column-checkbox"><input type="checkbox" value="title" checked disabled> Title</label>
+                                <label class="column-checkbox"><input type="checkbox" value="channel_name" checked onchange="updateColumns()"> Channel</label>
+                                <label class="column-checkbox"><input type="checkbox" value="published_at" checked onchange="updateColumns()"> Published At</label>
+                                <label class="column-checkbox"><input type="checkbox" value="view_count" checked onchange="updateColumns()"> Views</label>
+                                <label class="column-checkbox"><input type="checkbox" value="like_count" checked onchange="updateColumns()"> Likes</label>
+                                <label class="column-checkbox"><input type="checkbox" value="comment_count" checked onchange="updateColumns()"> Comments</label>
+                                <label class="column-checkbox"><input type="checkbox" value="duration" onchange="updateColumns()"> Duration</label>
+                                <label class="column-checkbox"><input type="checkbox" value="scraped_at" onchange="updateColumns()"> Scraped At</label>
+                            </div>
+                            
+                            <!-- Table Wrapper -->
+                            <div class="table-wrapper">
+                                <table class="data-table" id="data-table">
+                                    <thead>
+                                        <tr id="table-headers">
+                                            <!-- Headers loaded dynamically based on columns selection -->
+                                        </tr>
+                                    </thead>
+                                    <tbody id="table-body">
+                                        <!-- Rows loaded dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <!-- Pagination Controls -->
+                            <div class="pagination">
+                                <div>
+                                    <span data-i18n="pag_showing">Showing page</span> <span id="pag-current">1</span> / <span id="pag-total">1</span>
+                                </div>
+                                <div class="pagination-controls">
+                                    <button class="btn-secondary" style="padding: 6px 12px;" id="btn-pag-prev" onclick="changePage(-1)">
+                                        <i class="fa-solid fa-angle-left"></i>
+                                    </button>
+                                    <button class="btn-secondary" style="padding: 6px 12px;" id="btn-pag-next" onclick="changePage(1)">
+                                        <i class="fa-solid fa-angle-right"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- SECTION 2: OPERATIONS TAB (HIDDEN BY DEFAULT) -->
+            <div id="section-operations" class="tab-content">
+                <!-- 2.1 STATS GRID (Moved from Analytics) -->
+                <section class="stats-grid" id="stats-grid-container" style="margin-bottom: 24px;">
+                    <!-- Local SQLite Card -->
+                    <div class="stat-card">
+                        <span class="stat-label" data-i18n="card_local_db">Local DB (SQLite)</span>
+                        <span class="stat-val" id="sqlite-total-videos">0</span>
+                        <span class="stat-sub">
+                            <span data-i18n="stat_channels">Channels</span>: <strong id="sqlite-total-channels">0</strong>
+                        </span>
+                    </div>
+                    <!-- Sync Progress Card -->
+                    <div class="stat-card">
+                        <span class="stat-label" data-i18n="card_sync_status">Sync Queue</span>
+                        <span class="stat-val" id="sqlite-unsynced-videos">0</span>
+                        <span class="stat-sub">
+                            <span data-i18n="stat_recent">Recent (Delta)</span>: <strong id="sqlite-recent-unsynced">0</strong> | 
+                            <span data-i18n="stat_ignored">Ignored</span>: <strong id="sqlite-historical-unsynced">0</strong>
+                        </span>
+                    </div>
+                    <!-- Neon Cloud Database Card -->
+                    <div class="stat-card">
+                        <span class="stat-label" data-i18n="card_cloud_db">Cloud DB (Neon)</span>
+                        <span class="stat-val" id="neon-total-videos">0</span>
+                        <span class="stat-sub">
+                            <span data-i18n="stat_channels">Channels</span>: <strong id="neon-total-channels">0</strong>
+                        </span>
+                    </div>
+                    <!-- Postgres Configuration Card -->
+                    <div class="stat-card" style="min-width: 250px;">
+                        <span class="stat-label" data-i18n="card_cloud_config">Neon Connection</span>
+                        <span class="stat-val" style="font-size: 16px; margin: 10px 0;" id="neon-connection-status">Checking...</span>
+                        <span class="stat-sub" id="neon-status-msg" style="word-break: break-all;">-</span>
+                    </div>
+                </section>
+                
+                <div class="card" id="card-operations-container" style="max-width: 800px; margin: 0 auto; width: 100%;">
+                    <div class="card-header">
+                        <span class="card-title" data-i18n="title_process_control">Operations & Controls</span>
+                        <span class="task-badge idle" id="task-badge" data-i18n="status_idle">IDLE</span>
+                    </div>
+                    <div class="card-body">
+                        <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+                            <button class="btn-primary" id="btn-run-scrape" onclick="triggerAction('scrape')" style="flex: 1; padding: 12px 20px; font-size: 14px;">
+                                <i class="fa-solid fa-play"></i>
+                                <span data-i18n="btn_run_scraper">Run Scraper</span>
+                            </button>
+                            <button class="btn-primary" id="btn-run-sync" onclick="triggerAction('sync')" style="flex: 1; padding: 12px 20px; font-size: 14px; background-color: var(--teal-color);">
+                                <i class="fa-solid fa-cloud-arrow-up"></i>
+                                <span data-i18n="btn_run_sync">Run Sync</span>
+                            </button>
+                        </div>
+                        
+                        <span class="stat-label" data-i18n="console_output" style="margin-bottom: 6px; display: block;">Live Process Console</span>
+                        <div class="console-card" id="console-output" style="height: 380px;">
+                            <div class="console-line">[i] Console initialized. Ready to execute background jobs.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+        </main>
+    </div>
+
+    <!-- Video Details Modal -->
+    <div id="video-details-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-backdrop" onclick="closeVideoModal()"></div>
+        <div class="modal-card">
+            <div class="modal-card-header">
+                <span class="modal-card-title" id="mv-modal-title">Video Details</span>
+                <button class="modal-close-btn" onclick="closeVideoModal()">&times;</button>
+            </div>
+            <div class="modal-card-body">
+                <div class="modal-grid">
+                    <!-- Left Column: Thumbnail and Actions -->
+                    <div class="modal-col-left">
+                        <div class="modal-thumbnail-wrapper">
+                            <img id="mv-modal-thumbnail" src="" alt="Thumbnail" />
+                        </div>
+                        <div class="modal-actions-panel">
+                            <a id="mv-modal-yt-link" href="" target="_blank" class="btn-primary" style="text-align: center; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                                <i class="fa-brands fa-youtube"></i>
+                                <span data-i18n="modal_watch_yt">Watch on YouTube</span>
+                            </a>
+                            <button id="mv-modal-download-btn" onclick="downloadVideoFromModal()" class="btn-secondary" style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+                                <i class="fa-solid fa-download"></i>
+                                <span id="mv-modal-download-text" data-i18n="modal_download_mp4">Download MP4</span>
+                            </button>
+                            <button id="mv-modal-scrape-btn" onclick="scrapeDetailsFromModal()" class="btn-secondary" style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+                                <i class="fa-solid fa-arrows-spin"></i>
+                                <span id="mv-modal-scrape-text" data-i18n="modal_scrape_details">Scrape Full Info</span>
+                            </button>
+                        </div>
+                    </div>
+                    <!-- Right Column: Stats, Description, and History Graph -->
+                    <div class="modal-col-right">
+                        <div class="modal-stats-grid">
+                            <div class="m-stat-card">
+                                <span class="m-stat-lbl" data-i18n="kpi_total_views">Views</span>
+                                <span class="m-stat-val" id="mv-modal-views">0</span>
+                            </div>
+                            <div class="m-stat-card">
+                                <span class="m-stat-lbl">Likes</span>
+                                <span class="m-stat-val" id="mv-modal-likes">0</span>
+                            </div>
+                            <div class="m-stat-card">
+                                <span class="m-stat-lbl">Comments</span>
+                                <span class="m-stat-val" id="mv-modal-comments">0</span>
+                            </div>
+                            <div class="m-stat-card">
+                                <span class="m-stat-lbl">Published</span>
+                                <span class="m-stat-val" id="mv-modal-date">-</span>
+                            </div>
+                        </div>
+                        
+                        <div class="modal-section-title" data-i18n="modal_description">Description</div>
+                        <div class="modal-description-box" id="mv-modal-description">No description.</div>
+                        
+                        <div class="modal-section-title" id="mv-modal-chart-title" style="display: none;" data-i18n="modal_views_trend">Views Dynamics</div>
+                        <div class="modal-chart-wrapper" id="mv-modal-chart-container" style="display: none; height: 130px; position: relative; margin-top: 6px;">
+                            <canvas id="modal-views-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Add Channel Modal -->
+    <div id="add-channel-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-backdrop" onclick="closeAddChannelModal()"></div>
+        <div class="modal-card" style="max-width: 500px;">
+            <div class="modal-card-header">
+                <span class="modal-card-title" data-i18n="modal_add_channel_title">Додати новий канал</span>
+                <button class="modal-close-btn" onclick="closeAddChannelModal()">&times;</button>
+            </div>
+            <div class="modal-card-body">
+                <form id="add-channel-form" onsubmit="submitAddChannel(event)">
+                    <div class="form-group" style="margin-bottom: 16px;">
+                        <label class="stat-label" style="display: block; margin-bottom: 6px;" data-i18n="lbl_channel_url">Введіть назву або URL каналу</label>
+                        <input type="text" class="input-search" id="ac-channel-url" placeholder="https://www.youtube.com/@channel or Name..." required style="width: 100%; box-sizing: border-box; padding: 10px;">
+                    </div>
+                    
+                    <div class="form-group" style="margin-bottom: 16px;">
+                        <label class="stat-label" style="display: block; margin-bottom: 6px;" data-i18n="lbl_scraping_mode">Режим збору даних</label>
+                        <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+                            <button type="button" class="btn-secondary active" id="btn-ac-mode-period" onclick="setAddChannelMode('period')" style="flex: 1; padding: 8px;">Період</button>
+                            <button type="button" class="btn-secondary" id="btn-ac-mode-limit" onclick="setAddChannelMode('limit')" style="flex: 1; padding: 8px;">Ліміт відео</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Mode Period Fields -->
+                    <div id="ac-group-period" class="ac-mode-group">
+                        <div style="display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap;">
+                            <button type="button" class="quick-date-btn-compact" onclick="setAddChannelPeriodPreset('1d')">1 доба</button>
+                            <button type="button" class="quick-date-btn-compact" onclick="setAddChannelPeriodPreset('1w')">Тиждень</button>
+                            <button type="button" class="quick-date-btn-compact" onclick="setAddChannelPeriodPreset('1m')">Місяць</button>
+                        </div>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <div style="flex: 1;">
+                                <label class="stat-label" style="font-size: 11px; display: block; margin-bottom: 4px;">Від</label>
+                                <input type="date" class="input-date-compact" id="ac-start-date" style="width: 100%; padding: 8px; box-sizing: border-box;">
+                            </div>
+                            <div style="flex: 1;">
+                                <label class="stat-label" style="font-size: 11px; display: block; margin-bottom: 4px;">До</label>
+                                <input type="date" class="input-date-compact" id="ac-end-date" style="width: 100%; padding: 8px; box-sizing: border-box;">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Mode Limit Fields -->
+                    <div id="ac-group-limit" class="ac-mode-group" style="display: none;">
+                        <div style="display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap;">
+                            <button type="button" class="quick-date-btn-compact" onclick="setAddChannelLimitPreset(50)">50 відео</button>
+                            <button type="button" class="quick-date-btn-compact" onclick="setAddChannelLimitPreset(100)">100 відео</button>
+                            <button type="button" class="quick-date-btn-compact" onclick="setAddChannelLimitPreset(200)">200 відео</button>
+                        </div>
+                        <div class="form-group">
+                            <label class="stat-label" style="font-size: 11px; display: block; margin-bottom: 4px;">Кількість відео</label>
+                            <input type="number" class="input-search" id="ac-limit-val" value="50" min="1" max="1000" style="width: 100%; padding: 8px; box-sizing: border-box;">
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 24px; display: flex; gap: 12px;">
+                         <button type="button" class="btn-secondary" onclick="closeAddChannelModal()" style="flex: 1; padding: 10px;">Скасувати</button>
+                         <button type="submit" class="btn-primary" style="flex: 1; padding: 10px;">Запустити збір</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Client Application logic -->
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

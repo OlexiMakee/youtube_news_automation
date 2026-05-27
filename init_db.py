@@ -1,20 +1,19 @@
 """
-Головна точка входу для ініціалізації та первинного наповнення бази даних (init_db.py).
+Main entry point for database initialization and initial channel history scraping (init_db.py).
 
-Цей скрипт дозволяє користувачеві ввести посилання на канал чи його @нікнейм
-та обрати режим збору історії відео:
-1. Завантажити останні N відео (наприклад, 2000).
-2. Завантажити відео починаючи з конкретної дати.
-Він підтримує параметри командного рядка для зручності запуску 
-(наприклад: python init_db.py UATVEnglish 1 300).
-Спільна логіка прогресу, таймерів та паузи винесена в модуль cli_progress.py.
-Написано простою мовою з детальними коментарями для ентузіастів.
+This script allows the user to enter a channel URL or handle (@nickname)
+and choose the video history scraping mode:
+1. Download the last N videos (e.g., 2000).
+2. Download videos starting from a specific date.
+It supports command line arguments for easier scripting
+(e.g., python init_db.py UATVEnglish 1 300).
+Shared progress logic, timers, and pause controls are implemented in cli_progress.py.
 """
 
 import os
 import sys
 
-# Додаємо поточну директорію до sys.path, щоб імпорти news_scraper працювали безшовно
+# Add the current directory to sys.path to resolve news_scraper package imports seamlessly
 root_dir = os.path.dirname(os.path.abspath(__file__))
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
@@ -24,35 +23,38 @@ import json
 import argparse
 import news_scraper.utils as utils
 
-# Запуск автоматичного налаштування віртуального середовища
-# Це гарантує, що у нас є всі необхідні бібліотеки та локальний пакет news_scraper
+# Auto-bootstrap virtual environment to ensure all dependencies are resolved
 utils.setup_and_run_venv(__file__)
 
 from news_scraper.db_client import DatabaseClient
 from news_scraper.scraper_engine import YouTubeScraperEngine
+from news_scraper.keypress import KeypressDetector
 import news_scraper.cli_progress as cli_progress
 
-# Створюємо глобальний об'єкт клієнта бази даних для використання у функціях
+# Global database client instance for script functions
 db_client = DatabaseClient()
 
 
 def execute_scraping_flow(url, limit=2000, start_index=1, date_after=None, silent=False):
     """
-    Основний робочий процес: ініціалізує двигун скрапера,
-    підключає callback-функції та запускає збір даних.
+    Main scraping flow: instantiates the scraper engine,
+    binds progress callbacks, and starts data collection.
     """
+    detector = KeypressDetector(not silent)
     scraper = YouTubeScraperEngine(
         url, 
+        storage=db_client,
         limit=limit, 
         start_index=start_index, 
         date_after=date_after, 
-        silent=silent
+        silent=silent,
+        keypress_detector=detector
     )
     
-    # Отримуємо метадані каналу
+    # Fetch channel metadata
     info = scraper.fetch_channel_info()
     if not info or not info["channel_id"]:
-        print("[!] Помилка: Не вдалося отримати ідентифікатор каналу. Перевірте посилання.")
+        print("[!] Error: Could not retrieve channel ID. Please check the URL.")
         return False
         
     channel_id = info["channel_id"]
@@ -61,44 +63,44 @@ def execute_scraping_flow(url, limit=2000, start_index=1, date_after=None, silen
     
     if not silent:
         print("-" * 60)
-        print(f"Канал:        {channel_name} ({channel_handle or 'без нікнейму'})")
-        print(f"ID каналу:    {channel_id}")
+        print(f"Channel:      {channel_name} ({channel_handle or 'no handle'})")
+        print(f"Channel ID:   {channel_id}")
         print("-" * 60)
         if date_after:
-            print(f"[*] Починаю завантаження історії відео після дати {date_after}...")
+            print(f"[*] Starting history download for videos published after {date_after}...")
         else:
-            print(f"[*] Починаю завантаження історії відео (діапазон: з {start_index} по {start_index + limit - 1})...")
+            print(f"[*] Starting history download (range: {start_index} to {start_index + limit - 1})...")
 
     start_time = time.time()
     
-    # Підключаємо спільні калбеки відображення прогресу та обробки паузи
+    # Bind progress monitoring and pause trigger callbacks
     on_progress = cli_progress.make_progress_callback(date_after)
     on_pause = cli_progress.make_pause_callback(channel_id, start_time, db_client)
     
-    # Запуск скрапінгу
+    # Run scraping process
     success = scraper.run_archive_scraping(
         on_progress=on_progress,
         on_pause=on_pause
     )
     
-    # Друкуємо фінальний звіт про процес
+    # Print the execution summary report
     cli_progress.print_final_report(scraper, channel_id, start_time, db_client, success=success)
     return success
 
 
 def handle_cli_mode(args):
     """
-    Обробляє параметри, передані при запуску через термінал (наприклад: python init_db.py UATVEnglish 1 300).
-    Здійснює перевірку на коректність параметрів та виводить зрозумілі повідомлення про помилки.
+    Handles parameters passed via command line (e.g. python init_db.py UATVEnglish 1 300).
+    Validates arguments and prints clear error messages for invalid inputs.
     """
     channel_input = args.channel
     nickname, url = utils.normalize_url(channel_input)
     
-    # Отримуємо інформацію про канал
+    # Retrieve channel metadata
     temp_scraper = YouTubeScraperEngine(url, silent=True)
     info = temp_scraper.fetch_channel_info()
     if not info or not info["channel_id"]:
-        print(f"[!] Помилка: Не вдалося знайти канал за вводом '{channel_input}'")
+        print(f"[!] Error: Could not find channel matching input '{channel_input}'")
         sys.exit(1)
         
     channel_id = info["channel_id"]
@@ -109,46 +111,46 @@ def handle_cli_mode(args):
     limit = 2000
     date_after = None
     
-    # Перевіряємо аргументи
+    # Parameter validation
     if mode:
         val = args.value
         if mode == "1":
             if val:
                 if not val.isdigit() or int(val) <= 0:
-                    print(f"[!] Помилка: Третій параметр (ліміт записів) має бути позитивним числом.")
+                    print(f"[!] Error: Third parameter (limit) must be a positive integer.")
                     sys.exit(1)
                 limit = int(val)
             else:
-                print(f"[!] Помилка: Для режиму 1 необхідно вказати ліміт (третій параметр).")
+                print(f"[!] Error: Limit parameter (third argument) is required for mode 1.")
                 sys.exit(1)
         elif mode == "2":
             if not channel_exists:
                 if val:
                     if not val.isdigit() or len(val) != 8:
-                        print(f"[!] Помилка: Третій параметр (дата) має бути у форматі YYYYMMDD (наприклад, 20260101).")
+                        print(f"[!] Error: Third parameter (date) must be in YYYYMMDD format (e.g., 20260101).")
                         sys.exit(1)
                     date_after = val
                 else:
-                    print(f"[!] Помилка: Для нового каналу в режимі 2 необхідно вказати дату YYYYMMDD (третій параметр).")
+                    print(f"[!] Error: Date parameter YYYYMMDD (third argument) is required for new channels in mode 2.")
                     sys.exit(1)
             
-    # Запускаємо відповідний сценарій збору даних
+    # Launch appropriate scraping scenario
     if channel_exists:
         if mode is None:
-            # Запитуємо режим інтерактивно, оскільки його не було передано
+            # Interactive prompts for existing channel
             run_interactive_flow_for_channel(url, channel_id, info["channel_name"], info["channel_handle"] or nickname)
         elif mode == "1":
             db_info = db_client.get_channel_video_info(channel_id)
             count = db_info["video_count"]
-            # Починаємо збір з наступного індексу за збереженими відео
+            # Resume scraping from the next sequential index
             execute_scraping_flow(url, limit=limit, start_index=count + 1, silent=False)
         elif mode == "2":
-            print("\n[*] Запуск оновлювача...")
+            print("\n[*] Starting database updater...")
             import update_db
             update_db.run_update(url, silent=False)
     else:
         if mode is None:
-            # Запитуємо інтерактивно для нового каналу
+            # Interactive prompts for new channel
             run_interactive_flow_new_channel(url)
         elif mode == "1":
             execute_scraping_flow(url, limit=limit, silent=False)
@@ -158,7 +160,7 @@ def handle_cli_mode(args):
 
 def run_interactive_flow_for_channel(url, channel_id, channel_name, channel_handle):
     """
-    Інтерактивне діалогове меню для каналу, який ВЖЕ є в базі.
+    Interactive terminal menu for a channel that already exists in the database.
     """
     db_info = db_client.get_channel_video_info(channel_id)
     count = db_info["video_count"]
@@ -166,55 +168,55 @@ def run_interactive_flow_for_channel(url, channel_id, channel_name, channel_hand
     max_date = db_info["max_date"]
     
     print("-" * 60)
-    print(f"[i] Канал \"{channel_name}\" ({channel_handle}) вже є в базі даних.")
-    print(f"    Збережено відео: {count} (період публікацій: з {min_date} по {max_date})")
+    print(f"[i] Channel \"{channel_name}\" ({channel_handle}) already exists in the database.")
+    print(f"    Saved videos: {count} (published between {min_date} and {max_date})")
     print("-" * 60)
-    print("Оберіть дію:")
-    print("1. Довантажити старіші відео (скрапінг історії)")
-    print("2. Швидко оновити базу новішими відео")
-    print("3. Скасувати (повернутися до початку)")
+    print("Choose action:")
+    print("1. Fetch older videos (history scraping)")
+    print("2. Fetch newer videos (quick update)")
+    print("3. Cancel (return to main menu)")
     
     while True:
-        choice = input("\nВаш вибір (1, 2 або 3):\n> ").strip()
+        choice = input("\nYour choice (1, 2, or 3):\n> ").strip()
         if choice in ["1", "2", "3"]:
             break
-        print("[!] Невірний вибір. Введіть 1, 2 або 3.")
+        print("[!] Invalid choice. Please enter 1, 2, or 3.")
         
     if choice == "1":
-        limit_str = input(f"\nСкільки старіших відео довантажити (за замовчуванням 500)?\n> ").strip()
+        limit_str = input(f"\nHow many older videos to fetch (default: 500)?\n> ").strip()
         limit_val = int(limit_str) if limit_str.isdigit() else 500
         execute_scraping_flow(url, limit=limit_val, start_index=count + 1, silent=False)
     elif choice == "2":
-        print("\n[*] Запуск оновлювача...")
+        print("\n[*] Starting database updater...")
         import update_db
         update_db.run_update(url, silent=False)
 
 
 def run_interactive_flow_new_channel(url):
     """
-    Інтерактивне діалогове меню для НОВОГО каналу.
+    Interactive terminal menu for a new channel.
     """
-    print("\nОберіть режим збору історії:")
-    print("1. Зібрати останні N відео (наприклад, 2000)")
-    print("2. Зібрати відео від конкретної дати")
+    print("\nSelect history scraping mode:")
+    print("1. Download the last N videos (e.g., 2000)")
+    print("2. Download videos starting from a specific date")
     
     while True:
-        choice = input("Ваш вибір (1 або 2): ").strip()
+        choice = input("Your choice (1 or 2): ").strip()
         if choice in ["1", "2"]:
             break
-        print("[!] Невірний вибір. Введіть 1 або 2.")
+        print("[!] Invalid choice. Please enter 1 or 2.")
         
     limit_val = 2000
     date_val = None
     
     if choice == "2":
         while True:
-            date_val = input("Введіть дату у форматі YYYYMMDD (наприклад, 20260101):\n> ").strip()
+            date_val = input("Enter date in YYYYMMDD format (e.g., 20260101):\n> ").strip()
             if date_val.isdigit() and len(date_val) == 8:
                 break
-            print("[!] Невірний формат дати. Потрібно 8 цифр YYYYMMDD.")
+            print("[!] Invalid date format. 8 digits required (YYYYMMDD).")
     else:
-        limit_str = input(f"Введіть ліміт кількості відео (за замовчуванням {limit_val}):\n> ").strip()
+        limit_str = input(f"Enter video limit (default: {limit_val}):\n> ").strip()
         if limit_str.isdigit():
             limit_val = int(limit_str)
             
@@ -222,65 +224,65 @@ def run_interactive_flow_new_channel(url):
 
 
 def run_interactive_main():
-    """Основний цикл інтерактивної роботи."""
+    """Main loop for interactive terminal session."""
     try:
         while True:
             utils.clear_screen()
             utils.print_header("YOUTUBE HISTORICAL SCRAPER (SQLITE)")
             
-            user_input = input("\nВведіть посилання на YouTube канал (або його @хендл):\n> ").strip()
+            user_input = input("\nEnter YouTube channel URL or @handle:\n> ").strip()
             if not user_input:
-                print("[!] Ввід порожній.")
-                input("\nНатисніть Enter, щоб спробувати знову...")
+                print("[!] Input is empty.")
+                input("\nPress Enter to try again...")
                 continue
                 
             nickname, url = utils.normalize_url(user_input)
             
-            # Тимчасово отримуємо метадані каналу для перевірки
+            # Temporary scraper instance to validate channel URL and fetch metadata
             temp_scraper = YouTubeScraperEngine(url, silent=True)
             info = temp_scraper.fetch_channel_info()
             if not info or not info["channel_id"]:
-                print("[!] Помилка: Не вдалося отримати ідентифікатор каналу. Перевірте посилання.")
-                input("\nНатисніть Enter, щоб спробувати знову...")
+                print("[!] Error: Could not retrieve channel ID. Please check the URL.")
+                input("\nPress Enter to try again...")
                 continue
                 
             channel_id = info["channel_id"]
             stats = db_client.get_channel_stats(channel_id)
             
-            # Якщо канал вже є в базі, пропонуємо довантажити чи оновити
+            # Prompt update options if channel already has videos saved
             if stats and stats.get("video_count", 0) > 0:
                 run_interactive_flow_for_channel(url, channel_id, info["channel_name"], info["channel_handle"] or nickname)
             else:
                 run_interactive_flow_new_channel(url)
             
-            # Запит на продовження роботи з іншим каналом
-            print("\nБажаєте продовжити роботу з іншим каналом?")
-            print("1. Так")
-            print("2. Ні")
+            # Ask if user wants to process another channel
+            print("\nDo you want to process another channel?")
+            print("1. Yes")
+            print("2. No")
             
             while True:
-                choice = input("\nВаш вибір (1 або 2):\n> ").strip()
+                choice = input("\nYour choice (1 or 2):\n> ").strip()
                 if choice in ["1", "2"]:
                     break
-                print("[!] Невірний вибір. Введіть 1 або 2.")
+                print("[!] Invalid choice. Please enter 1 or 2.")
                 
             if choice == "2":
                 utils.clear_screen()
-                print("Дякуємо за використання YouTube Historical Scraper! До побачення.")
+                print("Thank you for using YouTube Historical Scraper! Goodbye.")
                 break
     except KeyboardInterrupt:
-        print("\n\n[!] Процес перервано користувачем. Вихід...")
+        print("\n\n[!] Process interrupted by user. Exiting...")
         sys.exit(0)
 
 
 def main():
-    """Розбір аргументів командного рядка та вибір режиму роботи."""
+    """Parses command line arguments and routes execution."""
     db_client.init_db()
     
-    parser = argparse.ArgumentParser(description="Ініціалізація та збір історії каналу YouTube.")
-    parser.add_argument("channel", nargs="?", help="Посилання на YouTube канал або його @хендл")
-    parser.add_argument("mode", nargs="?", choices=["1", "2"], help="Режим роботи: 1 (ліміт) або 2 (за датою)")
-    parser.add_argument("value", nargs="?", help="Ліміт відео (число) або дата (YYYYMMDD)")
+    parser = argparse.ArgumentParser(description="Initialize and scrape YouTube channel history.")
+    parser.add_argument("channel", nargs="?", help="YouTube channel URL or @handle")
+    parser.add_argument("mode", nargs="?", choices=["1", "2"], help="Mode: 1 (limit count) or 2 (date after)")
+    parser.add_argument("value", nargs="?", help="Video limit count or publish date (YYYYMMDD)")
     
     args = parser.parse_args()
     

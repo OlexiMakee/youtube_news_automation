@@ -15,7 +15,9 @@ dependencies = [
     "yt-dlp",
     "requests",
     "kagglehub",
-    "kagglesdk"
+    "kagglesdk",
+    "psycopg2-binary",
+    "flask"
 ]
 
 [tool.setuptools.packages.find]

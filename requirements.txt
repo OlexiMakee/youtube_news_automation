@@ -4,3 +4,5 @@ pandas
 openpyxl
 kagglehub
 kagglesdk
+psycopg2-binary
+flask

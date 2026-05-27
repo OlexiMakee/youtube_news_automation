@@ -1,16 +1,16 @@
 """
-Модуль для експорту даних із бази SQLite у зручні формати (Excel / CSV).
+Module for exporting data from the SQLite database to convenient formats (Excel / CSV).
 
-Цей модуль містить клас DataExporter, який вивантажує інформацію про відео 
-з бази даних, формує таблиці (DataFrame) за допомогою бібліотеки pandas
-та зберігає їх у файли Excel (.xlsx) або CSV.
-Також містить консольне меню для вибору каналів для експорту.
+This module contains the DataExporter class, which fetches video information
+from the database, structures the tables (DataFrame) using the pandas library,
+and saves them to Excel (.xlsx) or CSV files.
+It also includes a console menu to select channels for export.
 """
 
 import os
 import sys
 
-# Додаємо поточну директорію до sys.path, щоб імпорти news_scraper працювали безшовно
+# Add the current directory to sys.path so that news_scraper imports work seamlessly
 root_dir = os.path.dirname(os.path.abspath(__file__))
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
@@ -18,11 +18,11 @@ if root_dir not in sys.path:
 import subprocess
 import news_scraper.utils as utils
 
-# --- АВТОМАТИЧНЕ НАЛАШТУВАННЯ СЕРЕДОВИЩА ---
-# Запускаємо бутстрапер віртуального середовища з додатковими бібліотеками для роботи з таблицями.
-# Для експорту нам потрібні: pandas (для роботи з таблицями) та openpyxl (для запису файлів Excel).
+# --- AUTOMATIC ENVIRONMENT CONFIGURATION ---
+# Launch virtual environment bootstrapper with additional packages for tabular data.
+# For exporting, we need: pandas (to manage tables) and openpyxl (to write Excel files).
 utils.setup_and_run_venv(__file__, ["pandas", "openpyxl"])
-# --- КІНЕЦЬ АВТОНАЛАШТУВАННЯ ---
+# --- END OF AUTOMATIC CONFIGURATION ---
 
 import argparse
 from datetime import datetime
@@ -32,16 +32,16 @@ from news_scraper.db_client import DatabaseClient
 
 class DataExporter:
     """
-    Клас для вивантаження даних із бази даних YouTube у зовнішні файли (Excel/CSV).
+    Class for exporting data from the YouTube database to external files (Excel/CSV).
     """
 
     def __init__(self, db_client=None):
         """
-        Ініціалізує експортер даних.
+        Initializes the data exporter.
 
-        Параметри:
-            db_client (DatabaseClient, optional): Інстанція клієнта бази даних.
-                Якщо не вказано, створює новий DatabaseClient за замовчуванням.
+        Parameters:
+            db_client (DatabaseClient, optional): Database client instance.
+                If omitted, creates a new DatabaseClient by default.
         """
         if db_client is None:
             self.db_client = DatabaseClient()
@@ -50,20 +50,20 @@ class DataExporter:
 
     def get_channels_list(self):
         """
-        Отримує список усіх каналів, збережених у базі даних,
-        разом із кількістю відео для кожного каналу.
+        Retrieves a list of all channels stored in the database,
+        along with the video count for each channel.
 
-        Повертає:
-            list: Список словників, де кожен словник містить:
-                - channel_id: ID каналу
-                - channel_name: Назва
-                - channel_handle: Нікнейм
-                - video_count: Кількість збережених відео
+        Returns:
+            list: List of dictionaries, where each dictionary contains:
+                - channel_id: Channel ID
+                - channel_name: Channel title
+                - channel_handle: Handle/Nickname
+                - video_count: Number of saved videos
         """
         conn = self.db_client.get_connection()
         cursor = conn.cursor()
         
-        # Запит рахує кількість відео в таблиці videos для кожного каналу
+        # SQL query counts videos in the videos table for each channel
         cursor.execute("""
             SELECT c.channel_id, c.channel_name, c.channel_handle, COUNT(v.video_id) as video_count
             FROM channels c
@@ -74,31 +74,31 @@ class DataExporter:
         rows = cursor.fetchall()
         conn.close()
         
-        # Перетворюємо sqlite3.Row в класичні словники
+        # Convert sqlite3.Row elements to standard dictionaries
         return [dict(row) for row in rows]
 
     def export_data(self, channel_id=None, format_choice="xlsx", output_path=None, top_limit=None):
         """
-        Експортує відео з бази даних у Excel (.xlsx) та/або CSV (.csv).
+        Exports video data from the database to Excel (.xlsx) and/or CSV (.csv) formats.
 
-        Параметри:
-            channel_id (str, optional): ID каналу, який треба експортувати.
-                Якщо не вказано (None), експортуються відео ВСІХ каналів разом.
-            format_choice (str): Формат експорту. Може бути 'xlsx', 'csv' або 'both'.
-                За замовчуванням 'xlsx'.
-            output_path (str, optional): Шлях до папки чи конкретного файлу, куди зберегти результат.
-                Якщо не вказано, файл збережеться поруч зі скриптом із автоматичною назвою.
-            top_limit (int, optional): Ліміт вивантаження перших N записів за кількістю переглядів.
+        Parameters:
+            channel_id (str, optional): Target channel ID to export.
+                If omitted (None), videos from ALL channels will be exported.
+            format_choice (str): Export format: 'xlsx', 'csv', or 'both'.
+                Defaults to 'xlsx'.
+            output_path (str, optional): Directory or specific file path to save the output.
+                If omitted, the file will be saved in the script's directory with an auto-generated name.
+            top_limit (int, optional): Limits the export to the top N videos sorted by view count.
 
-        Повертає:
-            list: Список шляхів до успішно створених файлів.
+        Returns:
+            list: List of paths to the successfully created files.
         """
-        # Ініціалізуємо базу даних (створюємо таблиці, якщо їх чомусь ще немає)
+        # Initialize database (creates tables if they do not exist)
         self.db_client.init_db()
         
         conn = self.db_client.get_connection()
         
-        # Базовий SQL-запит для отримання даних про відео та відповідний канал
+        # Base SQL query to join video details with the corresponding channel info
         query = """
             SELECT 
                 v.video_id,
@@ -119,45 +119,45 @@ class DataExporter:
         
         params = []
         if channel_id:
-            # Фільтруємо за конкретним каналом, якщо його вказали
+            # Filter by specific channel if provided
             query += " WHERE v.channel_id = ?"
             params.append(channel_id)
             
-        # Сортуємо відео та застосовуємо ліміти
+        # Apply sorting and limit filters
         if top_limit:
             query += " ORDER BY v.view_count DESC LIMIT ?"
             params.append(top_limit)
         else:
             query += " ORDER BY v.published_at DESC"
         
-        # Читаємо дані прямо в таблицю pandas (DataFrame)
+        # Read the query results directly into a pandas DataFrame
         df = pd.read_sql_query(query, conn, params=params)
         conn.close()
         
         if df.empty:
-            print("[!] Не знайдено даних для експорту в базі даних.")
+            print("[!] No data found in the database to export.")
             return None
             
-        # Додаємо зручну колонку з прямим посиланням на відео на YouTube
+        # Add a helper column with direct YouTube video URLs
         df.insert(1, "url", "https://www.youtube.com/watch?v=" + df["video_id"])
         
-        # Визначаємо поточну дату для створення імені файлу
+        # Format the current date for the output filename
         date_str = datetime.now().strftime("%d%m%Y")
         top_suffix = f"_top{top_limit}" if top_limit else ""
         
-        # Формуємо базове ім'я файлу без розширення
+        # Construct the base filename without extension
         if not output_path:
             if channel_id:
-                # Використовуємо нікнейм або назву каналу для імені файлу
+                # Use channel handle or name for the filename
                 handle = df.iloc[0]["channel_handle"] or df.iloc[0]["channel_name"]
-                # Очищаємо ім'я від спецсимволів
+                # Clean up the handle string from special characters
                 safe_handle = "".join(c for c in handle if c.isalnum() or c in ['@', '_', '-'])
                 output_base = f"{safe_handle}{top_suffix}_export_{date_str}"
             else:
                 output_base = f"youtube_all_channels{top_suffix}_{date_str}"
         else:
             if os.path.isdir(output_path):
-                # Якщо вказана папка, створюємо файл всередині неї
+                # If output path is a directory, save the file inside it
                 if channel_id:
                     handle = df.iloc[0]["channel_handle"] or df.iloc[0]["channel_name"]
                     safe_handle = "".join(c for c in handle if c.isalnum() or c in ['@', '_', '-'])
@@ -165,12 +165,12 @@ class DataExporter:
                 else:
                     output_base = os.path.join(output_path, f"youtube_all_channels{top_suffix}_{date_str}")
             else:
-                # Якщо вказаний безпосередній файл, відкидаємо розширення
+                # If output path is a specific file, discard extension
                 output_base, _ = os.path.splitext(output_path)
                 
         exported_files = []
         
-        # Визначаємо, які саме файли треба створити
+        # Determine files to create based on format selection
         formats_to_save = []
         if format_choice.lower() in ["csv", "both"]:
             formats_to_save.append("csv")
@@ -181,21 +181,21 @@ class DataExporter:
             file_path = f"{output_base}.{fmt}"
             try:
                 if fmt == "csv":
-                    # utf-8-sig дозволяє Excel коректно відображати кирилицю в CSV
+                    # utf-8-sig allows Excel to correctly display Cyrillic symbols in CSV
                     df.to_csv(file_path, index=False, encoding="utf-8-sig")
                 elif fmt == "xlsx":
                     df.to_excel(file_path, index=False)
-                print(f"[+] Дані успішно експортовано у: {file_path} ({len(df)} записів)")
+                print(f"[+] Data successfully exported to: {file_path} ({len(df)} records)")
                 exported_files.append(file_path)
             except Exception as e:
-                print(f"[!] Помилка запису файлу {file_path}: {e}")
+                print(f"[!] Error writing file {file_path}: {e}")
                 
         return exported_files
 
 
 def main():
-    """Головна функція для запуску експорту через консоль."""
-    # Попередня обробка аргументів для підтримки прапорців типу --top5 або --top333
+    """Main CLI entry point for executing exports."""
+    # Preprocess arguments to support flags like --top5 or --top333
     processed_args = []
     for arg in sys.argv:
         if arg.startswith("--top") and arg[5:].isdigit():
@@ -205,13 +205,13 @@ def main():
             processed_args.append(arg)
     sys.argv = processed_args
 
-    parser = argparse.ArgumentParser(description="Експортує дані з SQLite у CSV чи Excel.")
-    parser.add_argument("-c", "--channel-id", type=str, help="ID каналу для експорту (якщо не вказано і активовано --all, то експортує все)")
-    parser.add_argument("-f", "--format", type=str, choices=["csv", "xlsx", "both"], default="xlsx", help="Формат файлу: csv, xlsx або both (за замовчуванням xlsx)")
-    parser.add_argument("-o", "--output", type=str, help="Шлях або папка для збереження результату")
-    parser.add_argument("-a", "--all", action="store_true", help="Експортувати всі канали разом")
-    parser.add_argument("-s", "--silent", action="store_true", help="Тихий режим без інтерактивних запитів")
-    parser.add_argument("-t", "--top", type=int, default=None, help="Вивантажити тільки ТОП N відео за переглядами")
+    parser = argparse.ArgumentParser(description="Export data from SQLite database to CSV or Excel.")
+    parser.add_argument("-c", "--channel-id", type=str, help="Channel ID to export (if omitted and --all is active, exports everything)")
+    parser.add_argument("-f", "--format", type=str, choices=["csv", "xlsx", "both"], default="xlsx", help="Output file format: csv, xlsx, or both (defaults to xlsx)")
+    parser.add_argument("-o", "--output", type=str, help="Directory or file path to save the output")
+    parser.add_argument("-a", "--all", action="store_true", help="Export all channels together")
+    parser.add_argument("-s", "--silent", action="store_true", help="Silent mode without interactive prompts")
+    parser.add_argument("-t", "--top", type=int, default=None, help="Export only top N videos sorted by views")
     
     args = parser.parse_args()
     
@@ -219,10 +219,10 @@ def main():
     exporter = DataExporter(db_client)
     
     try:
-        # 1. Автоматизований (тихий) режим роботи (наприклад, для запусків по крону)
+        # 1. Automated (silent) execution mode (e.g. cron runs)
         if args.silent:
             if not args.all and not args.channel_id:
-                print("[!] Помилка: Вкажіть --channel-id або --all для тихого режиму.")
+                print("[!] Error: You must specify either --channel-id or --all for silent mode.")
                 sys.exit(1)
             exporter.export_data(
                 channel_id=args.channel_id, 
@@ -232,31 +232,31 @@ def main():
             )
             sys.exit(0)
             
-        # 2. Інтерактивний діалоговий режим
+        # 2. Interactive CLI Mode
         utils.clear_screen()
         utils.print_header("YOUTUBE SQLITE DB EXPORTER")
         
         channels = exporter.get_channels_list()
         if not channels:
-            print("[!] База даних порожня. Немає даних для експорту.")
-            print("[i] Спочатку збережіть відео за допомогою init_db.py")
-            input("\nНатисніть Enter для виходу...")
+            print("[!] Database is empty. No data to export.")
+            print("[i] Please save videos first using init_db.py")
+            input("\nPress Enter to exit...")
             sys.exit(0)
             
-        print("\nЗнайдені канали у базі даних:")
-        print(f"  {'№':<3} | {'Назва каналу':<30} | {'Handle':<15} | {'Відео':<5}")
+        print("\nChannels found in database:")
+        print(f"  {'#':<3} | {'Channel Name':<30} | {'Handle':<15} | {'Videos':<5}")
         print("-" * 60)
         for idx, ch in enumerate(channels, 1):
-            handle = ch['channel_handle'] or "немає"
+            handle = ch['channel_handle'] or "none"
             print(f"  {idx:<3} | {ch['channel_name'][:30]:<30} | {handle:<15} | {ch['video_count']:<5}")
             
         all_idx = len(channels) + 1
-        print(f"  {all_idx:<3} | {'[Експортувати ВСІ відео разом]':<30} | {'-':<15} | {'-':<5}")
+        print(f"  {all_idx:<3} | {'[Export ALL videos together]':<30} | {'-':<15} | {'-':<5}")
         
-        # Запитуємо користувача, який саме канал експортувати
-        choice = input("\nОберіть канал для експорту (введіть номер):\n> ").strip()
+        # Prompt user to choose which channel to export
+        choice = input("\nSelect channel to export (enter number):\n> ").strip()
         if not choice.isdigit():
-            print("[!] Некоректний вибір. Вихід.")
+            print("[!] Invalid choice. Exiting.")
             sys.exit(1)
             
         choice_val = int(choice)
@@ -267,15 +267,15 @@ def main():
         elif choice_val == all_idx:
             selected_channel_id = None
         else:
-            print("[!] Номер поза діапазоном. Вихід.")
+            print("[!] Number out of range. Exiting.")
             sys.exit(1)
             
-        # Запитуємо бажаний формат файлу
-        print("\nОберіть формат:")
-        print("  1. Excel (xlsx) - за замовчуванням")
+        # Prompt user for the preferred output format
+        print("\nSelect format:")
+        print("  1. Excel (xlsx) - default")
         print("  2. CSV")
-        print("  3. Обидва (xlsx + csv)")
-        fmt_choice = input("Ваш вибір [1]: ").strip()
+        print("  3. Both (xlsx + csv)")
+        fmt_choice = input("Your choice [1]: ").strip()
         
         fmt = "xlsx"
         if fmt_choice == "2":
@@ -283,13 +283,13 @@ def main():
         elif fmt_choice == "3":
             fmt = "both"
             
-        # Також запитуємо ліміт топ-відео, якщо користувач хоче
+        # Optional prompt to export only top-performing videos
         top_val = None
-        top_input = input("\nБажаєте вивантажити тільки топ відео за переглядами? (Введіть ліміт або залиште порожнім):\n> ").strip()
+        top_input = input("\nDo you want to export only top videos by view count? (Enter limit or leave empty):\n> ").strip()
         if top_input.isdigit():
             top_val = int(top_input)
             
-        # Виконуємо експорт
+        # Execute the export
         exported = exporter.export_data(
             channel_id=selected_channel_id, 
             format_choice=fmt, 
@@ -297,15 +297,15 @@ def main():
             top_limit=args.top if args.top is not None else top_val
         )
         
-        # Пропонуємо автоматично відкрити файл після збереження
+        # Prompt user to automatically open the exported file
         if exported:
-            print("\nБажаєте відкрити експортований файл?")
-            print("  1. Так")
-            print("  2. Ні")
-            open_choice = input("Оберіть опцію [2]: ").strip()
+            print("\nWould you like to open the exported file?")
+            print("  1. Yes")
+            print("  2. No")
+            open_choice = input("Select an option [2]: ").strip()
             
             if open_choice == "1":
-                file_to_open = exported[0]  # Відкриваємо перший згенерований файл
+                file_to_open = exported[0]  # Opens the first generated file
                 if sys.platform == 'darwin':
                     subprocess.run(["open", file_to_open])
                 elif sys.platform == 'win32':
@@ -313,11 +313,11 @@ def main():
                 else:
                     subprocess.run(["xdg-open", file_to_open])
                     
-        input("\nЕкспорт завершено. Натисніть Enter для очищення терміналу...")
+        input("\nExport complete. Press Enter to clear the terminal...")
         utils.clear_screen()
         
     except KeyboardInterrupt:
-        print("\n\n[!] Операцію скасовано користувачем. Вихід...")
+        print("\n\n[!] Operation cancelled by user. Exiting...")
         sys.exit(0)
 
 

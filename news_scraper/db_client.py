@@ -232,8 +232,26 @@ class DatabaseClient(BaseStorage):
         if 'views_update' not in videos_cols:
             cursor.execute("ALTER TABLE videos ADD COLUMN views_update TEXT;")
             conn.commit()
-            
+
+        # 4. Performance indexes (CREATE IF NOT EXISTS — safe to run repeatedly)
+        # Indexes on videos table
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_videos_channel_id ON videos(channel_id);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_videos_published_at ON videos(published_at);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_videos_view_count ON videos(view_count DESC);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_videos_like_count ON videos(like_count DESC);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_videos_comment_count ON videos(comment_count DESC);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_videos_synced ON videos(synced);")
+        # Composite index: the most common filter pattern (channel + date range)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_videos_channel_published ON videos(channel_id, published_at);")
+        # Composite index: channel + view_count for top-N queries
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_videos_channel_views ON videos(channel_id, view_count DESC);")
+        
+        # Indexes on channels table
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_channels_synced ON channels(synced);")
+        
+        conn.commit()
         self.close_connection(conn)
+
 
     def add_or_update_channel(self, channel_id, channel_name, channel_handle):
         """

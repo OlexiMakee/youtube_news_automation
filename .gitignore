@@ -9,7 +9,8 @@ venv_auto/
 *.sqlite
 *.sqlite3
 
-# Data directory (logs, databases, downloaded videos)
+# Data directory (logs, downloads, temp files, database — use backup_db.py for portability)
+# DB is 135MB+ so cannot be tracked in git — use: python scripts/backup_db.py
 data/
 
 # Exported data files (scraped news spreadsheets)

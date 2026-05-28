@@ -10,6 +10,9 @@ import os
 import sys
 import subprocess
 
+# Suppress version deprecation warnings from yt-dlp package
+os.environ["YT_DLP_NO_DEPRECATION_WARNING"] = "1"
+
 
 def load_env(env_path=None):
     """

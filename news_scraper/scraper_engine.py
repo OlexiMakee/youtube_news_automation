@@ -265,12 +265,12 @@ class YouTubeScraperEngine(BaseScraper):
                 while time.time() - cooldown_start < 40.0:
                     remaining = 40.0 - (time.time() - cooldown_start)
                     if not self.silent:
-                        sys.stdout.write(f"\r[Cooldown] Remaining: {remaining:.1f}s... ")
+                        sys.stdout.write(f"\r\033[K[*] [Cooldown] Remaining: {remaining:.1f}s...")
                         sys.stdout.flush()
                     time.sleep(0.1)
                     
                 if not self.silent:
-                    sys.stdout.write(f"\r[Cooldown] Finished! Resuming scraping flow...\n")
+                    sys.stdout.write("\r\033[K")
                     sys.stdout.flush()
                     
                 # Re-initialize keypress detector if it was active
@@ -304,7 +304,7 @@ class YouTubeScraperEngine(BaseScraper):
             
             # Progress reporting callback
             if not self.silent and on_progress:
-                on_progress(self.current_count, self.limit, last_added_time)
+                on_progress(self.current_count, self.limit, last_added_time, upload_date=upload_date, date_after=self.date_after)
                 
             # 5. LIMIT REACHED STOP
             if not self.date_after and self.current_count >= self.limit:
@@ -334,6 +334,12 @@ class YouTubeScraperEngine(BaseScraper):
                             if self.keypress_detector is None:
                                 detector = KeypressDetector(not self.silent)
                             last_added_time = time.time()
+                    elif isinstance(action, tuple) and action[0] == 4:
+                        new_date_after = action[1]
+                        self.date_after = new_date_after
+                        if self.keypress_detector is None:
+                            detector = KeypressDetector(not self.silent)
+                        last_added_time = time.time()
                     elif action == 3:
                         self.aborted = True
                         raise StopScrapingException()
@@ -422,11 +428,24 @@ class YouTubeScraperEngine(BaseScraper):
                 if active and (self.current_count < self.limit or self.date_after):
                     sleep_time = random.uniform(SLEEP_INTERVAL_BETWEEN_CHUNKS_MIN, SLEEP_INTERVAL_BETWEEN_CHUNKS_MAX)
                     if not self.silent:
-                        sys.stdout.write(f"\n[*] Throttling protection delay: {sleep_time:.1f}s...\n")
+                        sys.stdout.write("\n")
                         sys.stdout.flush()
                     
                     detector.restore()
-                    time.sleep(sleep_time)
+                    
+                    start_sleep = time.time()
+                    while time.time() - start_sleep < sleep_time:
+                        elapsed = time.time() - start_sleep
+                        remaining = max(0.0, sleep_time - elapsed)
+                        if not self.silent:
+                            sys.stdout.write(f"\r\033[K[*] Throttling protection delay: {remaining:.1f}s...")
+                            sys.stdout.flush()
+                        time.sleep(0.05)
+                        
+                    if not self.silent:
+                        sys.stdout.write("\r\033[K")
+                        sys.stdout.flush()
+                        
                     if self.keypress_detector is None:
                         detector = KeypressDetector(not self.silent)
                     last_added_time = time.time()

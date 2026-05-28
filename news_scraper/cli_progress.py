@@ -28,27 +28,43 @@ def format_duration_tenths(seconds):
     return f"{mins}m {secs:.1f}s"
 
 
-def make_progress_callback(date_after, prefix=None):
+def make_progress_callback(static_date_after, prefix=None):
     """
     Creates a callback function to render the scraping progress on the screen.
 
     Parameters:
-        date_after (str): Date filter string (if date filtering is enabled).
+        static_date_after (str): Date filter string.
         prefix (str, optional): Custom prefix to render before the progress text.
 
     Returns:
         callable: The progress callback function.
     """
-    def on_progress(current_count, limit, last_added_time):
+    def on_progress(current_count, limit, last_added_time, upload_date=None, date_after=None):
         # Calculate time since the last record was processed
         elapsed = time.time() - last_added_time
         time_str = format_duration_tenths(elapsed)
         
         prefix_part = f" {prefix}" if prefix else ""
+        
+        # Determine current target date (prefer dynamic scraper date_after)
+        active_cutoff = date_after if date_after is not None else static_date_after
+        
+        days_str = ""
+        if active_cutoff and upload_date:
+            from datetime import datetime
+            try:
+                curr_dt = datetime.strptime(upload_date, "%Y%m%d").date()
+                cutoff_dt = datetime.strptime(active_cutoff, "%Y%m%d").date()
+                days_rem = (curr_dt - cutoff_dt).days
+                if days_rem < 0:
+                    days_rem = 0
+                days_str = f" | Days remaining: {days_rem}d"
+            except Exception:
+                pass
             
         # Draw progress line
-        if date_after:
-            progress_str = f"\r\033[K[*]{prefix_part} Videos downloaded: {current_count} (last: {time_str} ago) [Space / Enter - pause]"
+        if active_cutoff:
+            progress_str = f"\r\033[K[*]{prefix_part} Videos downloaded: {current_count}{days_str} (last: {time_str} ago) [Space / Enter - pause]"
         else:
             progress_str = f"\r\033[K[*]{prefix_part} Videos downloaded: {current_count} / {limit} (last: {time_str} ago) [Space / Enter - pause]"
         sys.stdout.write(progress_str)
@@ -96,7 +112,7 @@ def make_pause_callback(channel_id, start_time, db_client):
         # Interactive action selection menu
         print("Select action:")
         print("1. Resume")
-        print("2. Enter new limit of records")
+        print("2. Change target period (date cutoff)")
         print("3. Exit")
         
         while True:
@@ -109,12 +125,55 @@ def make_pause_callback(channel_id, start_time, db_client):
             print("[*] Resuming scraping...")
             return 1
         elif choice == "2":
+            from datetime import date, timedelta
+            print("\nSelect new target period:")
+            print("1. 1 Week (7 days)")
+            print("2. 1 Month (30 days)")
+            print("3. 2 Months (60 days)")
+            print("4. 3 Months (90 days)")
+            print("5. 6 Months (180 days)")
+            print("6. 1 Year (365 days)")
+            print("7. 2 Years (730 days)")
+            print("8. Since beginning of full-scale war in Ukraine (2022-02-24)")
+            print("9. Custom date (YYYYMMDD)")
+            print("b. Back to main menu")
+            
             while True:
-                limit_str = input(f"\nEnter new video limit (currently {scraper.limit}):\n> ").strip()
-                if limit_str.isdigit():
-                    new_limit = int(limit_str)
-                    return (2, new_limit)
-                print("[!] Please enter a number.")
+                sub_choice = input("\nYour choice (1-9 or b):\n> ").strip()
+                if sub_choice in [str(x) for x in range(1, 10)] or sub_choice == "b":
+                    break
+                print("[!] Invalid choice. Enter 1-9 or b.")
+                
+            if sub_choice == "b":
+                return on_pause(scraper)
+                
+            new_date = None
+            if sub_choice == "1":
+                new_date = (date.today() - timedelta(days=7)).strftime("%Y%m%d")
+            elif sub_choice == "2":
+                new_date = (date.today() - timedelta(days=30)).strftime("%Y%m%d")
+            elif sub_choice == "3":
+                new_date = (date.today() - timedelta(days=60)).strftime("%Y%m%d")
+            elif sub_choice == "4":
+                new_date = (date.today() - timedelta(days=90)).strftime("%Y%m%d")
+            elif sub_choice == "5":
+                new_date = (date.today() - timedelta(days=180)).strftime("%Y%m%d")
+            elif sub_choice == "6":
+                new_date = (date.today() - timedelta(days=365)).strftime("%Y%m%d")
+            elif sub_choice == "7":
+                new_date = (date.today() - timedelta(days=730)).strftime("%Y%m%d")
+            elif sub_choice == "8":
+                new_date = "20220224"
+            elif sub_choice == "9":
+                while True:
+                    custom_val = input("\nEnter custom date in YYYYMMDD format (e.g. 20260115):\n> ").strip()
+                    if custom_val.isdigit() and len(custom_val) == 8:
+                        new_date = custom_val
+                        break
+                    print("[!] Please enter a valid 8-digit date.")
+            
+            print(f"[*] Changing target date cutoff to: {new_date[:4]}-{new_date[4:6]}-{new_date[6:]}")
+            return (4, new_date)
         elif choice == "3":
             print("[*] Aborting process...")
             return 3

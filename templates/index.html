@@ -10,6 +10,11 @@
     <link rel="stylesheet" href="/static/css/style.css">
     <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- xterm.js for interactive terminal console -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css" />
+    <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
 </head>
 <body>
 
@@ -27,13 +32,34 @@
                     <span data-i18n="menu_dashboard">Data & Analytics</span>
                 </a>
             </li>
-            <li class="sidebar-menu-item" id="menu-item-operations">
-                <a href="#" class="sidebar-menu-link" onclick="switchSection('operations-tab', this)">
-                    <i class="fa-solid fa-gears"></i>
-                    <span data-i18n="menu_operations">Operations</span>
+            <li class="sidebar-menu-item" id="menu-item-terminal">
+                <a href="#" class="sidebar-menu-link" onclick="switchSection('terminal-tab', this)">
+                    <i class="fa-solid fa-terminal"></i>
+                    <span data-i18n="menu_terminal">Terminal</span>
                 </a>
             </li>
         </ul>
+        
+        <!-- Sidebar Settings (Theme & Language) -->
+        <div class="sidebar-settings">
+            <div class="settings-group">
+                <label class="settings-label" data-i18n="theme_label">Тема</label>
+                <select class="sidebar-select" id="theme-selector" onchange="changeTheme(this.value)">
+                    <option value="light" data-i18n="theme_light">Light (White)</option>
+                    <option value="sepia" data-i18n="theme_sepia">Light (Sepia)</option>
+                    <option value="dark-black" data-i18n="theme_dark_black">Dark (Black)</option>
+                    <option value="dark-blue" data-i18n="theme_dark_blue">Dark (Blue)</option>
+                </select>
+            </div>
+            <div class="settings-group">
+                <label class="settings-label" data-i18n="lang_label">Мова</label>
+                <select class="sidebar-select" id="lang-selector" onchange="changeLanguage(this.value)">
+                    <option value="ua">Українська 🇺🇦</option>
+                    <option value="en">English 🇬🇧</option>
+                </select>
+            </div>
+        </div>
+
         <div class="sidebar-footer">
             <p>&copy; 2026 YouTube News Automation</p>
         </div>
@@ -85,8 +111,15 @@
                         <button class="quick-date-btn-compact" id="qd-1w" onclick="setDateRange('1w')" data-i18n="qd_1w">Тиждень</button>
                         <button class="quick-date-btn-compact" id="qd-1m" onclick="setDateRange('1m')" data-i18n="qd_1m">Місяць</button>
                         <button class="quick-date-btn-compact" id="qd-3m" onclick="setDateRange('3m')" data-i18n="qd_3m">3 місяці</button>
+                        <button class="quick-date-btn-compact" id="qd-6m" onclick="setDateRange('6m')" data-i18n="qd_6m">6 місяців</button>
                         <button class="quick-date-btn-compact" id="qd-1y" onclick="setDateRange('1y')" data-i18n="qd_1y">1 рік</button>
                         <button class="quick-date-btn-compact qd-war-compact" id="qd-war" onclick="setDateRange('war')" data-i18n="qd_war">🇺🇦 З 24.02.2022</button>
+                    </div>
+                    
+                    <!-- Top Per-Page Input -->
+                    <div class="top-filter-item per-page-container" style="display: flex; align-items: center; gap: 6px; font-size: 11px; background: var(--bg-color); padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border-color);">
+                        <span data-i18n="lbl_rows_per_page_top">Показників:</span>
+                        <input type="number" class="input-date-compact" style="width: 48px; text-align: center; font-size: 11px; padding: 2px 4px; border: none; background: transparent; color: var(--text-color); outline: none; font-weight: 600;" id="per-page-input-top" value="25" min="1" max="500" onchange="changePerPage(this.value)">
                     </div>
                     
                     <!-- Reset Button -->
@@ -97,19 +130,11 @@
             </div>
             
             <div class="top-bar-controls">
-                <!-- Theme Chooser -->
-                <select class="control-select" id="theme-selector" onchange="changeTheme(this.value)">
-                    <option value="light" data-i18n="theme_light">Light (White)</option>
-                    <option value="sepia" data-i18n="theme_sepia">Light (Sepia)</option>
-                    <option value="dark-black" data-i18n="theme_dark_black">Dark (Black)</option>
-                    <option value="dark-blue" data-i18n="theme_dark_blue">Dark (Blue)</option>
-                </select>
-                
-                <!-- Language Chooser -->
-                <select class="control-select" id="lang-selector" onchange="changeLanguage(this.value)">
-                    <option value="ua">Українська 🇺🇦</option>
-                    <option value="en">English 🇬🇧</option>
-                </select>
+                <!-- AI Assistant Toggle Button -->
+                <button class="chat-toggle-btn" onclick="toggleChatDrawer()" id="chat-toggle-btn" title="AI Assistant" style="padding: 6px 12px; font-size: 11px; display: flex; align-items: center; gap: 6px; background-color: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 6px; cursor: pointer;">
+                    <i class="fa-solid fa-robot"></i>
+                    <span data-i18n="btn_ai_assistant">AI Асистент</span>
+                </button>
             </div>
         </header>
 
@@ -159,6 +184,7 @@
                             <div class="chart-container" style="height: 280px; width: 100%;">
                                 <canvas id="analytics-chart"></canvas>
                             </div>
+                            <div id="chart-copy-layer" class="chart-copy-layer" aria-live="polite"></div>
                         </div>
                     </div>
 
@@ -268,8 +294,8 @@
                 </section>
             </div>
 
-            <!-- SECTION 2: OPERATIONS TAB (HIDDEN BY DEFAULT) -->
-            <div id="section-operations" class="tab-content">
+            <!-- SECTION 2: TERMINAL TAB (HIDDEN BY DEFAULT) -->
+            <div id="section-terminal" class="tab-content">
                 <!-- 2.1 STATS GRID (Moved from Analytics) -->
                 <section class="stats-grid" id="stats-grid-container" style="margin-bottom: 24px;">
                     <!-- Local SQLite Card -->
@@ -305,26 +331,101 @@
                     </div>
                 </section>
                 
-                <div class="card" id="card-operations-container" style="max-width: 800px; margin: 0 auto; width: 100%;">
-                    <div class="card-header">
-                        <span class="card-title" data-i18n="title_process_control">Operations & Controls</span>
-                        <span class="task-badge idle" id="task-badge" data-i18n="status_idle">IDLE</span>
-                    </div>
-                    <div class="card-body">
-                        <div style="display: flex; gap: 12px; margin-bottom: 16px;">
-                            <button class="btn-primary" id="btn-run-scrape" onclick="triggerAction('scrape')" style="flex: 1; padding: 12px 20px; font-size: 14px;">
-                                <i class="fa-solid fa-play"></i>
-                                <span data-i18n="btn_run_scraper">Run Scraper</span>
-                            </button>
-                            <button class="btn-primary" id="btn-run-sync" onclick="triggerAction('sync')" style="flex: 1; padding: 12px 20px; font-size: 14px; background-color: var(--teal-color);">
-                                <i class="fa-solid fa-cloud-arrow-up"></i>
-                                <span data-i18n="btn_run_sync">Run Sync</span>
-                            </button>
+                <div class="terminal-container-wrapper">
+                    <!-- Left: script buttons panel -->
+                    <div class="terminal-sidebar">
+                        <div class="terminal-sidebar-header">
+                            <i class="fa-solid fa-code"></i>
+                            <span data-i18n="terminal_quick_scripts">Quick Scripts</span>
                         </div>
-                        
-                        <span class="stat-label" data-i18n="console_output" style="margin-bottom: 6px; display: block;">Live Process Console</span>
-                        <div class="console-card" id="console-output" style="height: 380px;">
-                            <div class="console-line">[i] Console initialized. Ready to execute background jobs.</div>
+                        <div class="terminal-buttons-list">
+                            <!-- scrape_multi.py -->
+                            <div class="terminal-btn-group">
+                                <button class="term-action-btn" onclick="injectCommand('python3 scrape_multi.py ')">
+                                    <i class="fa-solid fa-play" style="color: var(--green-color);"></i>
+                                    <span>scrape_multi.py</span>
+                                </button>
+                                <div class="term-dropdown-wrapper">
+                                    <button class="term-dropdown-toggle" onclick="toggleDropdown(event, 'scrape-multi-opts')">
+                                        <i class="fa-solid fa-caret-down"></i>
+                                    </button>
+                                    <ul class="term-dropdown-menu" id="scrape-multi-opts">
+                                        <li onclick="injectCommand('python3 scrape_multi.py ')"><a href="#"><i class="fa-solid fa-clock-rotate-left"></i> 1-Year Sync (Default)</a></li>
+                                        <li onclick="injectCommand('python3 scrape_multi.py --interactive')"><a href="#"><i class="fa-solid fa-user-gear"></i> Interactive Mode</a></li>
+                                        <li onclick="injectCommand('python3 scrape_multi.py --channel 1 --days 7')"><a href="#"><i class="fa-solid fa-calendar-day"></i> Index 1 (7 days)</a></li>
+                                        <li onclick="injectCommand('python3 scrape_multi.py --channel 2 --days 30')"><a href="#"><i class="fa-solid fa-calendar-days"></i> Index 2 (30 days)</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                            
+                            <!-- update_db.py -->
+                            <div class="terminal-btn-group">
+                                <button class="term-action-btn" onclick="injectCommand('python3 update_db.py ')">
+                                    <i class="fa-solid fa-arrows-rotate" style="color: var(--blue-color);"></i>
+                                    <span>update_db.py</span>
+                                </button>
+                                <div class="term-dropdown-wrapper">
+                                    <button class="term-dropdown-toggle" onclick="toggleDropdown(event, 'update-db-opts')">
+                                        <i class="fa-solid fa-caret-down"></i>
+                                    </button>
+                                    <ul class="term-dropdown-menu" id="update-db-opts">
+                                        <li onclick="injectCommand('python3 update_db.py ')"><a href="#"><i class="fa-solid fa-plus"></i> Incremental (Default)</a></li>
+                                        <li onclick="injectCommand('python3 update_db.py --scrape')"><a href="#"><i class="fa-solid fa-bolt"></i> Force Scrape (20)</a></li>
+                                        <li onclick="injectCommand('python3 update_db.py --cron')"><a href="#"><i class="fa-solid fa-clock"></i> Cron Mode (Silent)</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                            
+                            <!-- update_views.py -->
+                            <div class="terminal-btn-group">
+                                <button class="term-action-btn" onclick="injectCommand('python3 update_views.py ')">
+                                    <i class="fa-solid fa-chart-simple" style="color: var(--teal-color);"></i>
+                                    <span>update_views.py</span>
+                                </button>
+                                <div class="term-dropdown-wrapper">
+                                    <button class="term-dropdown-toggle" onclick="toggleDropdown(event, 'update-views-opts')">
+                                        <i class="fa-solid fa-caret-down"></i>
+                                    </button>
+                                    <ul class="term-dropdown-menu" id="update-views-opts">
+                                        <li onclick="injectCommand('python3 update_views.py ')"><a href="#"><i class="fa-solid fa-calendar-minus"></i> 1 Month (Default)</a></li>
+                                        <li onclick="injectCommand('python3 update_views.py --period 1w')"><a href="#"><i class="fa-solid fa-calendar-day"></i> 1 Week</a></li>
+                                        <li onclick="injectCommand('python3 update_views.py --period 3m')"><a href="#"><i class="fa-solid fa-calendar-days"></i> 3 Months</a></li>
+                                        <li onclick="injectCommand('python3 update_views.py --period 1y')"><a href="#"><i class="fa-solid fa-calendar"></i> 1 Year</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                            
+                            <!-- backup_db.py -->
+                            <div class="terminal-btn-group">
+                                <button class="term-action-btn" onclick="injectCommand('python3 scripts/backup_db.py ')">
+                                    <i class="fa-solid fa-database" style="color: var(--orange-color);"></i>
+                                    <span>backup_db.py</span>
+                                </button>
+                                <div class="term-dropdown-wrapper">
+                                    <button class="term-dropdown-toggle" onclick="toggleDropdown(event, 'backup-db-opts')">
+                                        <i class="fa-solid fa-caret-down"></i>
+                                    </button>
+                                    <ul class="term-dropdown-menu" id="backup-db-opts">
+                                        <li onclick="injectCommand('python3 scripts/backup_db.py ')"><a href="#"><i class="fa-solid fa-shield-halved"></i> Backup DB (Default)</a></li>
+                                        <li onclick="injectCommand('python3 scripts/sync_postgres_cli.py')"><a href="#"><i class="fa-solid fa-sync"></i> Postgres Sync CLI</a></li>
+                                        <li onclick="injectCommand('python3 scripts/sync_db.py')"><a href="#"><i class="fa-solid fa-cloud-arrow-up"></i> Kaggle Sync CLI</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="terminal-sidebar-footer">
+                            <p data-i18n="terminal_help_text">Click script to insert. Use dropdown for options. Confirm with Enter.</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Right: actual terminal body -->
+                    <div class="terminal-main">
+                        <div class="terminal-header">
+                            <span class="terminal-title"><i class="fa-solid fa-circle-nodes"></i> <span data-i18n="terminal_session_title">Terminal Session (venv)</span></span>
+                            <span class="terminal-badge active" id="terminal-status-badge">ACTIVE</span>
+                        </div>
+                        <div class="terminal-body" id="terminal-body">
+                            <div id="xterm-container"></div>
                         </div>
                     </div>
                 </div>
@@ -461,7 +562,31 @@
         </div>
     </div>
 
+    <!-- AI ASSISTANT CHAT DRAWER -->
+    <div class="chat-drawer" id="chat-drawer">
+        <div class="chat-header">
+            <div class="chat-title">
+                <i class="fa-solid fa-robot"></i>
+                <span data-i18n="chat_title">AI Асистент</span>
+            </div>
+            <button class="chat-close-btn" onclick="toggleChatDrawer()">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <div class="chat-messages" id="chat-messages">
+            <div class="chat-message bot">
+                <span data-i18n="chat_welcome">Вітання! Я ваш AI-асистент з аналітики новин. Спитайте мене про статистику каналів чи відео!</span>
+            </div>
+        </div>
+        <form class="chat-input-area" id="chat-form" onsubmit="handleSendChatMessage(event)">
+            <input type="text" class="chat-input" id="chat-input" data-i18n-placeholder="chat_placeholder" placeholder="Напишіть повідомлення...">
+            <button type="submit" class="chat-send-btn">
+                <i class="fa-solid fa-paper-plane"></i>
+            </button>
+        </form>
+    </div>
+
     <!-- Main Client Application logic -->
-    <script src="/static/js/app.js"></script>
+    <script type="module" src="/static/js/app.js"></script>
 </body>
 </html>

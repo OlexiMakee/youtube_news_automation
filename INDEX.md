@@ -18,6 +18,17 @@ News Research Automation/
 ├── update_views.py            ← subprocess: update view counts
 ├── scrape_multi.py            ← subprocess: full channel archive scrape
 │
+├── app/                       ← 🌐 FLASK APPLICATION FACTORY PACKAGE
+│   ├── __init__.py            ← app factory (create_app)
+│   ├── state.py               ← shared bg_state & task managers
+│   └── routes/                ← Blueprint routes
+│       ├── __init__.py        ← package init
+│       ├── main.py            ← main UI dashboard view
+│       ├── stats.py           ← channel lists & stats API
+│       ├── videos.py          ← video lists, CSV, downloads API
+│       ├── charts.py          ← analytics Chart.js API
+│       └── actions.py         ← background task triggers API
+│
 ├── agent_context/             ← 🧠 ПАМ'ЯТЬ ПРОЕКТУ
 │   ├── README.md              ← що тут є і навіщо
 │   ├── CONTEXT.md             ← архітектура, API, БД, env, gotchas
@@ -44,7 +55,8 @@ News Research Automation/
 │   ├── init_db.py             ← ініціалізація нової БД
 │   ├── db_exporter.py         ← export → CSV/Excel
 │   ├── sync_postgres_cli.py   ← інтерактивний Neon sync
-│   └── sync_db.py             ← Kaggle sync CLI
+│   ├── sync_db.py             ← Kaggle sync CLI
+│   └── manage_processes.py    ← менеджер очищення фонових процесів
 │
 ├── static/                    ← 🎨 ФРОНТЕНД
 │   ├── README.md              ← карта CSS + JS секцій

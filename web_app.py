@@ -1468,26 +1468,89 @@ def get_action_status():
     })
 
 
+def find_free_port(preferred=5001, max_tries=20):
+    """
+    Returns the first free TCP port starting from `preferred`.
+    If the preferred port is busy, offers to kill the blocking process
+    or automatically falls back to the next available port.
+    
+    NOTE: Only called by the parent process (before Werkzeug reloader starts).
+    The selected port is stored in WEB_APP_PORT env var for reloaded workers.
+    """
+    import socket
+    import subprocess as _sp
+
+    for port in range(preferred, preferred + max_tries):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            try:
+                s.bind(("127.0.0.1", port))
+                return port          # port is free
+            except OSError:
+                if port == preferred:
+                    # Show which PID owns the preferred port
+                    try:
+                        result = _sp.run(
+                            ["lsof", "-ti", f"tcp:{port}"],
+                            capture_output=True, text=True
+                        )
+                        pids = result.stdout.strip()
+                        if pids:
+                            print(f"[!] Port {port} is in use by PID(s): {pids}")
+                            ans = input(f"    Kill process(es) and use port {port}? [y/N]: ").strip().lower()
+                            if ans == "y":
+                                _sp.run(["kill", "-9"] + pids.split(), capture_output=True)
+                                import time as _t; _t.sleep(0.6)
+                                return port
+                            else:
+                                print(f"[!] Falling back to next available port...")
+                        else:
+                            print(f"[!] Port {port} is busy. Trying next available port...")
+                    except Exception:
+                        print(f"[!] Port {port} is busy. Trying next available port...")
+                continue
+
+    # Last resort: let OS assign any free port
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind(("127.0.0.1", 0))
+        return s.getsockname()[1]
+
+
 def main():
     # Make sure we load the env configuration
     utils.load_env()
-    
+
     # Initialize DB (run migrations) on web app startup
     db_client = DatabaseClient()
     db_client.init_db()
-    
-    # Trigger initial database update in the background if in worker thread (or not debug mode)
-    if os.environ.get('WERKZEUG_RUN_MAIN') == 'true' or not app.debug:
+
+    # ── Port selection ──────────────────────────────────────────────────
+    # Werkzeug debug reloader spawns a child process with WERKZEUG_RUN_MAIN=true.
+    # We select the port ONCE in the parent and pass it via env var WEB_APP_PORT.
+    # The reloaded worker simply reads that var — no interactive prompt again.
+    is_reloader_child = os.environ.get("WERKZEUG_RUN_MAIN") == "true"
+
+    if is_reloader_child:
+        # Read port chosen by parent
+        port = int(os.environ.get("WEB_APP_PORT", "5001"))
+    else:
+        # Parent process: find a free port (may ask user to kill existing process)
+        port = find_free_port(preferred=5001)
+        os.environ["WEB_APP_PORT"] = str(port)
+
+    # Trigger initial database update only in the reloader child (runs the real app)
+    if is_reloader_child:
         print("[*] Starting initial database update in the background...")
         threading.Thread(target=lambda: trigger_background_update(cooldown_seconds=0), daemon=True).start()
-        
+
     print("-" * 60)
     print(f"Starting News Automation Web Application in Dev Server mode...")
-    print(f"URL: http://127.0.0.1:5001")
+    print(f"URL: http://127.0.0.1:{port}")
     print("-" * 60)
-    
-    app.run(host="127.0.0.1", port=5001, debug=True)
+
+    app.run(host="127.0.0.1", port=port, debug=True)
 
 
 if __name__ == "__main__":
     main()
+

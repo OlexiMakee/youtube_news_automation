@@ -195,6 +195,33 @@ idx_channels_synced
 
 ---
 
+## v0.52-alpha — D3.js Visualization Migration Phase 1 (2026-05-29)
+
+**Branch:** `feature/d3-visualization` (forked from v0.51)
+
+**Що зроблено:**
+- Міграція 6 відео-чартів з Chart.js на D3.js (top/worst viewed/liked/commented)
+- Новий модуль `static/js/d3-charts.js` — SVG-based horizontal bar renderer
+- Rich HTML тултіпи з YouTube обкладинками (`mqdefault.jpg`) і повними заголовками
+- Плавні анімації входу (cubic-out ease, staggered bars)
+- Glassmorphism тултіп стилі з backdrop-filter blur
+- Автоматична маршрутизація: D3 для відео, Chart.js для решти
+- Видалено ~170 рядків дублюючого Chart.js коду
+
+**Ключові рішення:**
+- D3.js v7 через CDN (глобальна змінна, не ES module import)
+- `foreignObject` для HTML-міток в SVG (CSS text-overflow ellipsis)
+- Тултіп як окремий DOM-елемент (`document.body`), не частина SVG
+- Канвас і D3-root показуються/ховаються через display toggle
+
+**Файли:**
+- `static/js/d3-charts.js` [NEW] — D3 rendering module
+- `static/js/charts.js` [MODIFIED] — D3 routing + cleanup
+- `templates/index.html` [MODIFIED] — D3 CDN + d3-chart-root div
+- `static/css/style.css` [MODIFIED] — D3 chart + tooltip styles
+
+---
+
 ## Технічний борг
 
 | Проблема | Пріоритет | Складність |

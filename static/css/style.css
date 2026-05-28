@@ -2221,3 +2221,161 @@ body {
     color: var(--accent-color) !important;
 }
 
+/* ═══════════════════════════════════════════════════════════
+   D3.js Chart Styles — Phase 1
+   ═══════════════════════════════════════════════════════════ */
+
+/* D3 chart root container */
+.d3-chart-root {
+    position: relative;
+    width: 100%;
+}
+
+.d3-chart-root svg {
+    display: block;
+}
+
+/* Bar row hover highlight */
+.d3-bar-row:hover .d3-bar-rect {
+    opacity: 1 !important;
+    filter: brightness(1.15);
+}
+
+.d3-bar-row:hover .d3-bar-label {
+    color: var(--accent-color) !important;
+}
+
+.d3-bar-rect {
+    transition: opacity 0.15s ease, filter 0.15s ease;
+}
+
+/* Label text inside foreignObject */
+.d3-bar-label {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    user-select: text;
+    cursor: pointer;
+}
+
+/* ─── D3 Tooltip ───────────────────────────────────────── */
+
+.d3-tooltip {
+    position: absolute;
+    z-index: 99999;
+    pointer-events: none;
+    max-width: 360px;
+    min-width: 240px;
+    padding: 0;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.28),
+        0 2px 8px rgba(0, 0, 0, 0.12);
+    backdrop-filter: blur(16px) saturate(1.4);
+    -webkit-backdrop-filter: blur(16px) saturate(1.4);
+    background: linear-gradient(
+        135deg,
+        rgba(15, 23, 42, 0.92) 0%,
+        rgba(30, 41, 59, 0.88) 100%
+    );
+    border: 1px solid rgba(148, 163, 184, 0.15);
+    transition: opacity 0.12s ease;
+}
+
+/* Thumbnail wrapper */
+.d3-tip-thumb-wrap {
+    width: 100%;
+    max-height: 180px;
+    overflow: hidden;
+    background: #0f172a;
+    line-height: 0;
+}
+
+.d3-tip-thumb {
+    width: 100%;
+    height: auto;
+    display: block;
+    object-fit: cover;
+}
+
+/* Body text area */
+.d3-tip-body {
+    padding: 10px 14px 12px;
+}
+
+.d3-tip-title {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #f1f5f9;
+    line-height: 1.4;
+    margin-bottom: 6px;
+    word-break: break-word;
+    /* Allow up to 3 lines */
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.d3-tip-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    font-size: 11px;
+}
+
+.d3-tip-metric {
+    color: #94a3b8;
+}
+
+.d3-tip-metric strong {
+    color: #38bdf8;
+    font-weight: 700;
+}
+
+.d3-tip-date {
+    color: #64748b;
+    font-size: 10px;
+    white-space: nowrap;
+}
+
+/* ─── Light theme tooltip override ─────────────────────── */
+
+[data-theme="light"] .d3-tooltip,
+[data-theme="sepia"] .d3-tooltip {
+    background: linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.95) 0%,
+        rgba(241, 245, 249, 0.92) 100%
+    );
+    border-color: rgba(226, 232, 240, 0.6);
+    box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.12),
+        0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .d3-tip-title,
+[data-theme="sepia"] .d3-tip-title {
+    color: #1e293b;
+}
+
+[data-theme="light"] .d3-tip-metric,
+[data-theme="sepia"] .d3-tip-metric {
+    color: #475569;
+}
+
+[data-theme="light"] .d3-tip-metric strong,
+[data-theme="sepia"] .d3-tip-metric strong {
+    color: #0284c7;
+}
+
+[data-theme="light"] .d3-tip-date,
+[data-theme="sepia"] .d3-tip-date {
+    color: #94a3b8;
+}
+
+[data-theme="light"] .d3-tip-thumb-wrap,
+[data-theme="sepia"] .d3-tip-thumb-wrap {
+    background: #e2e8f0;
+}
+

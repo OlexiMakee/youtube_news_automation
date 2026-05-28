@@ -1,6 +1,7 @@
 import { state } from './state.js';
 import { translations } from './translations.js';
 import { openVideoModal } from './ui.js';
+import { isD3ChartType, renderD3VideoChart, hideD3Tooltip } from './d3-charts.js';
 
 export const CHART_DEFS = [
     // Group 1: Stats split-buttons (video metrics)
@@ -299,15 +300,54 @@ export function renderActiveChart() {
     const chartType = state.activeChartType;
     if (!state.chartRawData || !chartType) return;
     
-    const isScrollable = ["best_promo_words", "worst_promo_words", "best_promo_tags", "worst_promo_tags", "top_viewed", "top_liked", "top_commented", "worst_viewed", "worst_liked", "worst_commented"].includes(chartType);
+    const d3Root = document.getElementById('d3-chart-root');
+    const canvasEl = document.getElementById('analytics-chart');
+    const container = document.querySelector('.chart-container');
     
-    // Destroy previous chart first so we can safely resize
+    // Destroy previous Chart.js instance
     if (state.activeChartInstance) {
         state.activeChartInstance.destroy();
         state.activeChartInstance = null;
     }
+    hideD3Tooltip();
     
-    const container = document.querySelector(".chart-container");
+    // Update button active states
+    document.querySelectorAll('.split-btn').forEach(el => {
+        el.classList.toggle('active', el.id === `chart-btn-${chartType}`);
+    });
+    
+    // ── D3 route: video charts ──────────────────────────────
+    if (isD3ChartType(chartType)) {
+        // Show D3 root, hide canvas
+        if (d3Root) d3Root.style.display = 'block';
+        if (canvasEl) canvasEl.style.display = 'none';
+        
+        // Restore canvas from scroll wrapper if needed
+        if (container) {
+            const wrapper = container.querySelector('.chart-scroll-inner');
+            if (wrapper) {
+                container.insertBefore(canvasEl, wrapper);
+                container.removeChild(wrapper);
+            }
+        }
+        
+        renderD3VideoChart(chartType);
+        
+        // Update copy layer
+        const configTitle = getD3ChartTitle(chartType);
+        renderChartCopyLayer(chartType, configTitle);
+        return;
+    }
+    
+    // ── Chart.js route: everything else ─────────────────────
+    // Hide D3 root, show canvas
+    if (d3Root) {
+        d3Root.style.display = 'none';
+        d3Root.innerHTML = '';
+    }
+    if (canvasEl) canvasEl.style.display = 'block';
+    
+    const isScrollable = ["best_promo_words", "worst_promo_words", "best_promo_tags", "worst_promo_tags"].includes(chartType);
     
     if (container) {
         if (isScrollable) {
@@ -322,12 +362,6 @@ export function renderActiveChart() {
             else if (chartType === "worst_promo_words" && state.chartRawData.worst_promo_words) itemCount = state.chartRawData.worst_promo_words.length;
             else if (chartType === "best_promo_tags" && state.chartRawData.best_promo_tags) itemCount = state.chartRawData.best_promo_tags.length;
             else if (chartType === "worst_promo_tags" && state.chartRawData.worst_promo_tags) itemCount = state.chartRawData.worst_promo_tags.length;
-            else if (chartType === "top_viewed" && state.chartRawData.top_viewed) itemCount = state.chartRawData.top_viewed.length;
-            else if (chartType === "top_liked" && state.chartRawData.top_liked) itemCount = state.chartRawData.top_liked.length;
-            else if (chartType === "top_commented" && state.chartRawData.top_commented) itemCount = state.chartRawData.top_commented.length;
-            else if (chartType === "worst_viewed" && state.chartRawData.worst_viewed) itemCount = state.chartRawData.worst_viewed.length;
-            else if (chartType === "worst_liked" && state.chartRawData.worst_liked) itemCount = state.chartRawData.worst_liked.length;
-            else if (chartType === "worst_commented" && state.chartRawData.worst_commented) itemCount = state.chartRawData.worst_commented.length;
             
             // 18px per bar + 60px header/footer
             const canvasH = Math.max(300, itemCount * 18 + 60);
@@ -359,13 +393,7 @@ export function renderActiveChart() {
             container.style.overflowX = "visible";
         }
     }
-    
-    // Update button active states
-    document.querySelectorAll('.split-btn').forEach(el => {
-        el.classList.toggle('active', el.id === `chart-btn-${chartType}`);
-    });
 
-    const canvasEl = document.getElementById("analytics-chart");
     const ctx = canvasEl.getContext("2d");
     
     const isDark = ["dark-black", "dark-blue"].includes(state.currentTheme);
@@ -439,176 +467,6 @@ export function renderActiveChart() {
             }
         };
         
-    } else if (chartType === "top_viewed") {
-        const labels = state.chartRawData.top_viewed.map(d => d.title.length > 35 ? d.title.substring(0, 32) + "..." : d.title);
-        const values = state.chartRawData.top_viewed.map(d => d.view_count);
-        
-        chartConfig = {
-            type: "bar",
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: state.currentLang === "ua" ? "Перегляди" : "Views",
-                    data: values,
-                    backgroundColor: state.chartRawData.top_viewed.map(d => state.channelColors[d.channel_id] || "#00e676")
-                }]
-            },
-            options: {
-                indexAxis: "y",
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false },
-                    title: { display: true, text: state.currentLang === "ua" ? "Топ-100 відео за переглядами" : "Top 100 Most Viewed Videos", color: titleColor }
-                },
-                scales: {
-                    x: { grid: { color: gridColor }, ticks: { color: labelColor } },
-                    y: { grid: { display: false }, ticks: { color: labelColor, autoSkip: false, font: { size: 11 } } }
-                }
-            }
-        };
-        
-    } else if (chartType === "top_liked") {
-        const labels = state.chartRawData.top_liked.map(d => d.title.length > 35 ? d.title.substring(0, 32) + "..." : d.title);
-        const values = state.chartRawData.top_liked.map(d => d.like_count);
-        
-        chartConfig = {
-            type: "bar",
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: state.currentLang === "ua" ? "Лайки" : "Likes",
-                    data: values,
-                    backgroundColor: state.chartRawData.top_liked.map(d => state.channelColors[d.channel_id] || "#f59e0b")
-                }]
-            },
-            options: {
-                indexAxis: "y",
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false },
-                    title: { display: true, text: state.currentLang === "ua" ? "Топ-100 відео за лайками" : "Top 100 Most Liked Videos", color: titleColor }
-                },
-                scales: {
-                    x: { grid: { color: gridColor }, ticks: { color: labelColor } },
-                    y: { grid: { display: false }, ticks: { color: labelColor, autoSkip: false, font: { size: 11 } } }
-                }
-            }
-        };
-        
-    } else if (chartType === "top_commented") {
-        const labels = state.chartRawData.top_commented.map(d => d.title.length > 35 ? d.title.substring(0, 32) + "..." : d.title);
-        const values = state.chartRawData.top_commented.map(d => d.comment_count);
-        
-        chartConfig = {
-            type: "bar",
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: state.currentLang === "ua" ? "Коментарі" : "Comments",
-                    data: values,
-                    backgroundColor: state.chartRawData.top_commented.map(d => state.channelColors[d.channel_id] || "#8b5cf6")
-                }]
-            },
-            options: {
-                indexAxis: "y",
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false },
-                    title: { display: true, text: state.currentLang === "ua" ? "Топ-100 відео за коментарями" : "Top 100 Most Commented Videos", color: titleColor }
-                },
-                scales: {
-                    x: { grid: { color: gridColor }, ticks: { color: labelColor } },
-                    y: { grid: { display: false }, ticks: { color: labelColor, autoSkip: false, font: { size: 11 } } }
-                }
-            }
-        };
-    } else if (chartType === "worst_viewed") {
-        const labels = state.chartRawData.worst_viewed.map(d => d.title.length > 35 ? d.title.substring(0, 32) + "..." : d.title);
-        const values = state.chartRawData.worst_viewed.map(d => d.view_count);
-        
-        chartConfig = {
-            type: "bar",
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: state.currentLang === "ua" ? "Перегляди" : "Views",
-                    data: values,
-                    backgroundColor: state.chartRawData.worst_viewed.map(d => state.channelColors[d.channel_id] || "#f43f5e")
-                }]
-            },
-            options: {
-                indexAxis: "y",
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false },
-                    title: { display: true, text: state.currentLang === "ua" ? "Найгірші 100 відео за переглядами" : "Worst 100 Viewed Videos", color: titleColor }
-                },
-                scales: {
-                    x: { grid: { color: gridColor }, ticks: { color: labelColor } },
-                    y: { grid: { display: false }, ticks: { color: labelColor, autoSkip: false, font: { size: 11 } } }
-                }
-            }
-        };
-    } else if (chartType === "worst_liked") {
-        const labels = state.chartRawData.worst_liked.map(d => d.title.length > 35 ? d.title.substring(0, 32) + "..." : d.title);
-        const values = state.chartRawData.worst_liked.map(d => d.like_count);
-        
-        chartConfig = {
-            type: "bar",
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: state.currentLang === "ua" ? "Лайки" : "Likes",
-                    data: values,
-                    backgroundColor: state.chartRawData.worst_liked.map(d => state.channelColors[d.channel_id] || "#f43f5e")
-                }]
-            },
-            options: {
-                indexAxis: "y",
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false },
-                    title: { display: true, text: state.currentLang === "ua" ? "Найгірші 100 відео за лайками" : "Worst 100 Liked Videos", color: titleColor }
-                },
-                scales: {
-                    x: { grid: { color: gridColor }, ticks: { color: labelColor } },
-                    y: { grid: { display: false }, ticks: { color: labelColor, autoSkip: false, font: { size: 11 } } }
-                }
-            }
-        };
-    } else if (chartType === "worst_commented") {
-        const labels = state.chartRawData.worst_commented.map(d => d.title.length > 35 ? d.title.substring(0, 32) + "..." : d.title);
-        const values = state.chartRawData.worst_commented.map(d => d.comment_count);
-        
-        chartConfig = {
-            type: "bar",
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: state.currentLang === "ua" ? "Коментарі" : "Comments",
-                    data: values,
-                    backgroundColor: state.chartRawData.worst_commented.map(d => state.channelColors[d.channel_id] || "#f43f5e")
-                }]
-            },
-            options: {
-                indexAxis: "y",
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false },
-                    title: { display: true, text: state.currentLang === "ua" ? "Найгірші 100 відео за коментарями" : "Worst 100 Commented Videos", color: titleColor }
-                },
-                scales: {
-                    x: { grid: { color: gridColor }, ticks: { color: labelColor } },
-                    y: { grid: { display: false }, ticks: { color: labelColor, autoSkip: false, font: { size: 11 } } }
-                }
-            }
-        };
     } else if (chartType === "top_hashtags") {
         const labels = state.chartRawData.top_hashtags.map(d => d.tag);
         const values = state.chartRawData.top_hashtags.map(d => d.count);
@@ -1007,23 +865,27 @@ export function renderActiveChart() {
         };
     }
     
-    if (["top_viewed", "worst_viewed", "top_liked", "worst_liked", "top_commented", "worst_commented"].includes(chartType)) {
-        if (!chartConfig.options) chartConfig.options = {};
-        chartConfig.options.onClick = (evt, activeElements) => {
-            if (activeElements && activeElements.length > 0) {
-                const index = activeElements[0].index;
-                const dataList = state.chartRawData[chartType];
-                if (dataList && dataList[index]) {
-                    openVideoModal(dataList[index]);
-                }
-            }
-        };
-    }
     
     state.activeChartInstance = new Chart(ctx, chartConfig);
     
     const chartTitle = chartConfig?.options?.plugins?.title?.text;
     renderChartCopyLayer(chartType, chartTitle);
+}
+
+/**
+ * Get D3 chart title for copy layer integration.
+ */
+function getD3ChartTitle(chartType) {
+    const titles = {
+        top_viewed:      { ua: 'Топ відео за переглядами', en: 'Top Videos by Views' },
+        worst_viewed:    { ua: 'Найгірші відео за переглядами', en: 'Worst Videos by Views' },
+        top_liked:       { ua: 'Топ відео за лайками', en: 'Top Videos by Likes' },
+        worst_liked:     { ua: 'Найгірші відео за лайками', en: 'Worst Videos by Likes' },
+        top_commented:   { ua: 'Топ відео за коментарями', en: 'Top Videos by Comments' },
+        worst_commented: { ua: 'Найгірші відео за коментарями', en: 'Worst Videos by Comments' }
+    };
+    const lang = state.currentLang === 'ua' ? 'ua' : 'en';
+    return titles[chartType]?.[lang] || chartType;
 }
 
 export function renderModalViewsChart(history) {

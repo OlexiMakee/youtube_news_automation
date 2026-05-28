@@ -17,6 +17,13 @@ def get_charts():
         start_date = request.args.get('start_date', '').strip()
         end_date = request.args.get('end_date', '').strip()
         
+        try:
+            limit = int(request.args.get('limit', '100'))
+            if limit < 1:
+                limit = 100
+        except ValueError:
+            limit = 100
+        
         if channel_id_raw:
             ids_list = [i.strip() for i in channel_id_raw.split(',') if i.strip()]
         else:
@@ -135,8 +142,8 @@ def get_charts():
             FROM videos v
             WHERE v.channel_id IN ({placeholders}){date_filter}
             ORDER BY v.view_count DESC
-            LIMIT 100
-        """, query_params)
+            LIMIT ?
+        """, query_params + (limit,))
         top_viewed = [dict(row) for row in cursor.fetchall()]
         
         # 3b. Worst viewed videos
@@ -145,8 +152,8 @@ def get_charts():
             FROM videos v
             WHERE v.channel_id IN ({placeholders}){date_filter}
             ORDER BY v.view_count ASC
-            LIMIT 100
-        """, query_params)
+            LIMIT ?
+        """, query_params + (limit,))
         worst_viewed = [dict(row) for row in cursor.fetchall()]
         
         # 4. Top liked videos
@@ -155,8 +162,8 @@ def get_charts():
             FROM videos v
             WHERE v.channel_id IN ({placeholders}){date_filter}
             ORDER BY v.like_count DESC
-            LIMIT 100
-        """, query_params)
+            LIMIT ?
+        """, query_params + (limit,))
         top_liked = [dict(row) for row in cursor.fetchall()]
         
         # 4b. Worst liked videos
@@ -165,18 +172,18 @@ def get_charts():
             FROM videos v
             WHERE v.channel_id IN ({placeholders}){date_filter}
             ORDER BY v.like_count ASC
-            LIMIT 100
-        """, query_params)
+            LIMIT ?
+        """, query_params + (limit,))
         worst_liked = [dict(row) for row in cursor.fetchall()]
-
+ 
         # 5. Top commented videos
         cursor.execute(f"""
             SELECT v.title, v.comment_count, v.published_at, v.video_id, v.views_update, v.full_description, v.description, v.channel_id
             FROM videos v
             WHERE v.channel_id IN ({placeholders}){date_filter}
             ORDER BY v.comment_count DESC
-            LIMIT 100
-        """, query_params)
+            LIMIT ?
+        """, query_params + (limit,))
         top_commented = [dict(row) for row in cursor.fetchall()]
         
         # 5b. Worst commented videos
@@ -185,8 +192,8 @@ def get_charts():
             FROM videos v
             WHERE v.channel_id IN ({placeholders}){date_filter}
             ORDER BY v.comment_count ASC
-            LIMIT 100
-        """, query_params)
+            LIMIT ?
+        """, query_params + (limit,))
         worst_commented = [dict(row) for row in cursor.fetchall()]
         
         # 6. Best Day to Post
@@ -377,8 +384,8 @@ def get_charts():
                     "lift": lift
                 })
                 
-        best_promo_words = sorted(results_word_lift, key=lambda x: x["lift"], reverse=True)[:100]
-        worst_promo_words = sorted(results_word_lift, key=lambda x: x["lift"])[:100]
+        best_promo_words = sorted(results_word_lift, key=lambda x: x["lift"], reverse=True)[:limit]
+        worst_promo_words = sorted(results_word_lift, key=lambda x: x["lift"])[:limit]
         
         results_tag_lift = []
         for t, views in tag_views_list.items():
@@ -398,8 +405,8 @@ def get_charts():
                     "lift": lift
                 })
                 
-        best_promo_tags = sorted(results_tag_lift, key=lambda x: x["lift"], reverse=True)[:100]
-        worst_promo_tags = sorted(results_tag_lift, key=lambda x: x["lift"])[:100]
+        best_promo_tags = sorted(results_tag_lift, key=lambda x: x["lift"], reverse=True)[:limit]
+        worst_promo_tags = sorted(results_tag_lift, key=lambda x: x["lift"])[:limit]
         
         return jsonify({
             "channel_id": channel_id_raw,

@@ -76,27 +76,6 @@
                 
                 <!-- TOP FILTER BAR -->
                 <div class="top-filter-bar" id="top-filter-bar">
-                    <!-- Channel Selector (Custom dropdown with checkboxes and color picker) -->
-                    <div class="top-filter-item custom-dropdown" id="channels-dropdown-container">
-                        <button class="control-select dropdown-trigger" type="button" onclick="toggleChannelsDropdown(event)" id="channels-dropdown-btn">
-                            <span id="dropdown-selected-text" data-i18n="dropdown_choose_channels">Оберіть канали</span>
-                            <i class="fa-solid fa-chevron-down"></i>
-                        </button>
-                        <div class="dropdown-menu-channels" id="channels-dropdown-menu" style="display: none;">
-                            <div class="dropdown-actions">
-                                <button class="btn-dropdown-action" type="button" onclick="toggleSelectAllChannels(true)" data-i18n="dropdown_select_all">Всі</button>
-                                <button class="btn-dropdown-action" type="button" onclick="toggleSelectAllChannels(false)" data-i18n="dropdown_deselect_all">Очистити</button>
-                                <button class="btn-dropdown-action btn-add-channel-action" type="button" onclick="openAddChannelModal(event)" data-i18n="dropdown_add_channel">Додати</button>
-                            </div>
-                            <div class="dropdown-channels-list" id="dropdown-channels-list">
-                                <!-- Dynamically generated checkboxes and color pickers -->
-                            </div>
-                            <div class="dropdown-apply-container">
-                                <button class="btn-primary" type="button" style="width: 100%; padding: 6px; font-size: 11px;" onclick="applyFilters()" data-i18n="btn_apply">Застосувати</button>
-                            </div>
-                        </div>
-                    </div>
-                    
                     <!-- Date Inputs "Від" / "До" -->
                     <div class="top-filter-item date-inputs-container">
                         <span class="date-label-inline" data-i18n="lbl_from">Від</span>
@@ -145,7 +124,58 @@
             <div id="section-data-analytics" class="tab-content">
                 
                 <!-- 1.1 CHANNEL HEADER CARD -->
-                <div id="channel-header-card" style="margin-bottom: 24px;"></div>
+                <div id="channel-header-card" style="margin-bottom: 24px; position: relative;">
+                    <!-- Static controls overlaying the header -->
+                    <div id="channel-header-controls">
+                        <!-- Badge -->
+                        <span class="task-badge idle" id="update-badge" style="font-size: 9px; padding: 2px 6px; display: none;"></span>
+
+                        <!-- Channel Selector Dropdown -->
+                        <div class="top-filter-item custom-dropdown" id="channels-dropdown-container">
+                            <button class="control-select dropdown-trigger" type="button" onclick="toggleChannelsDropdown(event)" id="channels-dropdown-btn">
+                                <span id="dropdown-selected-text" data-i18n="dropdown_choose_channels">Оберіть канали</span>
+                                <i class="fa-solid fa-chevron-down"></i>
+                            </button>
+                            <div class="dropdown-menu-channels" id="channels-dropdown-menu" style="display: none;">
+                                <div class="dropdown-actions">
+                                    <button class="btn-dropdown-action" type="button" onclick="toggleSelectAllChannels(true)" data-i18n="dropdown_select_all">Всі</button>
+                                    <button class="btn-dropdown-action" type="button" onclick="toggleSelectAllChannels(false)" data-i18n="dropdown_deselect_all">Очистити</button>
+                                    <button class="btn-dropdown-action btn-add-channel-action" type="button" onclick="openAddChannelModal(event)" data-i18n="dropdown_add_channel">Додати</button>
+                                </div>
+                                <div class="dropdown-channels-list" id="dropdown-channels-list">
+                                    <!-- Dynamically generated checkboxes and color pickers -->
+                                </div>
+                                <div class="dropdown-apply-container">
+                                    <button class="btn-primary" type="button" style="width: 100%; padding: 6px; font-size: 11px;" onclick="applyFilters()" data-i18n="btn_apply">Застосувати</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Update DB button -->
+                        <button class="btn-primary" id="btn-run-update" onclick="triggerAction('update')" style="padding: 6px 12px; font-size: 11px; display: flex; align-items: center; gap: 6px;">
+                            <i class="fa-solid fa-arrows-rotate"></i>
+                            <span data-i18n="btn_update_db">Update DB</span>
+                        </button>
+                        
+                        <!-- Update Views dropdown -->
+                        <div class="dropdown-views-container" style="position: relative; display: inline-block;">
+                            <button class="btn-secondary" id="btn-run-views-update" onclick="toggleViewsDropdown(event)" style="padding: 6px 12px; font-size: 11px; display: flex; align-items: center; gap: 6px;">
+                                <i class="fa-solid fa-chart-line"></i>
+                                <span data-i18n="btn_update_views">Update Views</span>
+                            </button>
+                            <div class="dropdown-views-menu" id="views-update-menu" style="display: none; position: absolute; right: 0; top: 32px; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; min-width: 150px; padding: 4px 0;">
+                                <a href="#" onclick="runViewsUpdate('1w', event)" style="display: block; padding: 8px 12px; font-size: 11px; color: var(--text-color); text-decoration: none;" data-i18n="views_1w">Тиждень (Швидко)</a>
+                                <a href="#" onclick="runViewsUpdate('1m', event)" style="display: block; padding: 8px 12px; font-size: 11px; color: var(--text-color); text-decoration: none;" data-i18n="views_1m">Місяць (Довго)</a>
+                                <a href="#" onclick="runViewsUpdate('3m', event)" style="display: block; padding: 8px 12px; font-size: 11px; color: var(--text-color); text-decoration: none;" data-i18n="views_3m">3 місяці (Довго)</a>
+                                <a href="#" onclick="runViewsUpdate('6m', event)" style="display: block; padding: 8px 12px; font-size: 11px; color: var(--text-color); text-decoration: none;" data-i18n="views_6m">6 місяців (Довго)</a>
+                                <a href="#" onclick="runViewsUpdate('1y', event)" style="display: block; padding: 8px 12px; font-size: 11px; color: var(--text-color); text-decoration: none;" data-i18n="views_1y">Рік і більше (Дуже довго)</a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Dynamic stats content container -->
+                    <div id="channel-header-details"></div>
+                </div>
 
                 <section class="workspace" style="flex-direction: column;">
                     
@@ -188,109 +218,6 @@
                         </div>
                     </div>
 
-                    <!-- DATABASE EXPLORER (BELOW CHARTS) -->
-                    <div class="card" id="panel-explorer">
-                        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-                            <div>
-                                <span class="card-title" data-i18n="title_database_explorer">Database Explorer</span>
-                                <span id="explorer-records-count" class="stat-sub">0 records found</span>
-                            </div>
-                            <div style="display: flex; gap: 8px; align-items: center; position: relative;">
-                                <button class="btn-primary" id="btn-run-update" onclick="triggerAction('update')" style="padding: 6px 12px; font-size: 11px; display: flex; align-items: center; gap: 6px;">
-                                    <i class="fa-solid fa-arrows-rotate"></i>
-                                    <span data-i18n="btn_update_db">Update DB</span>
-                                </button>
-                                
-                                <div class="dropdown-views-container" style="position: relative; display: inline-block;">
-                                    <button class="btn-secondary" id="btn-run-views-update" onclick="toggleViewsDropdown(event)" style="padding: 6px 12px; font-size: 11px; display: flex; align-items: center; gap: 6px;">
-                                        <i class="fa-solid fa-chart-line"></i>
-                                        <span data-i18n="btn_update_views">Update Views</span>
-                                    </button>
-                                    <div class="dropdown-views-menu" id="views-update-menu" style="display: none; position: absolute; right: 0; top: 32px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; min-width: 150px; padding: 4px 0;">
-                                        <a href="#" onclick="runViewsUpdate('1w', event)" style="display: block; padding: 8px 12px; font-size: 11px; color: var(--text-color); text-decoration: none;" data-i18n="views_1w">Тиждень (Швидко)</a>
-                                        <a href="#" onclick="runViewsUpdate('1m', event)" style="display: block; padding: 8px 12px; font-size: 11px; color: var(--text-color); text-decoration: none;" data-i18n="views_1m">Місяць (Довго)</a>
-                                        <a href="#" onclick="runViewsUpdate('3m', event)" style="display: block; padding: 8px 12px; font-size: 11px; color: var(--text-color); text-decoration: none;" data-i18n="views_3m">3 місяці (Довго)</a>
-                                        <a href="#" onclick="runViewsUpdate('6m', event)" style="display: block; padding: 8px 12px; font-size: 11px; color: var(--text-color); text-decoration: none;" data-i18n="views_6m">6 місяців (Довго)</a>
-                                        <a href="#" onclick="runViewsUpdate('1y', event)" style="display: block; padding: 8px 12px; font-size: 11px; color: var(--text-color); text-decoration: none;" data-i18n="views_1y">Рік і більше (Дуже довго)</a>
-                                    </div>
-                                </div>
-                                
-                                <span class="task-badge idle" id="update-badge" style="font-size: 9px; padding: 2px 6px; display: none;"></span>
-                            </div>
-                        </div>
-                        <div class="card-body">
-                            
-                            <!-- Search Form -->
-                            <div class="explorer-filters">
-                                <input type="text" class="input-search" id="filter-search" placeholder="Search title or description..." data-i18n-placeholder="placeholder_search" onkeyup="debounceFilter()">
-                            </div>
-                            
-                            <!-- Columns Selector Button & Panel -->
-                            <div style="margin-bottom: 12px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-                                <button class="btn-secondary" style="padding: 6px 12px; font-size: 11px;" onclick="toggleColumnsSelector()">
-                                    <i class="fa-solid fa-list-check"></i>
-                                    <span data-i18n="btn_choose_columns">Select Columns</span>
-                                </button>
-
-                                <button class="btn-secondary" style="padding: 6px 12px; font-size: 11px; display: flex; align-items: center; gap: 6px;" onclick="exportCSV()">
-                                    <i class="fa-solid fa-file-csv"></i>
-                                    <span data-i18n="btn_export_csv">Export CSV</span>
-                                </button>
-                                
-                                <div style="display: flex; align-items: center; gap: 6px; font-size: 11px; margin-left: auto;">
-                                    <span data-i18n="lbl_rows_per_page">Rows per page:</span>
-                                    <select class="control-select" style="padding: 4px 8px; font-size: 11px;" id="per-page-selector" onchange="changePerPage(this.value)">
-                                        <option value="10">10</option>
-                                        <option value="25" selected>25</option>
-                                        <option value="50">50</option>
-                                        <option value="100">100</option>
-                                    </select>
-                                </div>
-                            </div>
-                            
-                            <div class="column-chooser" id="columns-chooser-panel" style="display: none; margin-bottom: 16px; width: 100%;">
-                                <label class="column-checkbox"><input type="checkbox" value="video_id" checked onchange="updateColumns()"> Video ID</label>
-                                <label class="column-checkbox"><input type="checkbox" value="title" checked disabled> Title</label>
-                                <label class="column-checkbox"><input type="checkbox" value="channel_name" checked onchange="updateColumns()"> Channel</label>
-                                <label class="column-checkbox"><input type="checkbox" value="published_at" checked onchange="updateColumns()"> Published At</label>
-                                <label class="column-checkbox"><input type="checkbox" value="view_count" checked onchange="updateColumns()"> Views</label>
-                                <label class="column-checkbox"><input type="checkbox" value="like_count" checked onchange="updateColumns()"> Likes</label>
-                                <label class="column-checkbox"><input type="checkbox" value="comment_count" checked onchange="updateColumns()"> Comments</label>
-                                <label class="column-checkbox"><input type="checkbox" value="duration" onchange="updateColumns()"> Duration</label>
-                                <label class="column-checkbox"><input type="checkbox" value="scraped_at" onchange="updateColumns()"> Scraped At</label>
-                            </div>
-                            
-                            <!-- Table Wrapper -->
-                            <div class="table-wrapper">
-                                <table class="data-table" id="data-table">
-                                    <thead>
-                                        <tr id="table-headers">
-                                            <!-- Headers loaded dynamically based on columns selection -->
-                                        </tr>
-                                    </thead>
-                                    <tbody id="table-body">
-                                        <!-- Rows loaded dynamically -->
-                                    </tbody>
-                                </table>
-                            </div>
-                            
-                            <!-- Pagination Controls -->
-                            <div class="pagination">
-                                <div>
-                                    <span data-i18n="pag_showing">Showing page</span> <span id="pag-current">1</span> / <span id="pag-total">1</span>
-                                </div>
-                                <div class="pagination-controls">
-                                    <button class="btn-secondary" style="padding: 6px 12px;" id="btn-pag-prev" onclick="changePage(-1)">
-                                        <i class="fa-solid fa-angle-left"></i>
-                                    </button>
-                                    <button class="btn-secondary" style="padding: 6px 12px;" id="btn-pag-next" onclick="changePage(1)">
-                                        <i class="fa-solid fa-angle-right"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            
-                        </div>
-                    </div>
                 </section>
             </div>
 
@@ -427,6 +354,87 @@
                         <div class="terminal-body" id="terminal-body">
                             <div id="xterm-container"></div>
                         </div>
+                </div>
+
+                <!-- DATABASE EXPLORER (BELOW CONSOLE) -->
+                <div class="card" id="panel-explorer" style="margin-top: 24px;">
+                    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                        <div>
+                            <span class="card-title" data-i18n="title_database_explorer">Database Explorer</span>
+                            <span id="explorer-records-count" class="stat-sub">0 records found</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        
+                        <!-- Search Form -->
+                        <div class="explorer-filters">
+                            <input type="text" class="input-search" id="filter-search" placeholder="Search title or description..." data-i18n-placeholder="placeholder_search" onkeyup="debounceFilter()">
+                        </div>
+                        
+                        <!-- Columns Selector Button & Panel -->
+                        <div style="margin-bottom: 12px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                            <button class="btn-secondary" style="padding: 6px 12px; font-size: 11px;" onclick="toggleColumnsSelector()">
+                                <i class="fa-solid fa-list-check"></i>
+                                <span data-i18n="btn_choose_columns">Select Columns</span>
+                            </button>
+
+                            <button class="btn-secondary" style="padding: 6px 12px; font-size: 11px; display: flex; align-items: center; gap: 6px;" onclick="exportCSV()">
+                                <i class="fa-solid fa-file-csv"></i>
+                                <span data-i18n="btn_export_csv">Export CSV</span>
+                            </button>
+                            
+                            <div style="display: flex; align-items: center; gap: 6px; font-size: 11px; margin-left: auto;">
+                                <span data-i18n="lbl_rows_per_page">Rows per page:</span>
+                                <select class="control-select" style="padding: 4px 8px; font-size: 11px;" id="per-page-selector" onchange="changePerPage(this.value)">
+                                    <option value="10">10</option>
+                                    <option value="25" selected>25</option>
+                                    <option value="50">50</option>
+                                    <option value="100">100</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="column-chooser" id="columns-chooser-panel" style="display: none; margin-bottom: 16px; width: 100%;">
+                            <label class="column-checkbox"><input type="checkbox" value="video_id" checked onchange="updateColumns()"> Video ID</label>
+                            <label class="column-checkbox"><input type="checkbox" value="title" checked disabled> Title</label>
+                            <label class="column-checkbox"><input type="checkbox" value="channel_name" checked onchange="updateColumns()"> Channel</label>
+                            <label class="column-checkbox"><input type="checkbox" value="published_at" checked onchange="updateColumns()"> Published At</label>
+                            <label class="column-checkbox"><input type="checkbox" value="view_count" checked onchange="updateColumns()"> Views</label>
+                            <label class="column-checkbox"><input type="checkbox" value="like_count" checked onchange="updateColumns()"> Likes</label>
+                            <label class="column-checkbox"><input type="checkbox" value="comment_count" checked onchange="updateColumns()"> Comments</label>
+                            <label class="column-checkbox"><input type="checkbox" value="duration" onchange="updateColumns()"> Duration</label>
+                            <label class="column-checkbox"><input type="checkbox" value="scraped_at" onchange="updateColumns()"> Scraped At</label>
+                        </div>
+                        
+                        <!-- Table Wrapper -->
+                        <div class="table-wrapper">
+                            <table class="data-table" id="data-table">
+                                <thead>
+                                    <tr id="table-headers">
+                                        <!-- Headers loaded dynamically based on columns selection -->
+                                    </tr>
+                                </thead>
+                                <tbody id="table-body">
+                                    <!-- Rows loaded dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- Pagination Controls -->
+                        <div class="pagination">
+                            <div>
+                                <span data-i18n="pag_showing">Showing page</span> <span id="pag-current">1</span> / <span id="pag-total">1</span>
+                            </div>
+                            <div class="pagination-controls">
+                                <button class="btn-secondary" style="padding: 6px 12px;" id="btn-pag-prev" onclick="changePage(-1)">
+                                    <i class="fa-solid fa-angle-left"></i>
+                                </button>
+                                <button class="btn-secondary" style="padding: 6px 12px;" id="btn-pag-next" onclick="changePage(1)">
+                                    <i class="fa-solid fa-angle-right"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
                     </div>
                 </div>
             </div>

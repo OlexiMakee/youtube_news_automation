@@ -432,6 +432,12 @@ export function changePerPage(val) {
     
     state.pagination.page = 1;
     loadVideos();
+    
+    // Refresh charts to reflect the new limit of records
+    const selected = getSelectedChannels();
+    if (selected.length > 0) {
+        loadChartsData(selected.join(','));
+    }
 }
 
 export function exportCSV() {

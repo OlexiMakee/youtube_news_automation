@@ -41,8 +41,8 @@ export async function loadStats() {
 
 // API CALL: LOAD CHANNEL HEADER
 export async function loadChannelStatsHeader() {
-    const headerCard = document.getElementById("channel-header-card");
-    if (!headerCard) return;
+    const headerDetails = document.getElementById("channel-header-details");
+    if (!headerDetails) return;
     
     // Helper to get selected channels from checkbox DOM
     const selected = [];
@@ -64,7 +64,7 @@ export async function loadChannelStatsHeader() {
         const data = await res.json();
         
         if (data.error) {
-            headerCard.innerHTML = `<div class="card" style="padding:15px; text-align:center; color:var(--danger-color);">${data.error}</div>`;
+            headerDetails.innerHTML = `<div class="card" style="padding:15px; text-align:center; color:var(--danger-color);">${data.error}</div>`;
             return;
         }
         
@@ -83,7 +83,7 @@ export async function loadChannelStatsHeader() {
             const handleText = data.channel_handle ? `@${data.channel_handle}` : '';
             const desc = data.description || '';
             
-            headerCard.innerHTML = `
+            headerDetails.innerHTML = `
                 <div class="channel-premium-header">
                     <div class="channel-banner-bg" style="${bannerStyle}"></div>
                     <div class="channel-profile-info">
@@ -125,7 +125,7 @@ export async function loadChannelStatsHeader() {
             const totalViewsStr = data.db_total_views !== null ? data.db_total_views.toLocaleString() : "0";
             const medianViewsStr = data.db_median_views !== null ? data.db_median_views.toLocaleString() : "0";
             
-            headerCard.innerHTML = `
+            headerDetails.innerHTML = `
                 <div class="combined-premium-banner">
                     <div class="combined-banner-title">
                         <i class="fa-solid fa-layer-group"></i>
@@ -399,7 +399,10 @@ export async function loadChartsData(channelId) {
         const startDate = document.getElementById("filter-start-date").value;
         const endDate = document.getElementById("filter-end-date").value;
         
-        const params = new URLSearchParams({ channel_id: channelId });
+        const params = new URLSearchParams({ 
+            channel_id: channelId,
+            limit: state.pagination.per_page
+        });
         if (startDate) params.append("start_date", startDate);
         if (endDate) params.append("end_date", endDate);
         

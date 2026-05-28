@@ -145,6 +145,21 @@ idx_channels_synced
 - Виклик process-менеджера з прапорцем `--skip-web` дозволяє Flask-додатку повернути HTTP-відповідь клієнту перед тим, як завершити свій робочий потік.
 - Автоматичний перехід `manage_processes.py` у неінтерактивний режим у разі відсутності TTY запобігає зависанню сервера через `EOFError` при роботі у фонових сесіях.
 
+## Dynamic Chart Limits & Dashboard Layout Optimization (v0.7.1) (2026-05-29)
+
+**Що зроблено:**
+- Модернізовано API `/api/charts` в [charts.py](file:///Users/oleksii/Documents/News%20Research%20Automation/app/routes/charts.py) для отримання та застосування динамічного параметра `limit` у SQL-запитах (`LIMIT ?`) та зрізах списків (`[:limit]`).
+- Оновлено `loadChartsData` в [api.js](file:///Users/oleksii/Documents/News%20Research%20Automation/static/js/api.js) для передачі поточного ліміту `state.pagination.per_page` як параметра запиту.
+- Оновлено `changePerPage` in [ui.js](file:///Users/oleksii/Documents/News%20Research%20Automation/static/js/ui.js) для перезавантаження графіків при зміні ліміту.
+- Перенесено вибір каналів, кнопку "Оновити БД", випадаюче меню "Оновити перегляди" та статусний бейдж у плашку статистики каналу `#channel-header-card` як статичну панель керування `#channel-header-controls` (справа вгорі).
+- Переписано `loadChannelStatsHeader` в [api.js](file:///Users/oleksii/Documents/News%20Research%20Automation/static/js/api.js) для оновлення вмісту підконтейнера `#channel-header-details` без перезапису статичних контролів.
+- Вимкнено липкість (`position: sticky`) для плашки статистики каналу в [style.css](file:///Users/oleksii/Documents/News%20Research%20Automation/static/css/style.css), щоб вона скролилася разом із графіками аналітики.
+- Перенесено Database Explorer (`#panel-explorer`) під вікно терміналу у вкладці "Terminal".
+
+**Ключові рішення:**
+- Відокремлення статичної панелі управління (`#channel-header-controls`) від динамічної плашки статистики (`#channel-header-details`) запобігає переініціалізації dropdown-селектора каналів при кожному AJAX оновленні статистики.
+- Динамічне підвантаження графіків через параметр `limit` забезпечує миттєвий відгук візуальних аналітичних блоків на дії користувача при зміні ліміту.
+
 ---
 
 ## Roadmap — заплановані задачі

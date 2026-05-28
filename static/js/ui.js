@@ -440,7 +440,33 @@ export function changePerPage(val) {
     }
 }
 
-export function exportCSV() {
+export function toggleExportDropdown(event) {
+    if (event) {
+        event.stopPropagation();
+        event.preventDefault();
+    }
+    const menu = document.getElementById("export-menu");
+    if (!menu) return;
+    const isShowing = menu.style.display === "block";
+    
+    // Close other dropdowns
+    const channelsMenu = document.getElementById("channels-dropdown-menu");
+    if (channelsMenu) channelsMenu.style.display = "none";
+    const viewsMenu = document.getElementById("views-update-menu");
+    if (viewsMenu) viewsMenu.style.display = "none";
+    
+    menu.style.display = isShowing ? "none" : "block";
+}
+
+export function exportData(format, event) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    
+    const menu = document.getElementById("export-menu");
+    if (menu) menu.style.display = "none";
+    
     const search = document.getElementById("filter-search").value;
     const channelId = getSelectedChannels().join(',');
     const startDate = document.getElementById("filter-start-date").value;
@@ -451,7 +477,8 @@ export function exportCSV() {
         channel_id: channelId,
         start_date: startDate,
         end_date: endDate,
-        columns: state.activeColumns.join(",")
+        columns: state.activeColumns.join(","),
+        format: format
     });
     
     window.location.href = `/api/videos/export?${params.toString()}`;

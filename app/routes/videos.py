@@ -133,7 +133,8 @@ def get_videos():
 
 
 @videos_bp.route('/api/videos/export', methods=['GET'])
-def export_videos_csv():
+def export_videos():
+    format_choice = request.args.get('format', 'csv').strip().lower()
     search = request.args.get('search', '').strip()
     start_date = request.args.get('start_date', '').strip()
     end_date = request.args.get('end_date', '').strip()
@@ -169,8 +170,11 @@ def export_videos_csv():
             params.append(end_date)
             
         if channel_id:
-            query_parts.append("v.channel_id = ?")
-            params.append(channel_id)
+            ids_list = [i.strip() for i in channel_id.split(',') if i.strip()]
+            if ids_list:
+                placeholders = ",".join(["?"] * len(ids_list))
+                query_parts.append(f"v.channel_id IN ({placeholders})")
+                params.extend(ids_list)
             
         where_clause = " WHERE " + " AND ".join(query_parts) if query_parts else ""
         
@@ -214,18 +218,42 @@ def export_videos_csv():
         cursor.execute(query_sql, params)
         rows = cursor.fetchall()
         
-        si = StringIO()
-        cw = csv.writer(si)
-        cw.writerow(selected_cols)
+        rows_list = [dict(row) for row in rows]
         
-        for row in rows:
-            cw.writerow([row[col] for col in selected_cols])
+        if format_choice in ['xlsx', 'excel']:
+            import pandas as pd
+            from io import BytesIO
             
-        output = make_response(si.getvalue())
-        output.headers["Content-Disposition"] = f"attachment; filename=youtube_news_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
-        output.headers["Content-type"] = "text/csv; charset=utf-8"
-        return output
-        
+            data = []
+            for r in rows_list:
+                data.append({col: r[col] for col in selected_cols})
+                
+            df = pd.DataFrame(data, columns=selected_cols)
+            
+            out_buf = BytesIO()
+            with pd.ExcelWriter(out_buf, engine='openpyxl') as writer:
+                df.to_excel(writer, index=False, sheet_name="Videos Export")
+            out_buf.seek(0)
+            
+            return send_file(
+                out_buf,
+                as_attachment=True,
+                download_name=f"youtube_news_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+        else:
+            si = StringIO()
+            cw = csv.writer(si)
+            cw.writerow(selected_cols)
+            
+            for r in rows_list:
+                cw.writerow([r[col] for col in selected_cols])
+                
+            output = make_response(si.getvalue())
+            output.headers["Content-Disposition"] = f"attachment; filename=youtube_news_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+            output.headers["Content-type"] = "text/csv; charset=utf-8"
+            return output
+            
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     finally:

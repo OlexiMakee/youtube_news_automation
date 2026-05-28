@@ -20,7 +20,8 @@ import {
     updateColumns, 
     changePage, 
     changePerPage, 
-    exportCSV, 
+    toggleExportDropdown,
+    exportData, 
     openVideoModal, 
     closeVideoModal, 
     downloadVideoFromModal, 
@@ -87,7 +88,8 @@ window.toggleColumnsSelector = toggleColumnsSelector;
 window.updateColumns = updateColumns;
 window.changePage = changePage;
 window.changePerPage = changePerPage;
-window.exportCSV = exportCSV;
+window.toggleExportDropdown = toggleExportDropdown;
+window.exportData = exportData;
 window.openVideoModal = openVideoModal;
 window.closeVideoModal = closeVideoModal;
 window.downloadVideoFromModal = downloadVideoFromModal;
@@ -166,4 +168,28 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
     }
+    
+    // Click outside to close custom dropdowns
+    document.addEventListener("click", (e) => {
+        // channels dropdown
+        const channelsBtn = document.getElementById("channels-dropdown-btn");
+        const channelsMenu = document.getElementById("channels-dropdown-menu");
+        if (channelsMenu && channelsBtn && !channelsBtn.contains(e.target) && !channelsMenu.contains(e.target)) {
+            channelsMenu.style.display = "none";
+        }
+        
+        // views dropdown
+        const viewsBtn = document.getElementById("btn-run-views-update");
+        const viewsMenu = document.getElementById("views-update-menu");
+        if (viewsMenu && viewsBtn && !viewsBtn.contains(e.target) && !viewsMenu.contains(e.target)) {
+            viewsMenu.style.display = "none";
+        }
+        
+        // export dropdown
+        const exportBtn = document.getElementById("btn-run-export");
+        const exportMenu = document.getElementById("export-menu");
+        if (exportMenu && exportBtn && !exportBtn.contains(e.target) && !exportMenu.contains(e.target)) {
+            exportMenu.style.display = "none";
+        }
+    });
 });

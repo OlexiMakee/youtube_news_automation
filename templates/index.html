@@ -96,9 +96,8 @@
                     </div>
                     
                     <!-- Top Per-Page Input -->
-                    <div class="top-filter-item per-page-container" style="display: flex; align-items: center; gap: 6px; font-size: 11px; background: var(--bg-color); padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border-color);">
-                        <span data-i18n="lbl_rows_per_page_top">Показників:</span>
-                        <input type="number" class="input-date-compact" style="width: 48px; text-align: center; font-size: 11px; padding: 2px 4px; border: none; background: transparent; color: var(--text-color); outline: none; font-weight: 600;" id="per-page-input-top" value="25" min="1" max="500" onchange="changePerPage(this.value)">
+                    <div class="top-filter-item per-page-container" style="display: flex; align-items: center; font-size: 11px; background: var(--bg-color); padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border-color);" title="Limit of indicators / rows">
+                        <input type="number" class="input-date-compact" style="width: 40px; text-align: center; font-size: 11px; padding: 2px 4px; border: none; background: transparent; color: var(--text-color); outline: none; font-weight: 600;" id="per-page-input-top" value="25" min="1" max="500" onchange="changePerPage(this.value)">
                     </div>
                     
                     <!-- Reset Button -->
@@ -354,10 +353,11 @@
                         <div class="terminal-body" id="terminal-body">
                             <div id="xterm-container"></div>
                         </div>
+                    </div>
                 </div>
 
                 <!-- DATABASE EXPLORER (BELOW CONSOLE) -->
-                <div class="card" id="panel-explorer" style="margin-top: 24px;">
+                <div class="card" id="panel-explorer">
                     <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                         <div>
                             <span class="card-title" data-i18n="title_database_explorer">Database Explorer</span>
@@ -377,11 +377,24 @@
                                 <i class="fa-solid fa-list-check"></i>
                                 <span data-i18n="btn_choose_columns">Select Columns</span>
                             </button>
-
-                            <button class="btn-secondary" style="padding: 6px 12px; font-size: 11px; display: flex; align-items: center; gap: 6px;" onclick="exportCSV()">
-                                <i class="fa-solid fa-file-csv"></i>
-                                <span data-i18n="btn_export_csv">Export CSV</span>
-                            </button>
+ 
+                            <!-- Export Dropdown -->
+                            <div class="dropdown-export-container" style="position: relative; display: inline-block;">
+                                <button class="btn-secondary" id="btn-run-export" onclick="toggleExportDropdown(event)" style="padding: 6px 12px; font-size: 11px; display: flex; align-items: center; gap: 6px;">
+                                    <i class="fa-solid fa-file-export"></i>
+                                    <span data-i18n="btn_export">Export ▾</span>
+                                </button>
+                                <div class="dropdown-export-menu" id="export-menu" style="display: none; position: absolute; left: 0; top: 32px; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; min-width: 140px; padding: 4px 0;">
+                                    <a href="#" onclick="exportData('csv', event)" style="display: flex; align-items: center; gap: 8px;">
+                                        <i class="fa-solid fa-file-csv" style="color: var(--teal-color); font-size: 13px;"></i>
+                                        <span data-i18n="btn_export_csv">Export CSV</span>
+                                    </a>
+                                    <a href="#" onclick="exportData('xlsx', event)" style="display: flex; align-items: center; gap: 8px;">
+                                        <i class="fa-solid fa-file-excel" style="color: var(--green-color); font-size: 13px;"></i>
+                                        <span data-i18n="btn_export_excel">Export Excel</span>
+                                    </a>
+                                </div>
+                            </div>
                             
                             <div style="display: flex; align-items: center; gap: 6px; font-size: 11px; margin-left: auto;">
                                 <span data-i18n="lbl_rows_per_page">Rows per page:</span>

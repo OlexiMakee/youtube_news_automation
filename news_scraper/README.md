@@ -1,38 +1,54 @@
-# 📦 news_scraper
+# ⚙️ news_scraper/ — Core Python Package
 
-This package contains the core modules for the YouTube Historical Scraper & DB Automation system.
-Цей пакет містить основні модулі для системи автоматизації збору історії YouTube та роботи з БД.
+Основний пакет проекту. Містить всю бізнес-логіку: скрапінг, БД, синхронізація.
 
----
+> **Правило:** цей пакет — бібліотека. Він не запускається напряму.
+> Його імпортують `web_app.py`, `update_db.py`, `update_views.py`, `scrape_multi.py`.
 
-## 🇺🇦 Українська версія (Ukrainian Version)
+## Файли та їх роль
 
-### 📂 Структура та модулі пакета
-Пакет `news_scraper` розроблено для відокремлення внутрішньої логіки (збір даних, робота з базою даних, синхронізація, інтерфейс) від точок запуску скриптів. Це дозволяє легко інтегрувати його як окремий модуль у більші проекти.
+| Файл | Клас / функції | Що робить |
+|---|---|---|
+| `db_client.py` | `DatabaseClient(BaseStorage)` | SQLite CRUD, міграції схеми, 9 індексів |
+| `scraper_engine.py` | `YouTubeScraperEngine` | yt-dlp: скрапінг відео, каналів, метаданих |
+| `postgres_sync.py` | `PostgresSyncClient` | Delta sync SQLite → Neon PostgreSQL |
+| `kaggle_sync.py` | `KaggleSync` | Backup/restore через Kaggle Datasets |
+| `utils.py` | `setup_and_run_venv`, `load_env`, `normalize_url` | Auto-venv bootstrap, .env, URL utils |
+| `cli_progress.py` | `CliProgress`, таймери | CLI прогрес-бар для скрапінгу |
+| `keypress.py` | `wait_for_keypress` | Cross-platform keypress detection |
+| `__init__.py` | — | Пакетний init, версія |
 
-| Файл | Опис модуля |
-| :--- | :--- |
-| **`__init__.py`** | Маркує папку як пакет Python. |
-| **`db_client.py`** | Клієнт бази даних SQLite. Керує підключенням до `youtube_news.db`, створенням таблиць `channels` та `videos`, збереженням даних та оновленням статистики. |
-| **`scraper_engine.py`** | Основний двигун скрапінгу. Запускає утиліту `yt-dlp` у фоні частинами (пакетами по 30-40 відео), підтримує призупинення кнопкою Пробіл, випадкові паузи (5.5-8.5с) та 40-секундний кулдаун при виявленні тротлінгу. |
-| **`cli_progress.py`** | Консольний інтерфейс користувача. Відповідає за малювання прогрес-бару, плавних таймерів (з точністю до десятих частин секунди), меню ручної паузи та фінальних аналітичних звітів. |
-| **`utils.py`** | Загальні утиліти. Містить функції автоналаштування віртуального середовища (`venv_auto`), завантаження конфігурації `.env`, очищення екрана та нормалізації посилань на канали. |
-| **`keypress.py`** | Неблокуюче відстеження клавіатури. Дозволяє асинхронно слухати Пробіл під час скрапінгу для зупинки процесу без блокування потоку виконання. |
-| **`kaggle_sync.py`** | Синхронізація з хмарою. Забезпечує резервне копіювання локальної бази даних SQLite на Kaggle Datasets (завантаження дельти, скачування останніх версій та звірка часу зміни файлів). |
+## Де шукати що
 
----
+**Хочу додати новий канал до БД:**
+→ `db_client.py` → `add_or_update_channel()`
 
-## 🇬🇧 English Version (Англійська версія)
+**Хочу зрозуміти як скрапиться відео:**
+→ `scraper_engine.py` → `YouTubeScraperEngine.scrape_channel()`
 
-### 📂 Package Structure and Modules
-The `news_scraper` package encapsulates all internal business logic (data fetching, database management, cloud synchronization, and CLI presentation) separate from the script execution entry points. This design enables seamless integration as a submodule inside larger projects.
+**Хочу змінити схему БД / додати колонку:**
+→ `db_client.py` → `init_db()` → секція dynamic migrations (рядки ~198-250)
 
-| File | Module Description |
-| :--- | :--- |
-| **`__init__.py`** | Marks the directory as a Python package. |
-| **`db_client.py`** | SQLite database client. Manages connections to `youtube_news.db`, initialises `channels` and `videos` tables, inserts records in chunks, and fetches channel metrics. |
-| **`scraper_engine.py`** | Core scraping orchestrator. Launches `yt-dlp` processes in chunks (30-40 videos at a time), handles keyboard pauses, introduces randomized sleep intervals (5.5-8.5s), and manages 40-second anti-throttling cooldowns. |
-| **`cli_progress.py`** | Console UI presentation. Manages smooth progress animations, sub-second timing precision (tenths of a second), interactive pause overlays, and terminal-friendly summary dashboards. |
-| **`utils.py`** | Shared utilities. Orchestrates virtual environment bootstrapping (`venv_auto`), parses `.env` parameters, clears terminal screens, and normalises channel links or handles. |
-| **`keypress.py`** | Non-blocking keyboard event listener. Uses low-level OS listeners to asynchronously detect Spacebar keypresses without halting the data collection process. |
-| **`kaggle_sync.py`** | Cloud backup orchestrator. Integrates with the Kaggle API (via `kagglehub` and `kagglesdk`) to push SQLite backups, download versions, and reconcile timestamps. |
+**Хочу синхронізувати з Neon:**
+→ `postgres_sync.py` → `PostgresSyncClient.sync_delta()`
+
+**Хочу зрозуміти auto-venv:**
+→ `utils.py` → `setup_and_run_venv()`
+
+## Схема БД (коротко)
+
+```sql
+channels: channel_id(PK), channel_name, handle, avatar_url, subscribers, synced
+videos:   video_id(PK), channel_id(FK), title, published_at, view_count,
+          like_count, comment_count, duration, tags, full_description,
+          views_update(JSON), synced
+```
+
+**Індекси:** `idx_videos_channel_id`, `idx_videos_published_at`,
+`idx_videos_view_count`, `idx_videos_channel_published` (composite), +5 інших
+
+## ⚠️ Важливо
+
+- `views_update` — JSON `[[timestamp, views], ...]` max 50 записів
+- `synced=0` означає "не завантажено в Postgres"
+- `BaseStorage` ABC — можна додати інший backend (Redis, PostgreSQL) без зміни логіки

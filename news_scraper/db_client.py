@@ -193,21 +193,17 @@ class DatabaseClient(BaseStorage):
         )
         """)
         
-        # 2b. Create word_trends table
+        # 2b. Create video_phrases table
+        cursor.execute("DROP TABLE IF EXISTS word_trends;")
         cursor.execute("""
-        CREATE TABLE IF NOT EXISTS word_trends (
-            trend_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            channel_id TEXT NOT NULL,
+        CREATE TABLE IF NOT EXISTS video_phrases (
+            video_id TEXT NOT NULL,
             phrase TEXT NOT NULL,
-            ngram_type INTEGER NOT NULL, -- 1 = word, 2 = bigram, 3 = trigram
-            video_count INTEGER NOT NULL,
-            total_views INTEGER DEFAULT 0,
-            median_views INTEGER NOT NULL,
-            performance_lift REAL NOT NULL,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            ngram_type INTEGER NOT NULL, -- 1 = word/hashtag, 2 = bigram, 3 = trigram
+            PRIMARY KEY (video_id, phrase)
         )
         """)
-        cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_word_trends_channel_phrase ON word_trends(channel_id, phrase);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_video_phrases_phrase ON video_phrases(phrase);")
         
         conn.commit()
         

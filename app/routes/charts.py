@@ -24,7 +24,7 @@ def get_charts():
         except ValueError:
             limit = 100
         
-        if channel_id_raw:
+        if channel_id_raw and channel_id_raw != 'all':
             ids_list = [i.strip() for i in channel_id_raw.split(',') if i.strip()]
         else:
             ids_list = []
@@ -230,111 +230,74 @@ def get_charts():
         """, query_params)
         views_distribution = [dict(row) for row in cursor.fetchall()]
         
-        # 9. Text Analytics from pre-calculated word_trends table
-        target_channel_id = ids_list[0] if len(ids_list) == 1 else 'all'
+        # 9. Dynamic Text Analytics based on video_phrases and active filters
+        cursor.execute(f"""
+            SELECT vp.phrase, vp.ngram_type, v.view_count
+            FROM video_phrases vp
+            JOIN videos v ON vp.video_id = v.video_id
+            WHERE v.channel_id IN ({placeholders}){date_filter}
+        """, query_params)
         
-        # Fallback to 'all' if no trend data is computed for the specific channel
-        cursor.execute("SELECT COUNT(*) FROM word_trends WHERE channel_id = ?", (target_channel_id,))
-        if cursor.fetchone()[0] == 0:
-            target_channel_id = 'all'
-
-        # 9.1 Top hashtags (ngram_type=1 and starts with '#')
-        cursor.execute("""
-            SELECT phrase, total_views, video_count
-            FROM word_trends
-            WHERE channel_id = ? AND ngram_type = 1 AND phrase LIKE '#%'
-            ORDER BY total_views DESC
-            LIMIT 10
-        """, (target_channel_id,))
-        top_hashtags = [
-            {"tag": row["phrase"], "count": row["total_views"], "video_count": row["video_count"]}
-            for row in cursor.fetchall()
-        ]
-
-        # 9.2 Top words (ngram_type=1 and not starts with '#')
-        cursor.execute("""
-            SELECT phrase, total_views, video_count
-            FROM word_trends
-            WHERE channel_id = ? AND ngram_type = 1 AND NOT (phrase LIKE '#%')
-            ORDER BY total_views DESC
-            LIMIT 10
-        """, (target_channel_id,))
-        top_words = [
-            {"word": row["phrase"], "count": row["total_views"], "video_count": row["video_count"]}
-            for row in cursor.fetchall()
-        ]
-
-        # 9.3 Best promo words (all ngrams not starting with '#')
-        cursor.execute("""
-            SELECT phrase, median_views, video_count, performance_lift
-            FROM word_trends
-            WHERE channel_id = ? AND NOT (phrase LIKE '#%')
-            ORDER BY performance_lift DESC
-            LIMIT ?
-        """, (target_channel_id, limit))
-        best_promo_words = [
-            {
-                "word": row["phrase"],
-                "median_views": row["median_views"],
-                "video_count": row["video_count"],
-                "lift": row["performance_lift"]
-            }
-            for row in cursor.fetchall()
-        ]
-
-        # 9.4 Worst promo words (all ngrams not starting with '#')
-        cursor.execute("""
-            SELECT phrase, median_views, video_count, performance_lift
-            FROM word_trends
-            WHERE channel_id = ? AND NOT (phrase LIKE '#%')
-            ORDER BY performance_lift ASC
-            LIMIT ?
-        """, (target_channel_id, limit))
-        worst_promo_words = [
-            {
-                "word": row["phrase"],
-                "median_views": row["median_views"],
-                "video_count": row["video_count"],
-                "lift": row["performance_lift"]
-            }
-            for row in cursor.fetchall()
-        ]
-
-        # 9.5 Best promo tags (hashtags)
-        cursor.execute("""
-            SELECT phrase, median_views, video_count, performance_lift
-            FROM word_trends
-            WHERE channel_id = ? AND phrase LIKE '#%'
-            ORDER BY performance_lift DESC
-            LIMIT ?
-        """, (target_channel_id, limit))
-        best_promo_tags = [
-            {
-                "tag": row["phrase"],
-                "median_views": row["median_views"],
-                "video_count": row["video_count"],
-                "lift": row["performance_lift"]
-            }
-            for row in cursor.fetchall()
-        ]
-
-        # 9.6 Worst promo tags (hashtags)
-        cursor.execute("""
-            SELECT phrase, median_views, video_count, performance_lift
-            FROM word_trends
-            WHERE channel_id = ? AND phrase LIKE '#%'
-            ORDER BY performance_lift ASC
-            LIMIT ?
-        """, (target_channel_id, limit))
-        worst_promo_tags = [
-            {
-                "tag": row["phrase"],
-                "median_views": row["median_views"],
-                "video_count": row["video_count"],
-                "lift": row["performance_lift"]
-            }
-            for row in cursor.fetchall()
-        ]
+        from collections import defaultdict
+        phrase_views = defaultdict(list)
+        for row in cursor.fetchall():
+            phrase_views[(row['phrase'], row['ngram_type'])].append(row['view_count'] or 0)
+            
+        chan_median = max(1, median_views)
+        
+        hashtag_list = []
+        word_list = []
+        promo_words_list = []
+        promo_tags_list = []
+        
+        for (phrase, ngram_type), views in phrase_views.items():
+            is_hashtag = phrase.startswith('#')
+            video_count = len(views)
+            total_views = sum(views)
+            
+            # 9.1 & 9.2: Top Hashtags / Words (based on total views of containing videos)
+            if ngram_type == 1:
+                if is_hashtag:
+                    if video_count >= 3:
+                        hashtag_list.append({"tag": phrase, "count": total_views, "video_count": video_count})
+                else:
+                    if video_count >= 3:
+                        word_list.append({"word": phrase, "count": total_views, "video_count": video_count})
+                        
+            # 9.3 to 9.6: Promo Words / Tags (performance lift)
+            if video_count >= 5:
+                sorted_v = sorted(views)
+                n_v = len(sorted_v)
+                if n_v % 2 == 1:
+                    phrase_median = sorted_v[n_v // 2]
+                else:
+                    phrase_median = (sorted_v[n_v // 2 - 1] + sorted_v[n_v // 2]) // 2
+                    
+                lift = phrase_median / chan_median
+                
+                if is_hashtag:
+                    promo_tags_list.append({
+                        "tag": phrase,
+                        "median_views": phrase_median,
+                        "video_count": video_count,
+                        "lift": lift
+                    })
+                else:
+                    promo_words_list.append({
+                        "word": phrase,
+                        "median_views": phrase_median,
+                        "video_count": video_count,
+                        "lift": lift
+                    })
+                    
+        top_hashtags = sorted(hashtag_list, key=lambda x: x["count"], reverse=True)[:10]
+        top_words = sorted(word_list, key=lambda x: x["count"], reverse=True)[:10]
+        
+        best_promo_words = sorted(promo_words_list, key=lambda x: x["lift"], reverse=True)[:limit]
+        worst_promo_words = sorted(promo_words_list, key=lambda x: x["lift"])[:limit]
+        
+        best_promo_tags = sorted(promo_tags_list, key=lambda x: x["lift"], reverse=True)[:limit]
+        worst_promo_tags = sorted(promo_tags_list, key=lambda x: x["lift"])[:limit]
         
         return jsonify({
             "channel_id": channel_id_raw,

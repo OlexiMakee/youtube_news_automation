@@ -36,7 +36,8 @@ import {
     setAddChannelLimitPreset, 
     submitAddChannel,
     toggleChatDrawer,
-    handleSendChatMessage
+    handleSendChatMessage,
+    selectSingleChannel
 } from './ui.js';
 import { 
     loadStats, 
@@ -104,6 +105,7 @@ window.setAddChannelLimitPreset = setAddChannelLimitPreset;
 window.submitAddChannel = submitAddChannel;
 window.toggleChatDrawer = toggleChatDrawer;
 window.handleSendChatMessage = handleSendChatMessage;
+window.selectSingleChannel = selectSingleChannel;
 
 window.loadStats = loadStats;
 window.loadChannelStatsHeader = loadChannelStatsHeader;

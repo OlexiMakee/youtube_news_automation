@@ -198,9 +198,17 @@ export async function loadChannels() {
         });
         localStorage.setItem("channel_colors", JSON.stringify(state.channelColors));
         
-        // If there's no saved selection, default to selecting all channels
-        if (!state.selectedChannelIds || state.selectedChannelIds.length === 0) {
-            state.selectedChannelIds = state.allChannels.map(c => c.channel_id);
+        // If there's no saved selection, default to UATV English
+        const hasStoredConfig = localStorage.getItem("selected_channels") !== null;
+        if (!hasStoredConfig || !state.selectedChannelIds || state.selectedChannelIds.length === 0) {
+            const uatv = state.allChannels.find(c => c.channel_name && c.channel_name.toLowerCase().includes("uatv english"));
+            if (uatv) {
+                state.selectedChannelIds = [uatv.channel_id];
+            } else if (state.allChannels.length > 0) {
+                state.selectedChannelIds = [state.allChannels[0].channel_id];
+            } else {
+                state.selectedChannelIds = [];
+            }
         } else {
             // Filter out any IDs that no longer exist
             const activeIds = state.allChannels.map(c => c.channel_id);

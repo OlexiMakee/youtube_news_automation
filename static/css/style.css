@@ -13,6 +13,9 @@
     --accent-hover: #006b92;
     --teal-color: #00e676; /* Kaggle Teal */
     --danger-color: #d93025;
+    --warning-color: #f59e0b;
+    --warning-hover: #d97706;
+    --warning-text: #ffffff;
     --sidebar-bg: #ffffff;
     --sidebar-text: #202124;
     --sidebar-hover: #f1f3f4;
@@ -31,6 +34,9 @@
     --accent-hover: #9b7200;
     --teal-color: #859900;
     --danger-color: #dc322f;
+    --warning-color: #d97706;
+    --warning-hover: #b45309;
+    --warning-text: #ffffff;
     --sidebar-bg: #fdf6e3;
     --sidebar-text: #433422;
     --sidebar-hover: #efe2be;
@@ -48,6 +54,9 @@
     --accent-hover: #00b359;
     --teal-color: #00e676;
     --danger-color: #ea4335;
+    --warning-color: #f59e0b;
+    --warning-hover: #ca8a04;
+    --warning-text: #08080a;
     --sidebar-bg: #121216;
     --sidebar-text: #f1f3f4;
     --sidebar-hover: #1e1e24;
@@ -65,6 +74,9 @@
     --accent-hover: #0ea5e9;
     --teal-color: #34d399;
     --danger-color: #ef4444;
+    --warning-color: #eab308;
+    --warning-hover: #ca8a04;
+    --warning-text: #0f172a;
     --sidebar-bg: #0f172a;
     --sidebar-text: #f8fafc;
     --sidebar-hover: #1e293b;
@@ -396,6 +408,26 @@ body {
 .btn-secondary:hover {
     background-color: var(--sidebar-hover);
     border-color: var(--text-muted);
+}
+
+.btn-warning {
+    background-color: var(--warning-color);
+    color: var(--warning-text);
+    border: none;
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: var(--font-sans);
+    transition: background-color 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-warning:hover {
+    background-color: var(--warning-hover);
 }
 
 /* COLUMN CHOOSER POPOVER / BLOCK */

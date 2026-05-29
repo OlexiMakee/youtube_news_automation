@@ -146,7 +146,16 @@ export function renderD3VideoChart(chartType) {
 
     const theme = getThemeColors();
     const lang = state.currentLang === 'ua' ? 'ua' : 'en';
-    const chartTitle = config.titleKey[lang];
+    let chartTitle = config.titleKey[lang];
+    if (lang === 'ua') {
+        chartTitle = chartTitle
+            .replace('Топ ', `Топ-${state.chartLimit} `)
+            .replace('Найгірші ', `Найгірші ${state.chartLimit} `);
+    } else {
+        chartTitle = chartTitle
+            .replace('Top ', `Top ${state.chartLimit} `)
+            .replace('Worst ', `Worst ${state.chartLimit} `);
+    }
 
     // Dimensions
     const containerWidth = root.clientWidth || 800;

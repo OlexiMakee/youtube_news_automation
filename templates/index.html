@@ -124,12 +124,6 @@
             <!-- SECTION 1: DATA & ANALYTICS TAB -->
             <div id="section-data-analytics" class="tab-content">
                 
-                <!-- 1.1 CHANNEL HEADER CARD -->
-                <div id="channel-header-card" style="margin-bottom: 24px; position: relative;">
-                    <!-- Dynamic stats content container -->
-                    <div id="channel-header-details"></div>
-                </div>
-
                 <section class="workspace" style="flex-direction: column;">
                     
                     <!-- VISUALIZATIONS (ABOVE TABLE) -->
@@ -177,7 +171,7 @@
                                 
                                 <!-- Update Views dropdown -->
                                 <div class="dropdown-views-container" style="position: relative; display: inline-block;">
-                                    <button class="btn-secondary" id="btn-run-views-update" onclick="toggleViewsDropdown(event)" style="padding: 6px 12px; font-size: 11px; display: flex; align-items: center; gap: 6px;">
+                                    <button class="btn-warning" id="btn-run-views-update" onclick="toggleViewsDropdown(event)" style="padding: 6px 12px; font-size: 11px; display: flex; align-items: center; gap: 6px;">
                                         <i class="fa-solid fa-chart-line"></i>
                                         <span data-i18n="btn_update_views">Update Views</span>
                                     </button>
@@ -199,6 +193,7 @@
                                 <!-- Dynamic buttons, split groups, and dividers built by initChartUI() -->
                             </div>
                         </div>
+                        <div id="channel-header-details"></div>
                         <div class="card-body">
 
                             <div class="chart-container" style="height: 280px; width: 100%;">

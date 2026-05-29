@@ -43,9 +43,13 @@ export function initChartUI() {
     CHART_DEFS.forEach(def => {
         if (processedIds.has(def.id)) return;
         
-        const label = (translations[state.currentLang] && translations[state.currentLang][def.labelKey])
+        let label = (translations[state.currentLang] && translations[state.currentLang][def.labelKey])
             ? translations[state.currentLang][def.labelKey]
             : def.id;
+            
+        if (typeof label === 'string') {
+            label = label.replace("100", state.chartLimit);
+        }
             
         let elementToAdd = null;
         
@@ -65,9 +69,13 @@ export function initChartUI() {
             
             const rightDef = CHART_DEFS.find(d => d.id === def.pairId);
             if (rightDef) {
-                const rightLabel = (translations[state.currentLang] && translations[state.currentLang][rightDef.labelKey])
+                let rightLabel = (translations[state.currentLang] && translations[state.currentLang][rightDef.labelKey])
                     ? translations[state.currentLang][rightDef.labelKey]
                     : rightDef.id;
+                    
+                if (typeof rightLabel === 'string') {
+                    rightLabel = rightLabel.replace("100", state.chartLimit);
+                }
                     
                 const rightBtn = document.createElement('button');
                 rightBtn.className = 'split-btn right';

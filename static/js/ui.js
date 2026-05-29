@@ -193,7 +193,7 @@ export function renderChannelsMenu() {
         row.innerHTML = `
             <label class="channel-item-label" for="chk-ch-${ch.channel_id}">
                 <input type="checkbox" value="${ch.channel_id}" id="chk-ch-${ch.channel_id}" ${isChecked} onchange="onChannelCheckboxChange(event)">
-                <span class="channel-name-span" title="${ch.channel_name}">${ch.channel_name}</span>
+                <span class="channel-name-span" title="${ch.channel_name}" onclick="selectSingleChannel(event, '${ch.channel_id}')">${ch.channel_name}</span>
             </label>
             <div class="channel-color-picker-wrapper">
                 <input type="color" value="${chColor}" class="channel-color-input" onchange="onChannelColorChange('${ch.channel_id}', this.value)">
@@ -439,10 +439,27 @@ export function changeChartLimit(val) {
     state.chartLimit = numericVal;
     localStorage.setItem("chart_limit", numericVal);
     
+    // Refresh button labels on chart limit change
+    initChartUI();
+    
     const selected = getSelectedChannels();
     if (selected.length > 0) {
         loadChartsData(selected.join(','));
     }
+}
+
+export function selectSingleChannel(event, channelId) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    
+    // Set only the target channel checkbox checked
+    document.querySelectorAll("#dropdown-channels-list input[type='checkbox']").forEach(chk => {
+        chk.checked = (chk.value === channelId);
+    });
+    
+    applyFilters();
 }
 
 export function toggleExportDropdown(event) {

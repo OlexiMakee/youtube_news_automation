@@ -39,7 +39,9 @@ import {
     submitAddChannel,
     toggleChatDrawer,
     handleSendChatMessage,
-    selectSingleChannel
+    selectSingleChannel,
+    changeChatProvider,
+    switchAgentRole
 } from './ui.js';
 import { 
     loadStats, 
@@ -110,6 +112,8 @@ window.submitAddChannel = submitAddChannel;
 window.toggleChatDrawer = toggleChatDrawer;
 window.handleSendChatMessage = handleSendChatMessage;
 window.selectSingleChannel = selectSingleChannel;
+window.changeChatProvider = changeChatProvider;
+window.switchAgentRole = switchAgentRole;
 
 window.loadStats = loadStats;
 window.loadChannelStatsHeader = loadChannelStatsHeader;

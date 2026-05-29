@@ -324,7 +324,8 @@ def agent_models():
     """Returns available AI models from the configured provider."""
     try:
         from app.services.agent import AgentService
-        models = AgentService.list_models()
+        provider = request.args.get("provider", "gemini")
+        models = AgentService.list_models(provider=provider)
         return jsonify({"models": models})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -341,7 +342,9 @@ def agent_chat():
     channel_ids = data.get("channel_ids") or []
     start_date  = data.get("start_date", "")
     end_date    = data.get("end_date", "")
+    provider    = data.get("provider", "gemini")
     model_id    = data.get("model_id") or None
+    role        = data.get("role", "admin")
 
     try:
         from app.services.agent import AgentService
@@ -356,7 +359,7 @@ def agent_chat():
             )
         # Collect streamed text into a single string
         full_text = ""
-        for chunk in AgentService.stream_chat_response(message, ctx, model_id=model_id):
+        for chunk in AgentService.stream_chat_response(message, ctx, provider=provider, model_id=model_id, role=role):
             if chunk.startswith("data: [DONE]"):
                 break
             if chunk.startswith("data: "):
@@ -385,7 +388,9 @@ def agent_chat_stream():
     channel_ids = data.get("channel_ids") or []
     start_date  = data.get("start_date", "")
     end_date    = data.get("end_date", "")
+    provider    = data.get("provider", "gemini")
     model_id    = data.get("model_id") or None
+    role        = data.get("role", "admin")
 
     from app.services.agent import AgentService
     from flask import stream_with_context
@@ -401,7 +406,7 @@ def agent_chat_stream():
         )
 
     def generate():
-        yield from AgentService.stream_chat_response(message, ctx, model_id=model_id)
+        yield from AgentService.stream_chat_response(message, ctx, provider=provider, model_id=model_id, role=role)
 
     return Response(
         stream_with_context(generate()),

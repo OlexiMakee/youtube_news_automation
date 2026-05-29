@@ -1150,12 +1150,40 @@ function _getSelectedModel() {
     return sel ? sel.value : "";
 }
 
+export async function changeChatProvider(provider) {
+    state.agentProvider = provider;
+    await _loadModels();
+}
+
+export function switchAgentRole(role) {
+    state.agentRole = role;
+    const adminBtn = document.getElementById("chat-tab-admin");
+    const userBtn = document.getElementById("chat-tab-user");
+    if (adminBtn && userBtn) {
+        if (role === 'admin') {
+            adminBtn.classList.add("active");
+            adminBtn.style.borderBottom = "2px solid var(--accent-color)";
+            adminBtn.style.color = "var(--text-color)";
+            userBtn.classList.remove("active");
+            userBtn.style.borderBottom = "2px solid transparent";
+            userBtn.style.color = "var(--text-muted)";
+        } else {
+            userBtn.classList.add("active");
+            userBtn.style.borderBottom = "2px solid var(--accent-color)";
+            userBtn.style.color = "var(--text-color)";
+            adminBtn.classList.remove("active");
+            adminBtn.style.borderBottom = "2px solid transparent";
+            adminBtn.style.color = "var(--text-muted)";
+        }
+    }
+}
+
 /** Loads model list from backend and populates the selector */
 async function _loadModels() {
     const sel = document.getElementById("chat-model-select");
     if (!sel) return;
     try {
-        const res  = await fetch("/api/agent/models");
+        const res  = await fetch(`/api/agent/models?provider=${state.agentProvider}`);
         const data = await res.json();
         const models = data.models || [];
         sel.innerHTML = "";
@@ -1197,7 +1225,9 @@ async function _streamBotMessage(message, containerEl, contextOverride = null) {
             channel_ids: ctx.channel_ids,
             start_date:  ctx.start_date,
             end_date:    ctx.end_date,
-            model_id:    modelId || null
+            provider:    state.agentProvider,
+            model_id:    modelId || null,
+            role:        state.agentRole
         };
         if (contextOverride) {
             payload.context_override = contextOverride;

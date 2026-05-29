@@ -603,14 +603,40 @@
                 <i class="fa-solid fa-xmark"></i>
             </button>
         </div>
+        
+        <!-- Role Tabs -->
+        <div class="chat-tabs" style="display: flex; border-bottom: 1px solid var(--border-color); background: var(--bg-hover);">
+            <button class="chat-tab-btn active" onclick="switchAgentRole('admin')" id="chat-tab-admin" style="flex: 1; padding: 10px; border: none; background: none; color: var(--text-color); font-size: 11px; font-weight: 600; cursor: pointer; border-bottom: 2px solid var(--accent-color); transition: all 0.2s;">
+                <i class="fa-solid fa-brain" style="margin-right: 4px;"></i> Аналітик (Admin)
+            </button>
+            <button class="chat-tab-btn" onclick="switchAgentRole('user')" id="chat-tab-user" style="flex: 1; padding: 10px; border: none; background: none; color: var(--text-muted); font-size: 11px; font-weight: 600; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s;">
+                <i class="fa-solid fa-comment" style="margin-right: 4px;"></i> Асистент (User)
+            </button>
+        </div>
+
         <!-- Model selector bar -->
-        <div class="chat-model-bar" id="chat-model-bar">
-            <label class="chat-model-label" for="chat-model-select">
-                <i class="fa-solid fa-microchip"></i> Модель:
-            </label>
-            <select class="chat-model-select" id="chat-model-select">
-                <option value="">Завантаження...</option>
-            </select>
+        <div class="chat-model-bar" id="chat-model-bar" style="padding: 10px 15px; border-bottom: 1px solid var(--border-color); background: var(--bg-hover); display: flex; flex-direction: column; gap: 8px;">
+            <div style="display: flex; gap: 10px; align-items: center; width: 100%;">
+                <div style="flex: 1; display: flex; flex-direction: column; gap: 4px;">
+                    <label class="chat-model-label" for="chat-provider-select" style="font-size: 10px; font-weight: 600; text-transform: uppercase; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
+                        <i class="fa-solid fa-server"></i> Провайдер
+                    </label>
+                    <select class="chat-model-select" id="chat-provider-select" onchange="changeChatProvider(this.value)" style="width: 100%; font-size: 11px; padding: 6px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-color);">
+                        <option value="gemini">Gemini</option>
+                        <option value="openai">OpenAI</option>
+                        <option value="ollama">Ollama (Local)</option>
+                        <option value="openrouter">OpenRouter</option>
+                    </select>
+                </div>
+                <div style="flex: 1; display: flex; flex-direction: column; gap: 4px;">
+                    <label class="chat-model-label" for="chat-model-select" style="font-size: 10px; font-weight: 600; text-transform: uppercase; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
+                        <i class="fa-solid fa-microchip"></i> Модель
+                    </label>
+                    <select class="chat-model-select" id="chat-model-select" style="width: 100%; font-size: 11px; padding: 6px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-color);">
+                        <option value="">Авто</option>
+                    </select>
+                </div>
+            </div>
         </div>
         <div class="chat-messages" id="chat-messages">
             <!-- auto-filled by JS on first open -->

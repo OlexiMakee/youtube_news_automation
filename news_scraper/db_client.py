@@ -215,6 +215,19 @@ class DatabaseClient(BaseStorage):
         """)
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_video_phrases_phrase ON video_phrases(phrase);")
         
+        # 2c. Create agent_chats table
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS agent_chats (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            role TEXT,
+            provider TEXT,
+            model TEXT,
+            user_message TEXT,
+            assistant_answer TEXT,
+            created_at TEXT DEFAULT (datetime('now', 'localtime'))
+        )
+        """)
+        
         conn.commit()
         
         # 3. Dynamic schema migrations for existing databases

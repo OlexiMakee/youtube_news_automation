@@ -18,7 +18,7 @@
     <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
 </head>
-<body>
+<body class="sidebar-collapsed">
 
     <!-- SIDEBAR -->
     <aside class="sidebar" id="sidebar">
@@ -96,16 +96,6 @@
                         <button class="quick-date-btn-compact" id="qd-1y" onclick="setDateRange('1y')" data-i18n="qd_1y">1 рік</button>
                         <button class="quick-date-btn-compact qd-war-compact" id="qd-war" onclick="setDateRange('war')" data-i18n="qd_war">🇺🇦 З 24.02.2022</button>
                     </div>
-                    
-                    <!-- Top Per-Page Input -->
-                    <div class="top-filter-item per-page-container" style="display: flex; align-items: center; font-size: 11px; background: var(--bg-color); padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border-color);" title="Limit of indicators / rows">
-                        <input type="number" class="input-date-compact" style="width: 40px; text-align: center; font-size: 11px; padding: 2px 4px; border: none; background: transparent; color: var(--text-color); outline: none; font-weight: 600;" id="per-page-input-top" value="25" min="1" max="500" onchange="changePerPage(this.value)">
-                    </div>
-                    
-                    <!-- Reset Button -->
-                    <button class="btn-reset-compact" onclick="resetFilters()" title="Reset Filters">
-                        <i class="fa-solid fa-rotate-left"></i>
-                    </button>
                 </div>
             </div>
             

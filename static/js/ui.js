@@ -879,7 +879,10 @@ export async function submitAddChannel(event) {
 export function toggleChatDrawer() {
     const drawer = document.getElementById("chat-drawer");
     if (drawer) {
-        drawer.classList.toggle("open");
+        const isOpen = drawer.classList.toggle("open");
+        if (window.innerWidth > 768) {
+            document.body.classList.toggle("chat-drawer-open", isOpen);
+        }
     }
 }
 

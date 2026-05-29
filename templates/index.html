@@ -127,78 +127,80 @@
                 <section class="workspace" style="flex-direction: column;">
                     
                     <!-- VISUALIZATIONS (ABOVE TABLE) -->
-                    <div class="card" id="card-visualizations-container" style="margin-bottom: 24px;">
-                        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
-                            <!-- Left Side: Controls -->
-                            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;" id="channel-header-controls">
-                                <div class="top-filter-item custom-dropdown" id="channels-dropdown-container">
-                                    <button class="control-select dropdown-trigger" type="button" onclick="toggleChannelsDropdown(event)" id="channels-dropdown-btn">
-                                        <span id="dropdown-selected-text" data-i18n="dropdown_choose_channels">Оберіть канали</span>
-                                        <i class="fa-solid fa-chevron-down"></i>
-                                    </button>
-                                    <div class="dropdown-menu-channels" id="channels-dropdown-menu" style="display: none;">
-                                        <div class="dropdown-actions">
-                                            <button class="btn-dropdown-action" type="button" onclick="toggleSelectAllChannels(true)" data-i18n="dropdown_select_all">Всі</button>
-                                            <button class="btn-dropdown-action" type="button" onclick="toggleSelectAllChannels(false)" data-i18n="dropdown_deselect_all">Очистити</button>
-                                            <button class="btn-dropdown-action btn-add-channel-action" type="button" onclick="openAddChannelModal(event)" data-i18n="dropdown_add_channel">Додати</button>
-                                        </div>
-                                        <div class="dropdown-channels-list" id="dropdown-channels-list">
-                                            <!-- Dynamically generated checkboxes and color pickers -->
-                                        </div>
-                                        <div class="dropdown-apply-container">
-                                            <button class="btn-primary" type="button" style="width: 100%; padding: 6px; font-size: 11px;" onclick="applyFilters()" data-i18n="btn_apply">Застосувати</button>
+                    <div class="dashboards-container">
+                        <div class="card dashboard-column-card" id="card-visualizations-container">
+                            <div class="card-header dashboard-card-header">
+                                <!-- Left Side: Controls -->
+                                <div class="card-header-left" id="channel-header-controls">
+                                    <div class="top-filter-item custom-dropdown" id="channels-dropdown-container">
+                                        <button class="control-select dropdown-trigger" type="button" onclick="toggleChannelsDropdown(event)" id="channels-dropdown-btn">
+                                            <span id="dropdown-selected-text" data-i18n="dropdown_choose_channels">Оберіть канали</span>
+                                            <i class="fa-solid fa-chevron-down"></i>
+                                        </button>
+                                        <div class="dropdown-menu-channels" id="channels-dropdown-menu" style="display: none;">
+                                            <div class="dropdown-actions">
+                                                <button class="btn-dropdown-action" type="button" onclick="toggleSelectAllChannels(true)" data-i18n="dropdown_select_all">Всі</button>
+                                                <button class="btn-dropdown-action" type="button" onclick="toggleSelectAllChannels(false)" data-i18n="dropdown_deselect_all">Очистити</button>
+                                                <button class="btn-dropdown-action btn-add-channel-action" type="button" onclick="openAddChannelModal(event)" data-i18n="dropdown_add_channel">Додати</button>
+                                            </div>
+                                            <div class="dropdown-channels-list" id="dropdown-channels-list">
+                                                <!-- Dynamically generated checkboxes and color pickers -->
+                                            </div>
+                                            <div class="dropdown-apply-container">
+                                                <button class="btn-primary" type="button" style="width: 100%; padding: 6px; font-size: 11px;" onclick="applyFilters()" data-i18n="btn_apply">Застосувати</button>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
 
-                                <!-- Limit selector (number of records in visualizations) -->
-                                <div class="top-filter-item" style="display: flex; align-items: center; gap: 6px;">
-                                    <span style="font-size: 11px; font-weight: 500;" data-i18n="lbl_chart_limit">Limit:</span>
-                                    <select class="control-select" style="padding: 6px; font-size: 11px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); font-weight: 600;" id="chart-limit-selector" onchange="changeChartLimit(this.value)">
-                                        <option value="10">10</option>
-                                        <option value="25">25</option>
-                                        <option value="50">50</option>
-                                        <option value="100">100</option>
-                                        <option value="200">200</option>
-                                    </select>
-                                </div>
-
-                                <!-- Update DB button -->
-                                <button class="btn-primary" id="btn-run-update" onclick="triggerAction('update')" style="padding: 6px 12px; font-size: 11px; display: flex; align-items: center; gap: 6px;">
-                                    <i class="fa-solid fa-arrows-rotate"></i>
-                                    <span data-i18n="btn_update_db">Update DB</span>
-                                </button>
-                                
-                                <!-- Update Views dropdown -->
-                                <div class="dropdown-views-container" style="position: relative; display: inline-block;">
-                                    <button class="btn-warning" id="btn-run-views-update" onclick="toggleViewsDropdown(event)" style="padding: 6px 12px; font-size: 11px; display: flex; align-items: center; gap: 6px;">
-                                        <i class="fa-solid fa-chart-line"></i>
-                                        <span data-i18n="btn_update_views">Update Views</span>
-                                    </button>
-                                    <div class="dropdown-views-menu" id="views-update-menu" style="display: none; position: absolute; left: 0; top: 32px; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; min-width: 150px; padding: 4px 0;">
-                                        <a href="#" onclick="runViewsUpdate('1w', event)" style="display: block; padding: 8px 12px; font-size: 11px; color: var(--text-color); text-decoration: none;" data-i18n="views_1w">Тиждень (Швидко)</a>
-                                        <a href="#" onclick="runViewsUpdate('1m', event)" style="display: block; padding: 8px 12px; font-size: 11px; color: var(--text-color); text-decoration: none;" data-i18n="views_1m">Місяць (Довго)</a>
-                                        <a href="#" onclick="runViewsUpdate('3m', event)" style="display: block; padding: 8px 12px; font-size: 11px; color: var(--text-color); text-decoration: none;" data-i18n="views_3m">3 місяці (Довго)</a>
-                                        <a href="#" onclick="runViewsUpdate('6m', event)" style="display: block; padding: 8px 12px; font-size: 11px; color: var(--text-color); text-decoration: none;" data-i18n="views_6m">6 місяців (Довго)</a>
-                                        <a href="#" onclick="runViewsUpdate('1y', event)" style="display: block; padding: 8px 12px; font-size: 11px; color: var(--text-color); text-decoration: none;" data-i18n="views_1y">Рік і більше (Дуже довго)</a>
+                                    <!-- Limit selector (number of records in visualizations) -->
+                                    <div class="top-filter-item" style="display: flex; align-items: center; gap: 6px;">
+                                        <span style="font-size: 11px; font-weight: 500;" data-i18n="lbl_chart_limit">Limit:</span>
+                                        <select class="control-select" style="padding: 6px; font-size: 11px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); font-weight: 600;" id="chart-limit-selector" onchange="changeChartLimit(this.value)">
+                                            <option value="10">10</option>
+                                            <option value="25">25</option>
+                                            <option value="50">50</option>
+                                            <option value="100">100</option>
+                                            <option value="200">200</option>
+                                        </select>
                                     </div>
+
+                                    <!-- Update DB button -->
+                                    <button class="btn-primary" id="btn-run-update" onclick="triggerAction('update')" style="padding: 6px 12px; font-size: 11px; display: flex; align-items: center; gap: 6px;">
+                                        <i class="fa-solid fa-arrows-rotate"></i>
+                                        <span data-i18n="btn_update_db">Update DB</span>
+                                    </button>
+                                    
+                                    <!-- Update Views dropdown -->
+                                    <div class="dropdown-views-container" style="position: relative; display: inline-block;">
+                                        <button class="btn-warning" id="btn-run-views-update" onclick="toggleViewsDropdown(event)" style="padding: 6px 12px; font-size: 11px; display: flex; align-items: center; gap: 6px;">
+                                            <i class="fa-solid fa-chart-line"></i>
+                                            <span data-i18n="btn_update_views">Update Views</span>
+                                        </button>
+                                        <div class="dropdown-views-menu" id="views-update-menu" style="display: none; position: absolute; left: 0; top: 32px; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; min-width: 150px; padding: 4px 0;">
+                                            <a href="#" onclick="runViewsUpdate('1w', event)" style="display: block; padding: 8px 12px; font-size: 11px; color: var(--text-color); text-decoration: none;" data-i18n="views_1w">Тиждень (Швидко)</a>
+                                            <a href="#" onclick="runViewsUpdate('1m', event)" style="display: block; padding: 8px 12px; font-size: 11px; color: var(--text-color); text-decoration: none;" data-i18n="views_1m">Місяць (Довго)</a>
+                                            <a href="#" onclick="runViewsUpdate('3m', event)" style="display: block; padding: 8px 12px; font-size: 11px; color: var(--text-color); text-decoration: none;" data-i18n="views_3m">3 місяці (Довго)</a>
+                                            <a href="#" onclick="runViewsUpdate('6m', event)" style="display: block; padding: 8px 12px; font-size: 11px; color: var(--text-color); text-decoration: none;" data-i18n="views_6m">6 місяців (Довго)</a>
+                                            <a href="#" onclick="runViewsUpdate('1y', event)" style="display: block; padding: 8px 12px; font-size: 11px; color: var(--text-color); text-decoration: none;" data-i18n="views_1y">Рік і більше (Дуже довго)</a>
+                                        </div>
+                                    </div>
+
+                                    <!-- Badge -->
+                                    <span class="task-badge idle" id="update-badge" style="font-size: 9px; padding: 2px 6px; display: none;"></span>
                                 </div>
 
-                                <!-- Badge -->
-                                <span class="task-badge idle" id="update-badge" style="font-size: 9px; padding: 2px 6px; display: none;"></span>
+                                <!-- Right Side: Chart type switcher -->
+                                <div class="card-header-right" id="chart-controls-container">
+                                    <!-- Dynamic buttons, split groups, and dividers built by initChartUI() -->
+                                </div>
                             </div>
+                            <div id="channel-header-details"></div>
+                            <div class="card-body">
 
-                            <!-- Right Side: Chart type switcher -->
-                            <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;" id="chart-controls-container">
-                                <!-- Dynamic buttons, split groups, and dividers built by initChartUI() -->
-                            </div>
-                        </div>
-                        <div id="channel-header-details"></div>
-                        <div class="card-body">
-
-                            <div class="chart-container" style="height: 280px; width: 100%;">
-                                <div id="d3-chart-root" class="d3-chart-root" style="display:none; width:100%; height:100%;"></div>
-                                <canvas id="analytics-chart"></canvas>
+                                <div class="chart-container" style="height: 280px; width: 100%;">
+                                    <div id="d3-chart-root" class="d3-chart-root" style="display:none; width:100%; height:100%;"></div>
+                                    <canvas id="analytics-chart"></canvas>
+                                </div>
                             </div>
                         </div>
                     </div>

@@ -111,7 +111,8 @@ body {
     left: 0;
     top: 0;
     z-index: 100;
-    transition: background-color 0.3s, border-color 0.3s;
+    transform: translateX(0);
+    transition: transform 0.3s ease, background-color 0.3s, border-color 0.3s;
 }
 
 .sidebar-brand {
@@ -182,6 +183,7 @@ body {
     overflow-x: hidden;
     min-width: 0;          /* Critical: allows flex child to shrink below content size */
     max-width: calc(100vw - 260px);  /* Never wider than viewport minus sidebar */
+    transition: margin-left 0.3s ease, max-width 0.3s ease;
 }
 
 .top-bar {
@@ -327,6 +329,54 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
+}
+
+.dashboards-container {
+    display: flex;
+    flex-direction: row;
+    gap: 24px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+    width: 100%;
+}
+
+.dashboard-column-card {
+    flex: 1 1 500px;
+    min-width: 0;
+    margin-bottom: 0 !important;
+}
+
+.dashboard-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.card-header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.card-header-right {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+@media (max-width: 900px) {
+    .dashboard-card-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .card-header-left, .card-header-right {
+        justify-content: flex-start;
+    }
 }
 
 .card-title {
@@ -650,13 +700,28 @@ body {
 }
 
 .top-bar-menu-toggle {
-    display: none;
+    display: block;
     background: none;
     border: none;
     font-size: 20px;
     color: var(--text-color);
     cursor: pointer;
     padding: 8px;
+    transition: color 0.2s;
+}
+
+.top-bar-menu-toggle:hover {
+    color: var(--accent-color);
+}
+
+@media (min-width: 769px) {
+    body.sidebar-collapsed .sidebar {
+        transform: translateX(-260px);
+    }
+    body.sidebar-collapsed .main-content {
+        margin-left: 0;
+        max-width: 100vw;
+    }
 }
 
 /* TAB NAVIGATION CONTROLS */

@@ -108,7 +108,13 @@ export function switchSection(tabId, element) {
 }
 
 export function toggleSidebar() {
-    document.getElementById("sidebar").classList.toggle("open");
+    if (window.innerWidth <= 768) {
+        const sidebar = document.getElementById("sidebar");
+        if (sidebar) sidebar.classList.toggle("open");
+    } else {
+        const isCollapsed = document.body.classList.toggle("sidebar-collapsed");
+        localStorage.setItem("sidebar_collapsed", isCollapsed ? "1" : "0");
+    }
 }
 
 export function toggleChannelsDropdown(event) {

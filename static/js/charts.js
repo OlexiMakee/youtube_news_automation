@@ -168,13 +168,14 @@ export function truncateChartTitle(title, maxLength = 90) {
     return safeTitle.length > maxLength ? `${safeTitle.substring(0, maxLength - 1)}...` : safeTitle;
 }
 
-export function renderActiveChart() {
+export function renderActiveChart(dashboardCard) {
     const chartType = state.activeChartType;
     if (!state.chartRawData || !chartType) return;
     
-    const d3Root = document.getElementById('d3-chart-root');
-    const canvasEl = document.getElementById('analytics-chart');
-    const container = document.querySelector('.chart-container');
+    const card = dashboardCard || document.getElementById('card-visualizations-container');
+    const d3Root = card ? card.querySelector('.d3-chart-root') : document.getElementById('d3-chart-root');
+    const canvasEl = card ? card.querySelector('canvas') : document.getElementById('analytics-chart');
+    const container = card ? card.querySelector('.chart-container') : document.querySelector('.chart-container');
     
     // Destroy previous Chart.js instance
     if (state.activeChartInstance) {
@@ -183,10 +184,13 @@ export function renderActiveChart() {
     }
     hideD3Tooltip();
     
-    // Update button active states
-    document.querySelectorAll('.split-btn').forEach(el => {
-        el.classList.toggle('active', el.id === `chart-btn-${chartType}`);
-    });
+    // Update button active states inside the card (or globally if card is missing)
+    const btnContainer = card ? card.querySelector('.card-header') : document;
+    if (btnContainer) {
+        btnContainer.querySelectorAll('.split-btn').forEach(el => {
+            el.classList.toggle('active', el.id === `chart-btn-${chartType}`);
+        });
+    }
     
     // ── D3 route: video charts ──────────────────────────────
     if (isD3ChartType(chartType)) {
@@ -203,7 +207,7 @@ export function renderActiveChart() {
             }
         }
         
-        renderD3VideoChart(chartType);
+        renderD3VideoChart(chartType, d3Root);
         return;
     }
     
@@ -241,9 +245,8 @@ export function renderActiveChart() {
                 wrapper.className = "chart-scroll-inner";
                 wrapper.style.position = "relative";
                 // Move canvas into wrapper
-                const existingCanvas = document.getElementById("analytics-chart");
                 container.appendChild(wrapper);
-                wrapper.appendChild(existingCanvas);
+                wrapper.appendChild(canvasEl);
             }
             wrapper.style.height = canvasH + "px";
             wrapper.style.minHeight = canvasH + "px";
@@ -252,8 +255,7 @@ export function renderActiveChart() {
             // Restore canvas directly in container if it was inside a wrapper
             const wrapper = container.querySelector(".chart-scroll-inner");
             if (wrapper) {
-                const canvas = document.getElementById("analytics-chart");
-                container.insertBefore(canvas, wrapper);
+                container.insertBefore(canvasEl, wrapper);
                 container.removeChild(wrapper);
             }
             container.style.height = "280px";

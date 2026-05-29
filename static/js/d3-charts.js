@@ -131,14 +131,14 @@ export function hideD3Tooltip() {
  * 
  * @param {string} chartType — one of D3_VIDEO_CHART_TYPES
  */
-export function renderD3VideoChart(chartType) {
+export function renderD3VideoChart(chartType, d3RootNode) {
     const config = VIDEO_CHART_CONFIGS[chartType];
     if (!config || !state.chartRawData) return;
 
     const data = state.chartRawData[config.dataKey] || [];
     if (!data.length) return;
 
-    const root = document.getElementById('d3-chart-root');
+    const root = d3RootNode || document.getElementById('d3-chart-root');
     if (!root) return;
 
     // Clear previous

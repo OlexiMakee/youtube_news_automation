@@ -139,6 +139,12 @@ document.addEventListener("DOMContentLoaded", () => {
     changeTheme(state.currentTheme);
     changeLanguage(state.currentLang);
     
+    // Apply sidebar collapsed state on desktop
+    const isSidebarCollapsed = localStorage.getItem("sidebar_collapsed") === "1";
+    if (isSidebarCollapsed && window.innerWidth > 768) {
+        document.body.classList.add("sidebar-collapsed");
+    }
+    
     // Build chart buttons/dropdown from CHART_DEFS
     initChartUI();
     

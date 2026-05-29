@@ -27,6 +27,8 @@ import {
     closeVideoModal, 
     downloadVideoFromModal, 
     scrapeDetailsFromModal, 
+    hideDownloadQualityPanel,
+    startVideoDownload, 
     toggleViewsDropdown, 
     runViewsUpdate, 
     openAddChannelModal, 
@@ -95,6 +97,8 @@ window.openVideoModal = openVideoModal;
 window.closeVideoModal = closeVideoModal;
 window.downloadVideoFromModal = downloadVideoFromModal;
 window.scrapeDetailsFromModal = scrapeDetailsFromModal;
+window.hideDownloadQualityPanel = hideDownloadQualityPanel;
+window.startVideoDownload = startVideoDownload;
 window.toggleViewsDropdown = toggleViewsDropdown;
 window.runViewsUpdate = runViewsUpdate;
 window.openAddChannelModal = openAddChannelModal;

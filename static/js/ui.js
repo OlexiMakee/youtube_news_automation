@@ -587,48 +587,197 @@ export function closeVideoModal() {
     }
     
     state.activeModalVideoId = null;
+    
+    // Reset download quality panel to default actions view
+    hideDownloadQualityPanel();
+}
+
+export function hideDownloadQualityPanel() {
+    const defaultPanel = document.getElementById("mv-modal-actions-default");
+    const qualityPanel = document.getElementById("mv-download-quality-panel");
+    const progressPanel = document.getElementById("mv-download-progress-panel");
+    
+    if (defaultPanel) defaultPanel.style.display = "flex";
+    if (qualityPanel) qualityPanel.style.display = "none";
+    if (progressPanel) progressPanel.style.display = "none";
 }
 
 export async function downloadVideoFromModal() {
-    const btn = document.getElementById("mv-modal-download-btn");
-    const txt = document.getElementById("mv-modal-download-text");
-    if (!state.activeModalVideoId || btn.disabled) return;
+    if (!state.activeModalVideoId) return;
     
-    const oldText = txt.innerText;
-    txt.innerText = translations[state.currentLang].modal_downloading || "Downloading...";
-    btn.disabled = true;
+    const defaultPanel = document.getElementById("mv-modal-actions-default");
+    const qualityPanel = document.getElementById("mv-download-quality-panel");
+    const progressPanel = document.getElementById("mv-download-progress-panel");
+    const statusText = document.getElementById("mv-dl-progress-status");
+    const progressPercent = document.getElementById("mv-dl-progress-percent");
+    const progressBar = document.getElementById("mv-dl-progress-bar");
+    
+    // Switch to progress panel in "checking formats" state
+    if (defaultPanel) defaultPanel.style.display = "none";
+    if (qualityPanel) qualityPanel.style.display = "none";
+    if (progressPanel) progressPanel.style.display = "flex";
+    
+    if (statusText) statusText.innerText = translations[state.currentLang].modal_dl_checking_formats || "Checking available formats...";
+    if (progressPercent) progressPercent.innerText = "0%";
+    if (progressBar) progressBar.style.width = "0%";
     
     try {
-        const res = await fetch(`/api/videos/${state.activeModalVideoId}/download`);
+        const res = await fetch(`/api/videos/${state.activeModalVideoId}/formats`);
         if (!res.ok) {
-            const errData = await res.json();
+            throw new Error("Failed to load formats");
+        }
+        const data = await res.json();
+        const formats = data.formats || ["720", "audio"]; // fallback
+        
+        // Dynamically build formats options inside mv-download-quality-options
+        const optionsContainer = document.getElementById("mv-download-quality-options");
+        if (optionsContainer) {
+            optionsContainer.innerHTML = "";
+            
+            formats.forEach((fmt, index) => {
+                const label = document.createElement("label");
+                label.className = "quality-option";
+                label.style.cssText = "display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--text-color); cursor: pointer; padding: 6px; border-radius: 4px; transition: background 0.2s;";
+                
+                // Add hover style
+                label.onmouseover = () => label.style.background = "var(--bg-hover)";
+                label.onmouseout = () => label.style.background = "transparent";
+                
+                const radio = document.createElement("input");
+                radio.type = "radio";
+                radio.name = "video-quality";
+                radio.value = fmt;
+                if (index === 0) {
+                    radio.checked = true;
+                }
+                
+                const span = document.createElement("span");
+                if (fmt === "audio") {
+                    span.innerText = translations[state.currentLang].modal_dl_audio_only || "Audio Only (M4A)";
+                } else {
+                    span.innerText = `${fmt}p`;
+                }
+                
+                label.appendChild(radio);
+                label.appendChild(span);
+                optionsContainer.appendChild(label);
+            });
+        }
+        
+        // Switch to quality selector panel
+        if (progressPanel) progressPanel.style.display = "none";
+        if (qualityPanel) qualityPanel.style.display = "flex";
+        
+    } catch (err) {
+        alert(state.currentLang === 'ua' ? `Не вдалося отримати формати: ${err.message}` : `Failed to get formats: ${err.message}`);
+        // Go back to default buttons
+        if (progressPanel) progressPanel.style.display = "none";
+        if (defaultPanel) defaultPanel.style.display = "flex";
+    }
+}
+
+export async function startVideoDownload() {
+    const videoId = state.activeModalVideoId;
+    if (!videoId) return;
+    
+    // Get selected quality
+    const selectedRadio = document.querySelector('input[name="video-quality"]:checked');
+    const quality = selectedRadio ? selectedRadio.value : "720";
+    
+    const qualityPanel = document.getElementById("mv-download-quality-panel");
+    const progressPanel = document.getElementById("mv-download-progress-panel");
+    const statusText = document.getElementById("mv-dl-progress-status");
+    const progressPercent = document.getElementById("mv-dl-progress-percent");
+    const progressBar = document.getElementById("mv-dl-progress-bar");
+    
+    // Suggest clean name based on title
+    const titleText = document.getElementById("mv-modal-title").innerText || videoId;
+    const cleanTitle = titleText.replace(/[^a-zA-Z0-9\sа-яА-ЯіІєЄїЇґҐ]/g, "").trim().replace(/\s+/g, "_");
+    const ext = quality === "audio" ? "m4a" : "mp4";
+    const filename = `${cleanTitle}.${ext}`;
+    
+    let fileWritable = null;
+    let useFilePicker = false;
+    
+    // Prompt where to save using showSaveFilePicker if available
+    if (window.showSaveFilePicker) {
+        try {
+            const handle = await window.showSaveFilePicker({
+                suggestedName: filename,
+                types: [{
+                    description: quality === "audio" ? 'Audio File' : 'Video File',
+                    accept: quality === "audio" ? { 'audio/mp4': ['.m4a'] } : { 'video/mp4': ['.mp4'] }
+                }]
+            });
+            fileWritable = await handle.createWritable();
+            useFilePicker = true;
+        } catch (err) {
+            if (err.name === 'AbortError') {
+                // User cancelled the file dialog
+                return;
+            }
+            console.warn("showSaveFilePicker failed or was rejected, falling back to legacy download", err);
+        }
+    }
+    
+    // Switch to progress panel
+    if (qualityPanel) qualityPanel.style.display = "none";
+    if (progressPanel) progressPanel.style.display = "flex";
+    
+    if (statusText) statusText.innerText = translations[state.currentLang].modal_dl_yt_status || "Fetching from YouTube...";
+    if (progressPercent) progressPercent.innerText = "0%";
+    if (progressBar) progressBar.style.width = "0%";
+    
+    try {
+        const downloadUrl = `/api/videos/${videoId}/download?quality=${quality}`;
+        const response = await fetch(downloadUrl);
+        if (!response.ok) {
+            const errData = await response.json();
             throw new Error(errData.error || "Failed to download");
         }
         
-        const disposition = res.headers.get('Content-Disposition');
-        let filename = `${state.activeModalVideoId}.mp4`;
-        if (disposition && disposition.indexOf('attachment') !== -1) {
-            const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
-            const matches = filenameRegex.exec(disposition);
-            if (matches != null && matches[1]) {
-                filename = matches[1].replace(/['"]/g, '');
+        if (statusText) statusText.innerText = translations[state.currentLang].modal_dl_saving_status || "Saving to disk...";
+        
+        if (useFilePicker && fileWritable) {
+            const reader = response.body.getReader();
+            const contentLength = +response.headers.get('Content-Length');
+            let receivedLength = 0;
+            
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                
+                await fileWritable.write(value);
+                receivedLength += value.length;
+                
+                if (contentLength) {
+                    const percent = Math.round((receivedLength / contentLength) * 100);
+                    if (progressPercent) progressPercent.innerText = `${percent}%`;
+                    if (progressBar) progressBar.style.width = `${percent}%`;
+                }
             }
+            await fileWritable.close();
+            
+            alert(translations[state.currentLang].modal_dl_save_success || "Video downloaded successfully!");
+            hideDownloadQualityPanel();
+        } else {
+            // Legacy fallback using blob/objectURL
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+            
+            hideDownloadQualityPanel();
         }
         
-        const blob = await res.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        window.URL.revokeObjectURL(url);
     } catch (err) {
         alert(state.currentLang === 'ua' ? `Помилка завантаження: ${err.message}` : `Download failed: ${err.message}`);
-    } finally {
-        btn.disabled = false;
-        txt.innerText = oldText;
+        hideDownloadQualityPanel();
     }
 }
 

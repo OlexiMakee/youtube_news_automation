@@ -335,18 +335,76 @@ def scrape_video_details_route(video_id):
         return jsonify({"error": f"Failed to scrape details: {e}"}), 500
 
 
+@videos_bp.route('/api/videos/<video_id>/formats', methods=['GET'])
+def get_video_formats(video_id):
+    try:
+        import yt_dlp
+        
+        url = f"https://www.youtube.com/watch?v={video_id}"
+        ydl_opts = {
+            'skip_download': True,
+            'quiet': True,
+            'no_warnings': True,
+            'extractor_args': {
+                'youtube': {
+                    'player_client': ['android', 'ios']
+                }
+            }
+        }
+        
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+            formats = info.get('formats', [])
+            
+        heights = set()
+        for f in formats:
+            h = f.get('height')
+            if h:
+                heights.add(h)
+                
+        # Map standard heights
+        available_res = []
+        for res in [1080, 720, 480, 360]:
+            if any(h == res or (h >= res and h < res + 60) for h in heights):
+                available_res.append(res)
+                
+        # Audio is always available
+        available_res.append("audio")
+        
+        return jsonify({
+            "formats": available_res,
+            "title": info.get('title', video_id)
+        })
+    except Exception as e:
+        return jsonify({"error": f"Failed to get video formats: {e}"}), 500
+
+
 @videos_bp.route('/api/videos/<video_id>/download', methods=['GET'])
 def download_video_route(video_id):
     try:
         import yt_dlp
         
+        quality = request.args.get('quality', '720')
+        
         download_dir = os.path.join(root_dir, 'data', 'downloads')
         os.makedirs(download_dir, exist_ok=True)
         
-        outtmpl = os.path.join(download_dir, f'{video_id}.%(ext)s')
+        outtmpl = os.path.join(download_dir, f'{video_id}_{quality}.%(ext)s')
         
+        # Map quality to format selection
+        if quality == '1080':
+            fmt_str = 'bestvideo[height<=1080]+bestaudio/best'
+        elif quality == '480':
+            fmt_str = 'bestvideo[height<=480]+bestaudio/best'
+        elif quality == '360':
+            fmt_str = 'bestvideo[height<=360]+bestaudio/best'
+        elif quality == 'audio':
+            fmt_str = 'bestaudio/best'
+        else: # Default/Fallback to 720p
+            fmt_str = 'bestvideo[height<=720]+bestaudio/best'
+            
         ydl_opts = {
-            'format': 'bestvideo[height<=720]+bestaudio/best',
+            'format': fmt_str,
             'outtmpl': outtmpl,
             'quiet': True,
             'no_warnings': True,
@@ -376,10 +434,14 @@ def download_video_route(video_id):
         title = info.get('title', video_id)
         safe_title = "".join([c if c.isalnum() or c in " .-_()" else "_" for c in title])
         
+        ext_to_use = "mp4"
+        if quality == "audio":
+            ext_to_use = "m4a"
+            
         return send_file(
             actual_file,
             as_attachment=True,
-            download_name=f"{safe_title}.mp4"
+            download_name=f"{safe_title}.{ext_to_use}"
         )
     except Exception as e:
         return jsonify({"error": f"Failed to download video: {e}"}), 500

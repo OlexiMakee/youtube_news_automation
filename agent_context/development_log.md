@@ -298,6 +298,14 @@ idx_channels_synced
 
 ---
 
+## AI Agent Memory Pointers Integration (v0.7.7-alpha) (2026-05-29)
+
+**Що зроблено:**
+- Створено файли [README.md](file:///Users/oleksii/Documents/News%20Research%20Automation/app/README.md) у директорії `app/`, [README.md](file:///Users/oleksii/Documents/News%20Research%20Automation/app/routes/README.md) у директорії `app/routes/`, [README.md](file:///Users/oleksii/Documents/News%20Research%20Automation/app/services/README.md) у директорії `app/services/` та [README.md](file:///Users/oleksii/Documents/News%20Research%20Automation/data/README.md) у директорії `data/`.
+- Всі створені README містять структуровані таблиці опису вмісту директорій, їх ролі та перехресні посилання на ключові файли і методи для спрощення навігації та швидкого завантаження контексту іншими AI-агентами.
+
+---
+
 ## Технічний борг
 
 | Проблема | Пріоритет | Складність |

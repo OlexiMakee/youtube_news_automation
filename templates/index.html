@@ -448,7 +448,7 @@
                         <div class="modal-thumbnail-wrapper">
                             <img id="mv-modal-thumbnail" src="" alt="Thumbnail" />
                         </div>
-                        <div class="modal-actions-panel">
+                        <div class="modal-actions-panel" id="mv-modal-actions-default">
                             <a id="mv-modal-yt-link" href="" target="_blank" class="btn-primary" style="text-align: center; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 6px;">
                                 <i class="fa-brands fa-youtube"></i>
                                 <span data-i18n="modal_watch_yt">Watch on YouTube</span>
@@ -461,6 +461,32 @@
                                 <i class="fa-solid fa-arrows-spin"></i>
                                 <span id="mv-modal-scrape-text" data-i18n="modal_scrape_details">Scrape Full Info</span>
                             </button>
+                        </div>
+
+                        <!-- Quality Selection Panel (Hidden by default) -->
+                        <div id="mv-download-quality-panel" class="modal-actions-panel" style="display: none; flex-direction: column; gap: 10px; padding: 12px; background: var(--bg-hover); border-radius: 8px; border: 1px solid var(--border-color);">
+                            <div style="font-size: 12px; font-weight: 700; color: var(--text-color); display: flex; align-items: center; justify-content: space-between;">
+                                <span data-i18n="modal_dl_select_quality">Оберіть якість відео:</span>
+                                <button onclick="hideDownloadQualityPanel()" style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 16px; font-weight: bold; padding: 0;">&times;</button>
+                            </div>
+                            <div id="mv-download-quality-options" style="display: flex; flex-direction: column; gap: 6px;">
+                                <!-- Will be populated dynamically -->
+                            </div>
+                            <button id="mv-dl-confirm-btn" onclick="startVideoDownload()" class="btn-primary" style="padding: 8px; font-size: 11px; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                                <i class="fa-solid fa-download"></i>
+                                <span data-i18n="modal_dl_start">Завантажити</span>
+                            </button>
+                        </div>
+
+                        <!-- Download Progress Panel (Hidden by default) -->
+                        <div id="mv-download-progress-panel" class="modal-actions-panel" style="display: none; flex-direction: column; gap: 10px; padding: 12px; background: var(--bg-hover); border-radius: 8px; border: 1px solid var(--border-color);">
+                            <div style="font-size: 11px; font-weight: 600; color: var(--text-color); display: flex; align-items: center; justify-content: space-between;">
+                                <span id="mv-dl-progress-status" data-i18n="modal_dl_checking_formats">Перевірка доступних форматів...</span>
+                                <span id="mv-dl-progress-percent">0%</span>
+                            </div>
+                            <div style="width: 100%; height: 8px; background: var(--border-color); border-radius: 4px; overflow: hidden; position: relative;">
+                                <div id="mv-dl-progress-bar" style="width: 0%; height: 100%; background: var(--warning-color); border-radius: 4px; transition: width 0.1s ease-out;"></div>
+                            </div>
                         </div>
                     </div>
                     <!-- Right Column: Stats, Description, and History Graph -->

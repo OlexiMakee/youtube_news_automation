@@ -37,7 +37,6 @@ def get_charts():
             return jsonify({
                 "kpis": {"total_views": 0, "total_videos": 0, "median_views": 0, "like_ratio": 0.0, "comment_ratio": 0.0},
                 "by_month": [],
-                "duration_dist": [],
                 "top_viewed": [],
                 "worst_viewed": [],
                 "top_liked": [],
@@ -120,21 +119,6 @@ def get_charts():
             ORDER BY month ASC
         """, query_params)
         by_month = [dict(row) for row in cursor.fetchall()]
-        
-        # 2. Duration distribution
-        cursor.execute(f"""
-            SELECT 
-                CASE 
-                    WHEN duration < 60 THEN 'Short (< 1m)'
-                    WHEN duration <= 600 THEN 'Medium (1-10m)'
-                    ELSE 'Long (> 10m)'
-                END as category, 
-                COUNT(video_id) as video_count
-            FROM videos
-            WHERE channel_id IN ({placeholders}) AND duration IS NOT NULL{date_filter}
-            GROUP BY category
-        """, query_params)
-        duration_dist = [dict(row) for row in cursor.fetchall()]
         
         # 3. Top viewed videos
         cursor.execute(f"""
@@ -412,7 +396,6 @@ def get_charts():
             "channel_id": channel_id_raw,
             "kpis": kpis,
             "by_month": by_month,
-            "duration_dist": duration_dist,
             "top_viewed": top_viewed,
             "worst_viewed": worst_viewed,
             "top_liked": top_liked,

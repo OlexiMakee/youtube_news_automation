@@ -273,6 +273,18 @@ idx_channels_synced
 
 ---
 
+## Remove Duration Distribution Feature (v0.7.5-alpha) (2026-05-29)
+
+**Що зроблено:**
+- Повністю видалено обчислення розподілу за тривалістю (`duration_dist`) з бази даних та відповіді API у `/api/charts` в [charts.py](file:///Users/oleksii/Documents/News%20Research%20Automation/app/routes/charts.py).
+- Видалено застарілі ключі локалізації `chart_duration_dist` з файлу перекладів [translations.js](file:///Users/oleksii/Documents/News%20Research%20Automation/static/js/translations.js).
+- Написано та успішно пройдено інтеграційний тест `test_duration_dist_removal.py` для підтвердження відсутності зайвих даних у відповіді API.
+
+**Ключові рішення:**
+- Обрано варіант повного очищення API для зменшення розміру передаваних даних та виключення мертвого коду, оскільки жодних інших споживачів даного endpoint немає.
+
+---
+
 ## Технічний борг
 
 | Проблема | Пріоритет | Складність |

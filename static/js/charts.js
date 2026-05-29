@@ -22,7 +22,6 @@ export const CHART_DEFS = [
     { id: 'worst_promo_tags',   group: 'promo', pair: 'right', pairId: 'best_promo_tags',   icon: '📉', labelKey: 'chart_worst_sub' },
     
     // Group 3: Other analytical buttons (formerly in dropdown)
-    { id: 'duration_dist',      group: 'other', icon: '📊', labelKey: 'chart_duration_dist' },
     { id: 'best_day_to_post',   group: 'other', icon: '📅', labelKey: 'chart_best_day_to_post' },
     { id: 'duration_vs_views',  group: 'other', icon: '📈', labelKey: 'chart_duration_vs_views' },
     { id: 'views_distribution', group: 'other', icon: '🍩', labelKey: 'chart_views_distribution' }
@@ -301,38 +300,6 @@ export function renderActiveChart(dashboardCard) {
                 scales: {
                     x: { grid: { color: gridColor }, ticks: { color: labelColor } },
                     y: { grid: { color: gridColor }, ticks: { color: labelColor } }
-                }
-            }
-        };
-        
-    } else if (chartType === "duration_dist") {
-        const categoriesMap = {
-            "Short (< 1m)": state.currentLang === "ua" ? "Короткі (< 1хв)" : "Short (< 1m)",
-            "Medium (1-10m)": state.currentLang === "ua" ? "Середні (1-10хв)" : "Medium (1-10m)",
-            "Long (> 10m)": state.currentLang === "ua" ? "Довгі (> 10хв)" : "Long (> 10m)"
-        };
-        
-        const labels = state.chartRawData.duration_dist.map(d => categoriesMap[d.category] || d.category);
-        const values = state.chartRawData.duration_dist.map(d => d.video_count);
-        
-        chartConfig = {
-            type: "doughnut",
-            data: {
-                labels: labels,
-                datasets: [{
-                    data: values,
-                    backgroundColor: ["#38bdf8", "#34d399", "#f59e0b"]
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { 
-                        position: "right",
-                        labels: { color: labelColor, boxWidth: 12 }
-                    },
-                    title: { display: true, text: state.currentLang === "ua" ? "Розподіл за тривалістю відео" : "Videos Duration Share", color: titleColor }
                 }
             }
         };

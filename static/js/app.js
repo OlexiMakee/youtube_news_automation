@@ -154,13 +154,27 @@ document.addEventListener("DOMContentLoaded", () => {
         chartLimitSelector.value = state.chartLimit;
     }
     
+    // Synchronize per-page selector dropdown value
+    const perPageSelector = document.getElementById("per-page-selector");
+    if (perPageSelector) {
+        perPageSelector.value = state.pagination.per_page;
+    }
+    
     // Switch to initial tab content
     switchSection("analytics-tab", document.getElementById("menu-item-analytics").querySelector("a"));
     
-    // Set default date range to today
-    const todayStr = new Date().toISOString().split("T")[0];
-    document.getElementById("filter-start-date").value = todayStr;
-    document.getElementById("filter-end-date").value = todayStr;
+    // Set default date range to 6 months
+    const now = new Date();
+    const startDate = new Date();
+    startDate.setMonth(now.getMonth() - 6);
+    const fmt = (d) => d.toISOString().split('T')[0];
+    document.getElementById("filter-start-date").value = fmt(startDate);
+    document.getElementById("filter-end-date").value = fmt(now);
+    
+    // Highlight active quick-date button for 6m
+    state.activeQuickDate = "6m";
+    const activeBtn = document.getElementById("qd-6m");
+    if (activeBtn) activeBtn.classList.add("active");
 
     // Load initial data
     loadStats();

@@ -6,7 +6,7 @@ export const state = {
     activeChartInstance: null,
     chartRawData: null,
     activeChartType: 'top_viewed',
-    chartLimit: parseInt(localStorage.getItem("chart_limit")) || 25,
+    chartLimit: parseInt(localStorage.getItem("chart_limit")) || 50,
     
     // Video Details Modal State
     activeModalChartInstance: null,
@@ -19,7 +19,7 @@ export const state = {
     // Pagination and Filters State
     pagination: {
         page: 1,
-        per_page: 25,
+        per_page: 50,
         total_pages: 1,
         total_records: 0
     },

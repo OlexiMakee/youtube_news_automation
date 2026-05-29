@@ -322,21 +322,26 @@ export function resetFilters() {
     // Check all channels in checkboxes list
     toggleSelectAllChannels(true);
     
-    // Reset date range to today
-    const todayStr = new Date().toISOString().split("T")[0];
-    document.getElementById("filter-start-date").value = todayStr;
-    document.getElementById("filter-end-date").value = todayStr;
+    // Reset date range to 6 months
+    const now = new Date();
+    const startDate = new Date();
+    startDate.setMonth(now.getMonth() - 6);
+    const fmt = (d) => d.toISOString().split('T')[0];
+    document.getElementById("filter-start-date").value = fmt(startDate);
+    document.getElementById("filter-end-date").value = fmt(now);
     
-    // Clear active quick-date button
-    state.activeQuickDate = null;
+    // Highlight active quick-date button for 6m
+    state.activeQuickDate = "6m";
     document.querySelectorAll(".quick-date-btn, .quick-date-btn-compact").forEach(b => b.classList.remove("active"));
+    const activeBtn = document.getElementById("qd-6m");
+    if (activeBtn) activeBtn.classList.add("active");
     
-    // Reset per page limit input and select
-    state.pagination.per_page = 25;
+    // Reset per page limit input and select to 50
+    state.pagination.per_page = 50;
     const topInput = document.getElementById("per-page-input-top");
-    if (topInput) topInput.value = 25;
+    if (topInput) topInput.value = 50;
     const bottomSelect = document.getElementById("per-page-selector");
-    if (bottomSelect) bottomSelect.value = 25;
+    if (bottomSelect) bottomSelect.value = 50;
     
     applyFilters();
 }

@@ -77,18 +77,23 @@ class DataExporter:
         # Convert sqlite3.Row elements to standard dictionaries
         return [dict(row) for row in rows]
 
-    def export_data(self, channel_id=None, format_choice="xlsx", output_path=None, top_limit=None):
+    def export_data(self, channel_id=None, format_choice="xlsx", output_path=None, top_limit=None,
+                    search=None, start_date=None, end_date=None, columns=None, sort_by='published_at', sort_order='desc'):
         """
         Exports video data from the database to Excel (.xlsx) and/or CSV (.csv) formats.
+        Supports dynamic filtering, sorting, and column mapping.
 
         Parameters:
-            channel_id (str, optional): Target channel ID to export.
-                If omitted (None), videos from ALL channels will be exported.
+            channel_id (str or list, optional): Target channel ID or list of IDs.
             format_choice (str): Export format: 'xlsx', 'csv', or 'both'.
-                Defaults to 'xlsx'.
-            output_path (str, optional): Directory or specific file path to save the output.
-                If omitted, the file will be saved in the script's directory with an auto-generated name.
-            top_limit (int, optional): Limits the export to the top N videos sorted by view count.
+            output_path (str, optional): Output directory or specific file path.
+            top_limit (int, optional): Limit output to top N videos sorted by view count.
+            search (str, optional): Term to search for in video title or description.
+            start_date (str, optional): Lower bound date (YYYY-MM-DD).
+            end_date (str, optional): Upper bound date (YYYY-MM-DD).
+            columns (list, optional): Subset of columns to export.
+            sort_by (str): Field to sort by.
+            sort_order (str): Sort order ('asc' or 'desc').
 
         Returns:
             list: List of paths to the successfully created files.
@@ -117,18 +122,68 @@ class DataExporter:
             JOIN channels c ON v.channel_id = c.channel_id
         """
         
+        query_parts = []
         params = []
+        
+        # 1. Filter by channels
         if channel_id:
-            # Filter by specific channel if provided
-            query += " WHERE v.channel_id = ?"
-            params.append(channel_id)
+            if isinstance(channel_id, str):
+                ids_list = [i.strip() for i in channel_id.split(',') if i.strip()]
+            elif isinstance(channel_id, (list, tuple)):
+                ids_list = list(channel_id)
+            else:
+                ids_list = []
+                
+            if ids_list and 'all' not in ids_list:
+                placeholders = ",".join(["?"] * len(ids_list))
+                query_parts.append(f"v.channel_id IN ({placeholders})")
+                params.extend(ids_list)
+                
+        # 2. Filter by search query
+        if search:
+            query_parts.append("(v.title LIKE ? OR v.description LIKE ?)")
+            params.extend([f"%{search}%", f"%{search}%"])
             
-        # Apply sorting and limit filters
+        # 3. Filter by start_date
+        if start_date:
+            query_parts.append("v.published_at >= ?")
+            params.append(start_date)
+            
+        # 4. Filter by end_date
+        if end_date:
+            query_parts.append("v.published_at <= ?")
+            params.append(end_date)
+            
+        # Build WHERE clause
+        if query_parts:
+            query += " WHERE " + " AND ".join(query_parts)
+            
+        # 5. Sorting and LIMIT
+        allowed_sort_cols = {
+            'video_id': 'v.video_id',
+            'channel_id': 'v.channel_id',
+            'title': 'v.title',
+            'published_at': 'v.published_at',
+            'date': 'v.published_at',
+            'duration': 'v.duration',
+            'duration_sec': 'v.duration',
+            'view_count': 'v.view_count',
+            'views': 'v.view_count',
+            'like_count': 'v.like_count',
+            'likes': 'v.like_count',
+            'comment_count': 'v.comment_count',
+            'comments': 'v.comment_count',
+            'scraped_at': 'v.scraped_at'
+        }
+        
+        sort_col = allowed_sort_cols.get(sort_by, 'v.published_at')
+        sort_dir = 'DESC' if sort_order.lower() == 'desc' else 'ASC'
+        
         if top_limit:
             query += " ORDER BY v.view_count DESC LIMIT ?"
             params.append(top_limit)
         else:
-            query += " ORDER BY v.published_at DESC"
+            query += f" ORDER BY {sort_col} {sort_dir}"
         
         # Read the query results directly into a pandas DataFrame
         df = pd.read_sql_query(query, conn, params=params)
@@ -141,31 +196,57 @@ class DataExporter:
         # Add a helper column with direct YouTube video URLs
         df.insert(1, "url", "https://www.youtube.com/watch?v=" + df["video_id"])
         
+        # Filter selected columns if specified
+        if columns:
+            col_mapping = {
+                'video_id': 'video_id',
+                'url': 'url',
+                'channel_name': 'channel_name',
+                'channel_handle': 'channel_handle',
+                'title': 'title',
+                'published_at': 'date',
+                'date': 'date',
+                'view_count': 'views',
+                'views': 'views',
+                'like_count': 'likes',
+                'likes': 'likes',
+                'comment_count': 'comments',
+                'comments': 'comments',
+                'duration': 'duration_sec',
+                'duration_sec': 'duration_sec',
+                'description': 'description',
+                'tags': 'tags',
+                'scraped_at': 'scraped_at'
+            }
+            mapped_cols = []
+            for col in columns:
+                mapped = col_mapping.get(col)
+                if mapped and mapped in df.columns:
+                    mapped_cols.append(mapped)
+            if mapped_cols:
+                df = df[mapped_cols]
+        
         # Format the current date for the output filename
         date_str = datetime.now().strftime("%d%m%Y")
         top_suffix = f"_top{top_limit}" if top_limit else ""
         
         # Construct the base filename without extension
         if not output_path:
-            if channel_id:
-                # Use channel handle or name for the filename
+            if channel_id and isinstance(channel_id, str) and ',' not in channel_id:
                 handle = df.iloc[0]["channel_handle"] or df.iloc[0]["channel_name"]
-                # Clean up the handle string from special characters
                 safe_handle = "".join(c for c in handle if c.isalnum() or c in ['@', '_', '-'])
                 output_base = f"{safe_handle}{top_suffix}_export_{date_str}"
             else:
                 output_base = f"youtube_all_channels{top_suffix}_{date_str}"
         else:
             if os.path.isdir(output_path):
-                # If output path is a directory, save the file inside it
-                if channel_id:
+                if channel_id and isinstance(channel_id, str) and ',' not in channel_id:
                     handle = df.iloc[0]["channel_handle"] or df.iloc[0]["channel_name"]
                     safe_handle = "".join(c for c in handle if c.isalnum() or c in ['@', '_', '-'])
                     output_base = os.path.join(output_path, f"{safe_handle}{top_suffix}_export_{date_str}")
                 else:
                     output_base = os.path.join(output_path, f"youtube_all_channels{top_suffix}_{date_str}")
             else:
-                # If output path is a specific file, discard extension
                 output_base, _ = os.path.splitext(output_path)
                 
         exported_files = []

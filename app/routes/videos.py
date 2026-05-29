@@ -143,121 +143,51 @@ def export_videos():
     sort_order = request.args.get('sort_order', 'desc').strip()
     columns_str = request.args.get('columns', '').strip()
     
-    allowed_sort_cols = ['video_id', 'channel_id', 'title', 'published_at', 'duration', 'view_count', 'like_count', 'comment_count', 'scraped_at', 'updated_at']
-    if sort_by not in allowed_sort_cols:
-        sort_by = 'published_at'
-    if sort_order.lower() not in ['asc', 'desc']:
-        sort_order = 'desc'
-        
-    db_client = DatabaseClient()
-    conn = db_client.get_connection()
+    # Parse columns
+    columns = [c.strip() for c in columns_str.split(',') if c.strip()] if columns_str else None
     
     try:
-        cursor = conn.cursor()
-        query_parts = []
-        params = []
+        from scripts.db_exporter import DataExporter
         
-        if search:
-            query_parts.append("(v.title LIKE ? OR v.description LIKE ?)")
-            params.extend([f"%{search}%", f"%{search}%"])
+        # Setup temporary exports folder
+        export_dir = os.path.join(root_dir, 'data', 'exports')
+        os.makedirs(export_dir, exist_ok=True)
+        
+        exporter = DataExporter()
+        
+        # Let db_exporter create the file on disk
+        exported_paths = exporter.export_data(
+            channel_id=channel_id,
+            format_choice=format_choice,
+            output_path=export_dir,
+            search=search,
+            start_date=start_date,
+            end_date=end_date,
+            columns=columns,
+            sort_by=sort_by,
+            sort_order=sort_order
+        )
+        
+        if not exported_paths:
+            return jsonify({"error": "No data matched the export filters."}), 404
             
-        if start_date:
-            query_parts.append("v.published_at >= ?")
-            params.append(start_date)
-            
-        if end_date:
-            query_parts.append("v.published_at <= ?")
-            params.append(end_date)
-            
-        if channel_id:
-            ids_list = [i.strip() for i in channel_id.split(',') if i.strip()]
-            if ids_list:
-                placeholders = ",".join(["?"] * len(ids_list))
-                query_parts.append(f"v.channel_id IN ({placeholders})")
-                params.extend(ids_list)
-            
-        where_clause = " WHERE " + " AND ".join(query_parts) if query_parts else ""
+        file_to_send = exported_paths[0]
         
-        valid_fields = {
-            'video_id': 'v.video_id',
-            'channel_id': 'v.channel_id',
-            'title': 'v.title',
-            'description': 'v.description',
-            'published_at': 'v.published_at',
-            'duration': 'v.duration',
-            'view_count': 'v.view_count',
-            'like_count': 'v.like_count',
-            'comment_count': 'v.comment_count',
-            'tags': 'v.tags',
-            'scraped_at': 'v.scraped_at',
-            'updated_at': 'v.updated_at',
-            'channel_name': 'c.channel_name',
-            'channel_handle': 'c.channel_handle'
-        }
-        
-        selected_cols = []
-        if columns_str:
-            chosen = [c.strip() for c in columns_str.split(',') if c.strip()]
-            for col in chosen:
-                if col in valid_fields:
-                    selected_cols.append(col)
-        
-        if not selected_cols:
-            selected_cols = ['video_id', 'title', 'channel_name', 'published_at', 'view_count', 'like_count', 'comment_count']
-            
-        select_fields = ", ".join([f"{valid_fields[col]} AS {col}" for col in selected_cols])
-        
-        query_sql = f"""
-            SELECT {select_fields}
-            FROM videos v
-            LEFT JOIN channels c ON v.channel_id = c.channel_id
-            {where_clause}
-            ORDER BY v.{sort_by} {sort_order}
-        """
-        
-        cursor.execute(query_sql, params)
-        rows = cursor.fetchall()
-        
-        rows_list = [dict(row) for row in rows]
-        
+        # Determine mime type
         if format_choice in ['xlsx', 'excel']:
-            import pandas as pd
-            from io import BytesIO
-            
-            data = []
-            for r in rows_list:
-                data.append({col: r[col] for col in selected_cols})
-                
-            df = pd.DataFrame(data, columns=selected_cols)
-            
-            out_buf = BytesIO()
-            with pd.ExcelWriter(out_buf, engine='openpyxl') as writer:
-                df.to_excel(writer, index=False, sheet_name="Videos Export")
-            out_buf.seek(0)
-            
-            return send_file(
-                out_buf,
-                as_attachment=True,
-                download_name=f"youtube_news_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
-                mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
+            mimetype = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         else:
-            si = StringIO()
-            cw = csv.writer(si)
-            cw.writerow(selected_cols)
+            mimetype = "text/csv"
             
-            for r in rows_list:
-                cw.writerow([r[col] for col in selected_cols])
-                
-            output = make_response(si.getvalue())
-            output.headers["Content-Disposition"] = f"attachment; filename=youtube_news_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
-            output.headers["Content-type"] = "text/csv; charset=utf-8"
-            return output
-            
+        return send_file(
+            file_to_send,
+            as_attachment=True,
+            download_name=os.path.basename(file_to_send),
+            mimetype=mimetype
+        )
+        
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
-    finally:
-        db_client.close_connection(conn)
+        return jsonify({"error": f"Failed to export data: {e}"}), 500
 
 
 @videos_bp.route('/api/videos/<video_id>/scrape_details', methods=['POST'])

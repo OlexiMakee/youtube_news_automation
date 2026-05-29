@@ -321,12 +321,27 @@ idx_channels_synced
 
 ---
 
+## v0.8.1-alpha — Excel / CSV DataExporter Unified Integration (2026-05-29)
+
+**Що зроблено:**
+- Розширено клас `DataExporter` у [db_exporter.py](file:///Users/oleksii/Documents/News%20Research%20Automation/scripts/db_exporter.py) для підтримки динамічної фільтрації (пошук, діапазон дат, сортування та вибір колонок), що робить CLI-експорт сумісним із вебом.
+- Рефакторизовано Flask API ендпоінт `/api/videos/export` у [videos.py](file:///Users/oleksii/Documents/News%20Research%20Automation/app/routes/videos.py) для використання єдиного класу `DataExporter`.
+- Забезпечено повну відповідність структури звітів (зокрема, автоматичну генерацію колонки `url` з посиланнями на YouTube-відео).
+- Написано та успішно пройдено інтеграційний тест `test_excel_exporter.py` у scratch-папці.
+
+**Ключові рішення:**
+- Делегування всієї файлової генерації та форматування єдиному класу `DataExporter` прибрало понад 100 рядків дубльованого коду з маршрутів Flask.
+- Фільтрація колонок на рівні Pandas DataFrame після виконання гнучкого параметризованого SQL-запиту.
+
+---
+
 ## Технічний борг
 
 | Проблема | Пріоритет | Складність |
 |----------|-----------|-----------|
 | `web_app.py` монолітний (1,494 рядки) | Вирішено | — |
 | `/api/charts` — 10+ SQL-запитів без кешу | Вирішено | — |
+| Дублювання логіки експорту Excel/CSV | Вирішено | — |
 | `app.js` монолітний (108 KB) | P3 | Середня |
 | `bg_state` не thread-safe | P3 | Низька |
 | Python 3.9 deprecation warnings | Вирішено | — |

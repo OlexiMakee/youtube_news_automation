@@ -1,28 +1,59 @@
 import re
+import os
+import time
+import threading
 from flask import Blueprint, jsonify, request
 from news_scraper.db_client import DatabaseClient
 from app.state import bg_state
 
 charts_bp = Blueprint('charts', __name__)
 
+CHARTS_CACHE = {}
+cache_lock = threading.Lock()
+CACHE_TTL = 60  # Cache expires after 60 seconds
+
+def get_db_mtime():
+    """Returns the maximum mtime of the database file and its WAL file."""
+    try:
+        db_client = DatabaseClient()
+        db_path = db_client.db_path
+        mtime = os.path.getmtime(db_path)
+        wal_path = db_path + "-wal"
+        if os.path.exists(wal_path):
+            mtime = max(mtime, os.path.getmtime(wal_path))
+        return mtime
+    except Exception:
+        return 0
+
 
 @charts_bp.route('/api/charts', methods=['GET'])
 def get_charts():
+    channel_id_raw = request.args.get('channel_id', '').strip()
+    start_date = request.args.get('start_date', '').strip()
+    end_date = request.args.get('end_date', '').strip()
+    
+    try:
+        limit = int(request.args.get('limit', '100'))
+        if limit < 1:
+            limit = 100
+    except ValueError:
+        limit = 100
+
+    cache_key = (channel_id_raw, start_date, end_date, limit)
+    current_time = time.time()
+    db_mtime = get_db_mtime()
+    
+    # Check cache first
+    with cache_lock:
+        if cache_key in CHARTS_CACHE:
+            cached_payload, cached_db_mtime, cached_time = CHARTS_CACHE[cache_key]
+            if current_time - cached_time < CACHE_TTL and db_mtime == cached_db_mtime:
+                return jsonify(cached_payload)
+
     db_client = DatabaseClient()
     conn = db_client.get_connection()
     try:
         cursor = conn.cursor()
-        
-        channel_id_raw = request.args.get('channel_id', '').strip()
-        start_date = request.args.get('start_date', '').strip()
-        end_date = request.args.get('end_date', '').strip()
-        
-        try:
-            limit = int(request.args.get('limit', '100'))
-            if limit < 1:
-                limit = 100
-        except ValueError:
-            limit = 100
         
         if channel_id_raw and channel_id_raw != 'all':
             ids_list = [i.strip() for i in channel_id_raw.split(',') if i.strip()]
@@ -346,7 +377,8 @@ def get_charts():
         best_promo_thumb_words = sorted(promo_thumb_words_list, key=lambda x: x["lift"], reverse=True)[:limit]
         worst_promo_thumb_words = sorted(promo_thumb_words_list, key=lambda x: x["lift"])[:limit]
         
-        return jsonify({
+        # Store in cache
+        response_data = {
             "channel_id": channel_id_raw,
             "kpis": kpis,
             "by_month": by_month,
@@ -371,7 +403,12 @@ def get_charts():
             "top_thumb_words": top_thumb_words,
             "best_promo_thumb_words": best_promo_thumb_words,
             "worst_promo_thumb_words": worst_promo_thumb_words
-        })
+        }
+        
+        with cache_lock:
+            CHARTS_CACHE[cache_key] = (response_data, db_mtime, current_time)
+            
+        return jsonify(response_data)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     finally:

@@ -176,50 +176,87 @@ def get_action_status():
 # ── Terminal PTY Console Endpoints ────────────────────────────────────
 
 # Terminal session status
+session_lock = threading.RLock()
 terminal_session = {
     "fd": None,
     "pid": None,
     "active": False
 }
 
+def cleanup_terminal():
+    """Kills the active shell process and closes PTY file descriptors."""
+    global terminal_session
+    with session_lock:
+        fd = terminal_session["fd"]
+        pid = terminal_session["pid"]
+        terminal_session["active"] = False
+        terminal_session["fd"] = None
+        terminal_session["pid"] = None
+        
+        if fd is not None:
+            try:
+                os.close(fd)
+            except OSError:
+                pass
+                
+        if pid is not None:
+            import signal
+            import time
+            try:
+                w_pid, status = os.waitpid(pid, os.WNOHANG)
+                if w_pid == 0:
+                    os.kill(pid, signal.SIGTERM)
+                    for _ in range(10):
+                        time.sleep(0.05)
+                        w_pid, status = os.waitpid(pid, os.WNOHANG)
+                        if w_pid != 0:
+                            break
+                    else:
+                        os.kill(pid, signal.SIGKILL)
+                        os.waitpid(pid, 0)
+            except OSError:
+                pass
+
 def start_terminal():
     global terminal_session
-    if terminal_session["active"] and terminal_session["pid"] is not None:
-        try:
-            pid, status = os.waitpid(terminal_session["pid"], os.WNOHANG)
-            if pid == 0:
-                return
-        except OSError:
-            pass
-            
-    env = os.environ.copy()
-    venv_bin = os.path.join(root_dir, "venv_auto", "bin")
-    env["PATH"] = f"{venv_bin}:{env.get('PATH', '')}"
-    env["VIRTUAL_ENV"] = os.path.join(root_dir, "venv_auto")
-    env["PYTHONPATH"] = root_dir
-    env["TERM"] = "xterm-256color"
-    
-    import pty
-    pid, fd = pty.fork()
-    if pid == 0:
-        os.chdir(root_dir)
-        shell = "/bin/zsh" if os.path.exists("/bin/zsh") else "/bin/bash"
-        try:
-            os.execve(shell, [shell, "-i"], env)
-        except Exception:
+    with session_lock:
+        if terminal_session["active"] and terminal_session["pid"] is not None:
             try:
-                os.execve("/bin/bash", ["/bin/bash", "-i"], env)
-            except Exception:
-                os.execv("/bin/sh", ["/bin/sh"])
-    else:
-        terminal_session["fd"] = fd
-        terminal_session["pid"] = pid
-        terminal_session["active"] = True
+                pid, status = os.waitpid(terminal_session["pid"], os.WNOHANG)
+                if pid == 0:
+                    return
+            except OSError:
+                pass
+            cleanup_terminal()
+            
+        env = os.environ.copy()
+        venv_bin = os.path.join(root_dir, "venv_auto", "bin")
+        env["PATH"] = f"{venv_bin}:{env.get('PATH', '')}"
+        env["VIRTUAL_ENV"] = os.path.join(root_dir, "venv_auto")
+        env["PYTHONPATH"] = root_dir
+        env["TERM"] = "xterm-256color"
         
-        # Set fd non-blocking
-        import fcntl
-        fl = fcntl.fcntl(fd, fcntl.F_GETFL)
-        fcntl.fcntl(fd, fcntl.F_SETFL, fl | os.O_NONBLOCK)
+        import pty
+        pid, fd = pty.fork()
+        if pid == 0:
+            os.chdir(root_dir)
+            shell = "/bin/zsh" if os.path.exists("/bin/zsh") else "/bin/bash"
+            try:
+                os.execve(shell, [shell, "-i"], env)
+            except Exception:
+                try:
+                    os.execve("/bin/bash", ["/bin/bash", "-i"], env)
+                except Exception:
+                    os.execv("/bin/sh", ["/bin/sh"])
+        else:
+            terminal_session["fd"] = fd
+            terminal_session["pid"] = pid
+            terminal_session["active"] = True
+            
+            # Set fd non-blocking
+            import fcntl
+            fl = fcntl.fcntl(fd, fcntl.F_GETFL)
+            fcntl.fcntl(fd, fcntl.F_SETFL, fl | os.O_NONBLOCK)
 
 
 @actions_bp.route('/api/terminal/stream')
@@ -228,22 +265,35 @@ def terminal_stream():
     
     import select
     import base64
+    import time
     
     def generate():
         fd = terminal_session["fd"]
-        while terminal_session["active"] and terminal_session["fd"] == fd:
-            r, _, _ = select.select([fd], [], [], 0.05)
-            if fd in r:
-                try:
-                    data = os.read(fd, 4096)
-                    if not data:
+        last_heartbeat = time.time()
+        try:
+            while terminal_session["active"] and terminal_session["fd"] == fd:
+                r, _, _ = select.select([fd], [], [], 0.05)
+                if fd in r:
+                    try:
+                        data = os.read(fd, 4096)
+                        if not data:
+                            break
+                        b64_data = base64.b64encode(data).decode('ascii')
+                        yield f"data: {b64_data}\n\n"
+                        last_heartbeat = time.time()
+                    except OSError:
                         break
-                    b64_data = base64.b64encode(data).decode('ascii')
-                    yield f"data: {b64_data}\n\n"
-                except OSError:
-                    break
-        if terminal_session["fd"] == fd:
-            terminal_session["active"] = False
+                
+                # Check heartbeat interval
+                now = time.time()
+                if now - last_heartbeat > 15:
+                    yield ": ping\n\n"
+                    last_heartbeat = now
+        except (GeneratorExit, Exception):
+            pass
+        finally:
+            if terminal_session["fd"] == fd:
+                cleanup_terminal()
             
     return Response(generate(), mimetype='text/event-stream')
 

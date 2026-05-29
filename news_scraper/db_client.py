@@ -133,6 +133,8 @@ class DatabaseClient(BaseStorage):
             return self._conn
 
         conn = sqlite3.connect(self.db_path)
+        # Enable WAL mode for concurrency
+        conn.execute("PRAGMA journal_mode = WAL;")
         # Enable FOREIGN KEY support in SQLite
         conn.execute("PRAGMA foreign_keys = ON;")
         # Configure connection to access columns by name, e.g., row['title']

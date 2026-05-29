@@ -290,7 +290,7 @@ class AgentService:
     # ─────────────────────────────────────────────
 
     @classmethod
-    def stream_chat_response(cls, user_message, db_context, provider="gemini", model_id=None, role="admin"):
+    def stream_chat_response(cls, user_message, db_context, provider="gemini", model_id=None, role="admin", history=None):
         """
         Generator that yields SSE-formatted chunks.
         """
@@ -342,13 +342,22 @@ class AgentService:
         try:
             if provider == "gemini":
                 url = f"{base_url}/models/{model}:streamGenerateContent?alt=sse&key={api_key}"
+                
+                contents = []
+                if history:
+                    for msg in history:
+                        role_str = "user" if msg.get("role") == "user" else "model"
+                        contents.append({
+                            "role": role_str,
+                            "parts": [{"text": msg.get("content", "")}]
+                        })
+                contents.append({
+                    "role": "user",
+                    "parts": [{"text": user_message}]
+                })
+                
                 payload = {
-                    "contents": [
-                        {
-                            "role": "user",
-                            "parts": [{"text": user_message}]
-                        }
-                    ],
+                    "contents": contents,
                     "systemInstruction": {
                         "parts": [{"text": system_prompt}]
                     }
@@ -386,13 +395,21 @@ class AgentService:
                             pass
             else:
                 url = f"{base_url}/chat/completions"
+                
+                messages = [{"role": "system", "content": system_prompt}]
+                if history:
+                    for msg in history:
+                        role_str = "user" if msg.get("role") == "user" else "assistant"
+                        messages.append({
+                            "role": role_str,
+                            "content": msg.get("content", "")
+                        })
+                messages.append({"role": "user", "content": user_message})
+                
                 payload = {
                     "model": model,
                     "stream": True,
-                    "messages": [
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user",   "content": user_message}
-                    ]
+                    "messages": messages
                 }
                 headers = {
                     "Content-Type": "application/json",

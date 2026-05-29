@@ -41,7 +41,8 @@ import {
     handleSendChatMessage,
     selectSingleChannel,
     changeChatProvider,
-    switchAgentRole
+    switchAgentRole,
+    initChatResizer
 } from './ui.js';
 import { 
     loadStats, 
@@ -114,6 +115,7 @@ window.handleSendChatMessage = handleSendChatMessage;
 window.selectSingleChannel = selectSingleChannel;
 window.changeChatProvider = changeChatProvider;
 window.switchAgentRole = switchAgentRole;
+window.initChatResizer = initChatResizer;
 
 window.loadStats = loadStats;
 window.loadChannelStatsHeader = loadChannelStatsHeader;
@@ -190,6 +192,9 @@ document.addEventListener("DOMContentLoaded", () => {
     checkProcessStatus();
     state.statusPollingInterval = setInterval(checkProcessStatus, 2000);
     
+    // Initialize chat resizer
+    initChatResizer();
+
     // Register chat input key listener
     const chatInput = document.getElementById("chat-input");
     if (chatInput) {

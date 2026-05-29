@@ -11,6 +11,7 @@
     <!-- Local Vendor Assets -->
     <script src="/static/vendor/chart.umd.js"></script>
     <script src="/static/vendor/d3.min.js"></script>
+    <script src="/static/vendor/marked.min.js"></script>
     <link rel="stylesheet" href="/static/vendor/xterm.css" />
     <script src="/static/vendor/xterm.js"></script>
     <script src="/static/vendor/xterm-addon-fit.js"></script>
@@ -591,6 +592,8 @@
 
     <!-- AI ASSISTANT CHAT DRAWER -->
     <div class="chat-drawer" id="chat-drawer">
+        <!-- Resizer handle -->
+        <div class="chat-resizer" id="chat-resizer"></div>
         <div class="chat-header">
             <div class="chat-title">
                 <i class="fa-solid fa-wand-magic-sparkles"></i>

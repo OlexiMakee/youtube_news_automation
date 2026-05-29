@@ -395,6 +395,7 @@ def agent_chat():
     provider    = data.get("provider", "gemini")
     model_id    = data.get("model_id") or None
     role        = data.get("role", "admin")
+    history     = data.get("history") or []
 
     try:
         from app.services.agent import AgentService
@@ -409,7 +410,7 @@ def agent_chat():
             )
         # Collect streamed text into a single string
         full_text = ""
-        for chunk in AgentService.stream_chat_response(message, ctx, provider=provider, model_id=model_id, role=role):
+        for chunk in AgentService.stream_chat_response(message, ctx, provider=provider, model_id=model_id, role=role, history=history):
             if chunk.startswith("data: [DONE]"):
                 break
             if chunk.startswith("data: "):
@@ -441,6 +442,7 @@ def agent_chat_stream():
     provider    = data.get("provider", "gemini")
     model_id    = data.get("model_id") or None
     role        = data.get("role", "admin")
+    history     = data.get("history") or []
 
     from app.services.agent import AgentService
     from flask import stream_with_context
@@ -456,7 +458,7 @@ def agent_chat_stream():
         )
 
     def generate():
-        yield from AgentService.stream_chat_response(message, ctx, provider=provider, model_id=model_id, role=role)
+        yield from AgentService.stream_chat_response(message, ctx, provider=provider, model_id=model_id, role=role, history=history)
 
     return Response(
         stream_with_context(generate()),

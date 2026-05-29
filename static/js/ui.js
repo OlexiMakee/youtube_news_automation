@@ -1206,8 +1206,37 @@ async function _loadModels() {
     }
 }
 
+/** Collects prior assistant/user messages from chat history */
+function _getChatHistory() {
+    const containerEl = document.getElementById("chat-messages");
+    if (!containerEl) return [];
+    
+    const bubbles = containerEl.querySelectorAll(".chat-bubble");
+    const history = [];
+    bubbles.forEach(bubble => {
+        if (bubble.classList.contains("typing") || bubble.classList.contains("streaming")) {
+            return;
+        }
+        
+        let role = null;
+        if (bubble.classList.contains("user")) {
+            role = "user";
+        } else if (bubble.classList.contains("bot")) {
+            role = "assistant";
+        }
+        
+        if (role) {
+            const content = bubble.dataset.raw || bubble.innerText || "";
+            if (content.trim()) {
+                history.push({ role, content });
+            }
+        }
+    });
+    return history;
+}
+
 /** Streams a response from /api/agent/chat/stream, appending tokens to botDiv */
-async function _streamBotMessage(message, containerEl, contextOverride = null) {
+async function _streamBotMessage(message, containerEl, contextOverride = null, history = []) {
     const ctx = _getChatContext();
     const modelId = _getSelectedModel();
 
@@ -1219,6 +1248,7 @@ async function _streamBotMessage(message, containerEl, contextOverride = null) {
     containerEl.scrollTop = containerEl.scrollHeight;
 
     let hasError = false;
+    let accumulatedText = "";
     try {
         const payload = {
             message,
@@ -1227,7 +1257,8 @@ async function _streamBotMessage(message, containerEl, contextOverride = null) {
             end_date:    ctx.end_date,
             provider:    state.agentProvider,
             model_id:    modelId || null,
-            role:        state.agentRole
+            role:        state.agentRole,
+            history:     history
         };
         if (contextOverride) {
             payload.context_override = contextOverride;
@@ -1260,6 +1291,12 @@ async function _streamBotMessage(message, containerEl, contextOverride = null) {
                 const payload = line.slice(5).trim();
                 if (payload === "[DONE]") {
                     botDiv.classList.remove("streaming");
+                    if (window.marked) {
+                        botDiv.innerHTML = window.marked.parse ? window.marked.parse(accumulatedText) : window.marked(accumulatedText);
+                    } else {
+                        botDiv.innerText = accumulatedText;
+                    }
+                    botDiv.dataset.raw = accumulatedText;
                     return;
                 }
                 try {
@@ -1272,7 +1309,13 @@ async function _streamBotMessage(message, containerEl, contextOverride = null) {
                         return;
                     }
                     if (obj.text) {
-                        botDiv.innerText += obj.text;
+                        accumulatedText += obj.text;
+                        botDiv.dataset.raw = accumulatedText;
+                        if (window.marked) {
+                            botDiv.innerHTML = window.marked.parse ? window.marked.parse(accumulatedText) : window.marked(accumulatedText);
+                        } else {
+                            botDiv.innerText = accumulatedText;
+                        }
                         containerEl.scrollTop = containerEl.scrollHeight;
                     }
                 } catch (_) { /* skip malformed */ }
@@ -1341,7 +1384,8 @@ async function _requestAutoSummary() {
     await _streamBotMessage(
         "Зроби висновки",
         containerEl,
-        screenText
+        screenText,
+        []
     );
 }
 
@@ -1356,16 +1400,20 @@ export async function handleSendChatMessage(event) {
     if (!message) return;
     inputEl.value = "";
 
+    // Collect history before appending new user bubble
+    const history = _getChatHistory();
+
     // User bubble
     const userDiv = document.createElement("div");
     userDiv.className = "chat-bubble user";
     userDiv.innerText = message;
+    userDiv.dataset.raw = message;
     containerEl.appendChild(userDiv);
     containerEl.scrollTop = containerEl.scrollHeight;
 
     // Stream bot reply with context of current screen
     const screenText = _scrapeCurrentScreenText();
-    await _streamBotMessage(message, containerEl, screenText);
+    await _streamBotMessage(message, containerEl, screenText, history);
 }
 
 
@@ -1513,10 +1561,16 @@ async function _requestAddScreenSummary() {
     const containerEl = document.getElementById("chat-messages");
     if (!containerEl) return;
 
+    // Collect history before appending new user bubble
+    const history = _getChatHistory();
+
+    const userText = state.currentLang === "ua" ? "Зроби висновки з поточного екрану" : "Make conclusions from the current screen";
+
     // User bubble
     const userDiv = document.createElement("div");
     userDiv.className = "chat-bubble user";
-    userDiv.innerText = state.currentLang === "ua" ? "Зроби висновки з поточного екрану" : "Make conclusions from the current screen";
+    userDiv.innerText = userText;
+    userDiv.dataset.raw = userText;
     containerEl.appendChild(userDiv);
     containerEl.scrollTop = containerEl.scrollHeight;
 
@@ -1525,7 +1579,8 @@ async function _requestAddScreenSummary() {
     await _streamBotMessage(
         "Зроби висновки",
         containerEl,
-        screenText
+        screenText,
+        history
     );
 }
 
@@ -1612,5 +1667,75 @@ function _scrapeTableText() {
         }
     }
     return text;
+}
+
+export function initChatResizer() {
+    const resizer = document.getElementById("chat-resizer");
+    const drawer = document.getElementById("chat-drawer");
+    if (!resizer || !drawer) return;
+
+    let isResizing = false;
+
+    // Mouse events
+    resizer.addEventListener("mousedown", function(e) {
+        e.preventDefault();
+        isResizing = true;
+        resizer.classList.add("active");
+        document.body.style.cursor = "ew-resize";
+        document.body.style.userSelect = "none";
+    });
+
+    window.addEventListener("mousemove", function(e) {
+        if (!isResizing) return;
+
+        let newWidth = window.innerWidth - e.clientX;
+        const minWidth = 380;
+        const maxWidth = Math.floor(window.innerWidth / 2);
+
+        if (newWidth < minWidth) {
+            newWidth = minWidth;
+        } else if (newWidth > maxWidth) {
+            newWidth = maxWidth;
+        }
+
+        document.documentElement.style.setProperty("--chat-width", newWidth + "px");
+    });
+
+    window.addEventListener("mouseup", function() {
+        if (isResizing) {
+            isResizing = false;
+            resizer.classList.remove("active");
+            document.body.style.cursor = "";
+            document.body.style.userSelect = "";
+            window.dispatchEvent(new Event('resize'));
+        }
+    });
+
+    // Touch events
+    resizer.addEventListener("touchstart", function(e) {
+        isResizing = true;
+        resizer.classList.add("active");
+        document.body.style.userSelect = "none";
+    });
+
+    window.addEventListener("touchmove", function(e) {
+        if (!isResizing) return;
+        if (e.touches.length === 0) return;
+        let newWidth = window.innerWidth - e.touches[0].clientX;
+        const minWidth = 380;
+        const maxWidth = Math.floor(window.innerWidth / 2);
+        if (newWidth < minWidth) newWidth = minWidth;
+        if (newWidth > maxWidth) newWidth = maxWidth;
+        document.documentElement.style.setProperty("--chat-width", newWidth + "px");
+    });
+
+    window.addEventListener("touchend", function() {
+        if (isResizing) {
+            isResizing = false;
+            resizer.classList.remove("active");
+            document.body.style.userSelect = "";
+            window.dispatchEvent(new Event('resize'));
+        }
+    });
 }
 

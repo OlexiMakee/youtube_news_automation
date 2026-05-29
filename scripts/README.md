@@ -15,6 +15,9 @@ python scripts/sync_postgres_cli.py
 
 # Manual SQLite → Kaggle sync
 python scripts/sync_db.py
+
+# Pre-compute N-grams + TF-IDF weighted performance lift trends
+python scripts/analyze_trends.py
 ```
 
 > **Note:** These scripts auto-bootstrap `venv_auto/` on first run.

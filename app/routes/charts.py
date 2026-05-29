@@ -230,167 +230,111 @@ def get_charts():
         """, query_params)
         views_distribution = [dict(row) for row in cursor.fetchall()]
         
-        # 9. Text Analytics
-        cursor.execute(f"SELECT title, description, view_count FROM videos WHERE channel_id IN ({placeholders}) AND published_at IS NOT NULL AND published_at != ''{date_filter} ORDER BY published_at DESC", query_params)
-        videos_text = cursor.fetchall()
+        # 9. Text Analytics from pre-calculated word_trends table
+        target_channel_id = ids_list[0] if len(ids_list) == 1 else 'all'
         
-        hashtag_re = re.compile(r'#\w+')
-        word_re = re.compile(r'\b[^\W\d_]{4,}\b')
-        
-        ignored_hashtags = {
-            '#uatv', '#ukraine', '#news', '#ukrainenews', '#uatv_news', '#uatv_english',
-            '#ukrainiannews', '#eventsinukraine', '#latestnews', '#topnewsukraine',
-            '#uatvfrançais', '#uatvmagyarul', '#uatvfr'
-        }
-        
-        stop_words = {
-            'якщо', 'тому', 'його', 'вони', 'було', 'буде', 'мене', 'коли', 
-            'після', 'цього', 'себе', 'один', 'бути', 'також', 'вона', 'воно',
-            'були', 'була', 'проти', 'через', 'дуже', 'тільки', 'цьому', 'тоді', 'лише',
-            'свої', 'свого', 'навіть', 'znovu', 'хоча', 'життя', 'свою', 'своє', 'під', 'над', 
-            'перед', 'нього', 'неї', 'ними', 'йому', 'воно', 'про', 'для', 'при', 'біля',
-            'если', 'этого', 'было', 'быдет', 'меня', 'когда', 'после', 'себя', 'быть', 'также',
-            'ona', 'оno', 'они', 'были', 'была', 'против', 'через', 'очень', 'только', 'этому',
-            'with', 'this', 'that', 'from', 'they', 'have', 'were', 'about', 'their', 'there',
-            'would', 'them', 'then', 'will', 'your', 'here', 'than', 'some', 'other',
-            'what', 'when', 'where', 'who', 'which', 'more', 'into', 'over', 'also', 'about',
-            'dans', 'pour', 'avec', 'plus', 'cette', 'coute', 'coutes', 'faire', 'mais', 'nous',
-            'vous', 'leur', 'leurs', 'tout', 'toute', 'touts', 'toutes', 'comme', 'mais', 'elle',
-            'elles', 'fait', 'faire', 'sont', 'avoir', 'guerre', 'guerres', 
-            'hogy', 'lett', 'elleni', 'valamint', 'hogyan', 'azért', 'mert', 'mint', 'vagy',
-            'uatv', 'uatven', 'uatvmagyarul', 'uatvfrançais', 'news', 'ukraine', 'ukrainenews', 'latestnews'
-        }
-        
-        def clean_description(desc):
-            if not desc:
-                return ""
-            lines = desc.split('\n')
-            cleaned_lines = []
-            for line in lines:
-                line_lower = line.lower().strip()
-                if any(kw in line_lower for kw in [
-                    'subscribe', 'abonnez', 'iratkozz', 'translated', 'traduite', 'lefordítva', 
-                    'mesterséges', 'intelligencián', 'részben', 'videó', 'video',
-                    'http', 'facebook', 'twitter', 'whatsapp', 'instagram', 'telegram', 'youtube'
-                ]):
-                    continue
-                line_no_tags = hashtag_re.sub('', line)
-                cleaned_lines.append(line_no_tags)
-            return ' '.join(cleaned_lines)
-            
-        tag_indices = {}
-        word_indices = {}
-        for idx, row in enumerate(videos_text):
-            title = row['title'] or ""
-            desc = row['description'] or ""
-            full_text = title + " " + desc
-            
-            found_tags = set([tag.lower() for tag in hashtag_re.findall(full_text)])
-            for tag in found_tags:
-                tag_indices.setdefault(tag, []).append(idx)
-                
-            cleaned_desc = clean_description(desc)
-            found_words = set([w for w in word_re.findall(cleaned_desc.lower()) if w not in stop_words])
-            for word in found_words:
-                word_indices.setdefault(word, []).append(idx)
-                
-        ignore_tags_by_streak = set()
-        for tag, indices in tag_indices.items():
-            if len(indices) >= 20:
-                for p in range(len(indices) - 19):
-                    if indices[p+19] - indices[p] == 19:
-                        ignore_tags_by_streak.add(tag)
-                        break
-                        
-        ignore_words_by_streak = set()
-        for word, indices in word_indices.items():
-            if len(indices) >= 20:
-                for p in range(len(indices) - 19):
-                    if indices[p+19] - indices[p] == 19:
-                        ignore_words_by_streak.add(word)
-                        break
-  
-        tag_views = {}
-        tag_counts = {}
-        tag_views_list = {}
-        word_views_list = {}
-        
-        for row in videos_text:
-            views = row['view_count'] or 0
-            title = row['title'] or ""
-            desc = row['description'] or ""
-            full_text = title + " " + desc
-            
-            found_tags = set([tag.lower() for tag in hashtag_re.findall(full_text)])
-            for tag in found_tags:
-                if tag not in ignored_hashtags and tag not in ignore_tags_by_streak:
-                    tag_views[tag] = tag_views.get(tag, 0) + views
-                    tag_counts[tag] = tag_counts.get(tag, 0) + 1
-                    tag_views_list.setdefault(tag, []).append(views)
-                    
-            cleaned_desc = clean_description(desc)
-            found_words = set([w for w in word_re.findall(cleaned_desc.lower()) if w not in stop_words and w not in ignore_words_by_streak])
-            for word in found_words:
-                word_views_list.setdefault(word, []).append(views)
-  
-        word_views = {w: sum(views) for w, views in word_views_list.items()}
-        word_counts = {w: len(views) for w, views in word_views_list.items()}
-        
-        filtered_tags = [
-            {"tag": tag, "count": tag_views[tag], "video_count": tag_counts[tag]}
-            for tag in tag_views if tag_counts[tag] >= 3
+        # Fallback to 'all' if no trend data is computed for the specific channel
+        cursor.execute("SELECT COUNT(*) FROM word_trends WHERE channel_id = ?", (target_channel_id,))
+        if cursor.fetchone()[0] == 0:
+            target_channel_id = 'all'
+
+        # 9.1 Top hashtags (ngram_type=1 and starts with '#')
+        cursor.execute("""
+            SELECT phrase, total_views, video_count
+            FROM word_trends
+            WHERE channel_id = ? AND ngram_type = 1 AND phrase LIKE '#%'
+            ORDER BY total_views DESC
+            LIMIT 10
+        """, (target_channel_id,))
+        top_hashtags = [
+            {"tag": row["phrase"], "count": row["total_views"], "video_count": row["video_count"]}
+            for row in cursor.fetchall()
         ]
-        filtered_words = [
-            {"word": word, "count": word_views[word], "video_count": word_counts[word]}
-            for word in word_views if word_counts[word] >= 3
+
+        # 9.2 Top words (ngram_type=1 and not starts with '#')
+        cursor.execute("""
+            SELECT phrase, total_views, video_count
+            FROM word_trends
+            WHERE channel_id = ? AND ngram_type = 1 AND NOT (phrase LIKE '#%')
+            ORDER BY total_views DESC
+            LIMIT 10
+        """, (target_channel_id,))
+        top_words = [
+            {"word": row["phrase"], "count": row["total_views"], "video_count": row["video_count"]}
+            for row in cursor.fetchall()
         ]
-        
-        top_hashtags = sorted(filtered_tags, key=lambda x: x["count"], reverse=True)[:10]
-        top_words = sorted(filtered_words, key=lambda x: x["count"], reverse=True)[:10]
-        
-        chan_median = max(1, median_views)
-        
-        results_word_lift = []
-        for w, views in word_views_list.items():
-            if len(views) >= 5:
-                sorted_views = sorted(views)
-                n_v = len(sorted_views)
-                if n_v % 2 == 1:
-                    w_median = sorted_views[n_v // 2]
-                else:
-                    w_median = (sorted_views[n_v // 2 - 1] + sorted_views[n_v // 2]) // 2
-                
-                lift = w_median / chan_median
-                results_word_lift.append({
-                    "word": w,
-                    "median_views": w_median,
-                    "video_count": len(views),
-                    "lift": lift
-                })
-                
-        best_promo_words = sorted(results_word_lift, key=lambda x: x["lift"], reverse=True)[:limit]
-        worst_promo_words = sorted(results_word_lift, key=lambda x: x["lift"])[:limit]
-        
-        results_tag_lift = []
-        for t, views in tag_views_list.items():
-            if len(views) >= 5:
-                sorted_views = sorted(views)
-                n_v = len(sorted_views)
-                if n_v % 2 == 1:
-                    t_median = sorted_views[n_v // 2]
-                else:
-                    t_median = (sorted_views[n_v // 2 - 1] + sorted_views[n_v // 2]) // 2
-                
-                lift = t_median / chan_median
-                results_tag_lift.append({
-                    "tag": t,
-                    "median_views": t_median,
-                    "video_count": len(views),
-                    "lift": lift
-                })
-                
-        best_promo_tags = sorted(results_tag_lift, key=lambda x: x["lift"], reverse=True)[:limit]
-        worst_promo_tags = sorted(results_tag_lift, key=lambda x: x["lift"])[:limit]
+
+        # 9.3 Best promo words (all ngrams not starting with '#')
+        cursor.execute("""
+            SELECT phrase, median_views, video_count, performance_lift
+            FROM word_trends
+            WHERE channel_id = ? AND NOT (phrase LIKE '#%')
+            ORDER BY performance_lift DESC
+            LIMIT ?
+        """, (target_channel_id, limit))
+        best_promo_words = [
+            {
+                "word": row["phrase"],
+                "median_views": row["median_views"],
+                "video_count": row["video_count"],
+                "lift": row["performance_lift"]
+            }
+            for row in cursor.fetchall()
+        ]
+
+        # 9.4 Worst promo words (all ngrams not starting with '#')
+        cursor.execute("""
+            SELECT phrase, median_views, video_count, performance_lift
+            FROM word_trends
+            WHERE channel_id = ? AND NOT (phrase LIKE '#%')
+            ORDER BY performance_lift ASC
+            LIMIT ?
+        """, (target_channel_id, limit))
+        worst_promo_words = [
+            {
+                "word": row["phrase"],
+                "median_views": row["median_views"],
+                "video_count": row["video_count"],
+                "lift": row["performance_lift"]
+            }
+            for row in cursor.fetchall()
+        ]
+
+        # 9.5 Best promo tags (hashtags)
+        cursor.execute("""
+            SELECT phrase, median_views, video_count, performance_lift
+            FROM word_trends
+            WHERE channel_id = ? AND phrase LIKE '#%'
+            ORDER BY performance_lift DESC
+            LIMIT ?
+        """, (target_channel_id, limit))
+        best_promo_tags = [
+            {
+                "tag": row["phrase"],
+                "median_views": row["median_views"],
+                "video_count": row["video_count"],
+                "lift": row["performance_lift"]
+            }
+            for row in cursor.fetchall()
+        ]
+
+        # 9.6 Worst promo tags (hashtags)
+        cursor.execute("""
+            SELECT phrase, median_views, video_count, performance_lift
+            FROM word_trends
+            WHERE channel_id = ? AND phrase LIKE '#%'
+            ORDER BY performance_lift ASC
+            LIMIT ?
+        """, (target_channel_id, limit))
+        worst_promo_tags = [
+            {
+                "tag": row["phrase"],
+                "median_views": row["median_views"],
+                "video_count": row["video_count"],
+                "lift": row["performance_lift"]
+            }
+            for row in cursor.fetchall()
+        ]
         
         return jsonify({
             "channel_id": channel_id_raw,

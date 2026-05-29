@@ -193,6 +193,22 @@ class DatabaseClient(BaseStorage):
         )
         """)
         
+        # 2b. Create word_trends table
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS word_trends (
+            trend_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            channel_id TEXT NOT NULL,
+            phrase TEXT NOT NULL,
+            ngram_type INTEGER NOT NULL, -- 1 = word, 2 = bigram, 3 = trigram
+            video_count INTEGER NOT NULL,
+            total_views INTEGER DEFAULT 0,
+            median_views INTEGER NOT NULL,
+            performance_lift REAL NOT NULL,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+        """)
+        cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_word_trends_channel_phrase ON word_trends(channel_id, phrase);")
+        
         conn.commit()
         
         # 3. Dynamic schema migrations for existing databases

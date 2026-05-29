@@ -279,6 +279,24 @@ def run_update(target_channel_input=None, silent=False):
                 print(f"[i] Total videos in DB for this channel: {stats['video_count']}")
             print("-" * 60)
             
+    # Run the trend analyzer script to rebuild the pre-calculated tables
+    if not silent:
+        print("[*] Rebuilding trend analysis data...")
+    try:
+        import subprocess
+        script_path = os.path.join(root_dir, "scripts", "analyze_trends.py")
+        # Run using same python interpreter to preserve the virtualenv environment
+        result = subprocess.run([sys.executable, script_path], capture_output=True, text=True)
+        if result.returncode == 0:
+            if not silent:
+                print("[+] Trend analysis successfully updated.")
+        else:
+            if not silent:
+                print(f"[!] Trend analyzer script failed:\n{result.stderr}")
+    except Exception as e:
+        if not silent:
+            print(f"[!] Failed to run trend analyzer: {e}")
+            
     return True
 
 

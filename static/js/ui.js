@@ -1681,32 +1681,32 @@ export function initChatResizer() {
         e.preventDefault();
         isResizing = true;
         resizer.classList.add("active");
-        document.body.style.cursor = "ew-resize";
-        document.body.style.userSelect = "none";
+        document.body.classList.add("dragging-chat");
     });
 
     window.addEventListener("mousemove", function(e) {
         if (!isResizing) return;
 
-        let newWidth = window.innerWidth - e.clientX;
-        const minWidth = 380;
-        const maxWidth = Math.floor(window.innerWidth / 2);
+        requestAnimationFrame(() => {
+            let newWidth = window.innerWidth - e.clientX;
+            const minWidth = 380;
+            const maxWidth = Math.floor(window.innerWidth / 2);
 
-        if (newWidth < minWidth) {
-            newWidth = minWidth;
-        } else if (newWidth > maxWidth) {
-            newWidth = maxWidth;
-        }
+            if (newWidth < minWidth) {
+                newWidth = minWidth;
+            } else if (newWidth > maxWidth) {
+                newWidth = maxWidth;
+            }
 
-        document.documentElement.style.setProperty("--chat-width", newWidth + "px");
+            document.documentElement.style.setProperty("--chat-width", newWidth + "px");
+        });
     });
 
     window.addEventListener("mouseup", function() {
         if (isResizing) {
             isResizing = false;
             resizer.classList.remove("active");
-            document.body.style.cursor = "";
-            document.body.style.userSelect = "";
+            document.body.classList.remove("dragging-chat");
             window.dispatchEvent(new Event('resize'));
         }
     });
@@ -1715,25 +1715,28 @@ export function initChatResizer() {
     resizer.addEventListener("touchstart", function(e) {
         isResizing = true;
         resizer.classList.add("active");
-        document.body.style.userSelect = "none";
+        document.body.classList.add("dragging-chat");
     });
 
     window.addEventListener("touchmove", function(e) {
         if (!isResizing) return;
         if (e.touches.length === 0) return;
-        let newWidth = window.innerWidth - e.touches[0].clientX;
-        const minWidth = 380;
-        const maxWidth = Math.floor(window.innerWidth / 2);
-        if (newWidth < minWidth) newWidth = minWidth;
-        if (newWidth > maxWidth) newWidth = maxWidth;
-        document.documentElement.style.setProperty("--chat-width", newWidth + "px");
+
+        requestAnimationFrame(() => {
+            let newWidth = window.innerWidth - e.touches[0].clientX;
+            const minWidth = 380;
+            const maxWidth = Math.floor(window.innerWidth / 2);
+            if (newWidth < minWidth) newWidth = minWidth;
+            if (newWidth > maxWidth) newWidth = maxWidth;
+            document.documentElement.style.setProperty("--chat-width", newWidth + "px");
+        });
     });
 
     window.addEventListener("touchend", function() {
         if (isResizing) {
             isResizing = false;
             resizer.classList.remove("active");
-            document.body.style.userSelect = "";
+            document.body.classList.remove("dragging-chat");
             window.dispatchEvent(new Event('resize'));
         }
     });

@@ -2102,6 +2102,11 @@ body {
     opacity: 0.5;
 }
 
+body.dragging-chat {
+    user-select: none !important;
+    cursor: col-resize !important;
+}
+
 /* Floating Summarize Button Overlays */
 body.modal-open #chat-toggle-btn {
     position: fixed;

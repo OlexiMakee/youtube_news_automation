@@ -1,6 +1,6 @@
 # 📦 YouTube News Automation — Project Root
 
-**Version:** v0.5.1-alpha | **Stack:** Python 3.9+ / Flask / SQLite / Chart.js
+**Version:** v0.5.2-alpha | **Stack:** Python 3.9+ / Flask / SQLite / Chart.js
 
 ## 🗺 Навігація по проекту
 

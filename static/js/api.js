@@ -295,14 +295,17 @@ export async function triggerAction(actionName) {
         
         const consoleOut = document.getElementById("console-output");
         
-        if (data.error) {
-            consoleOut.innerHTML += `<div class="console-line err">[ERROR] ${data.error}</div>`;
-        } else {
-            consoleOut.innerHTML += `<div class="console-line success">[SUCCESS] ${data.message}</div>`;
+        if (consoleOut) {
+            if (data.error) {
+                consoleOut.innerHTML += `<div class="console-line err">[ERROR] ${data.error}</div>`;
+            } else {
+                consoleOut.innerHTML += `<div class="console-line success">[SUCCESS] ${data.message}</div>`;
+                checkProcessStatus();
+            }
+            consoleOut.scrollTop = consoleOut.scrollHeight;
+        } else if (!data.error) {
             checkProcessStatus();
         }
-        
-        consoleOut.scrollTop = consoleOut.scrollHeight;
     } catch (err) {
         console.error("Action trigger failed:", err);
     } finally {
@@ -410,14 +413,16 @@ export async function checkProcessStatus() {
         
         if (status.logs) {
             const consoleOut = document.getElementById("console-output");
-            const formattedLogs = status.logs
-                .replace(/\[\*\]/g, '<span style="color:#38bdf8;">[*]</span>')
-                .replace(/\[\+\]/g, '<span style="color:#00ff87;">[+]</span>')
-                .replace(/\[i\]/g, '<span style="color:#e2e8f0;">[i]</span>')
-                .replace(/\[!\]/g, '<span style="color:#f87171;">[!]</span>');
-                
-            consoleOut.innerHTML = `<div class="console-line">${formattedLogs}</div>`;
-            consoleOut.scrollTop = consoleOut.scrollHeight;
+            if (consoleOut) {
+                const formattedLogs = status.logs
+                    .replace(/\[\*\]/g, '<span style="color:#38bdf8;">[*]</span>')
+                    .replace(/\[\+\]/g, '<span style="color:#00ff87;">[+]</span>')
+                    .replace(/\[i\]/g, '<span style="color:#e2e8f0;">[i]</span>')
+                    .replace(/\[!\]/g, '<span style="color:#f87171;">[!]</span>');
+                    
+                consoleOut.innerHTML = `<div class="console-line">${formattedLogs}</div>`;
+                consoleOut.scrollTop = consoleOut.scrollHeight;
+            }
         }
     } catch (err) {
         console.error("Failed to query background status:", err);
@@ -439,6 +444,39 @@ export async function loadChartsData(channelId) {
         
         const res = await fetch(`/api/charts?${params.toString()}`);
         state.chartRawData = await res.json();
+        
+        // Trigger background OCR for top/worst videos from the charts data if their thumbnail text is empty
+        if (state.chartRawData) {
+            const lists = [
+                state.chartRawData.top_viewed,
+                state.chartRawData.worst_viewed,
+                state.chartRawData.top_liked,
+                state.chartRawData.worst_liked,
+                state.chartRawData.top_commented,
+                state.chartRawData.worst_commented
+            ];
+            const ocrQueue = [];
+            lists.forEach(list => {
+                if (Array.isArray(list)) {
+                    list.forEach(v => {
+                        if (v && v.video_id && (!v.thumbnail_text || v.thumbnail_text.trim() === "")) {
+                            if (!ocrQueue.includes(v.video_id)) {
+                                ocrQueue.push(v.video_id);
+                            }
+                        }
+                    });
+                }
+            });
+            
+            if (ocrQueue.length > 0) {
+                console.log(`[OCR Charts] Queueing background OCR for ${ocrQueue.length} top/worst videos without text.`);
+                fetch("/api/videos/ocr_thumbnails", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ video_ids: ocrQueue })
+                }).catch(err => console.error("[OCR Charts] Failed to queue background OCR:", err));
+            }
+        }
         
         renderActiveChart();
     } catch (err) {

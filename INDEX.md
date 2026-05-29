@@ -80,7 +80,7 @@ News Research Automation/
 ├── .env                       ← ⚠️ SECRETS (не в git)
 ├── .env.example               ← шаблон .env
 ├── requirements.txt           ← pip залежності
-└── pyproject.toml             ← пакет метадані (версія: 0.5.2-alpha)
+└── pyproject.toml             ← пакет метадані (версія: 0.5.3-alpha)
 ```
 
 ---
@@ -108,7 +108,7 @@ News Research Automation/
 
 | Параметр | Значення |
 |---|---|
-| Версія | v0.5.2-alpha |
+| Версія | v0.5.3-alpha |
 | Відео в БД | ~18,174 |
 | Канали | 8 (UATV English, Français, Magyarul, Español, Arabic, Deutsch, Russian, UA) |
 | Розмір БД | ~135 MB |

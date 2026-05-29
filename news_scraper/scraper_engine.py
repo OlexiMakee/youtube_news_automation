@@ -270,7 +270,7 @@ class YouTubeScraperEngine(BaseScraper):
                     time.sleep(0.1)
                     
                 if not self.silent:
-                    sys.stdout.write("\r\033[K")
+                    sys.stdout.write(f"\r\033[K[*] [Cooldown] Finished! Resuming scraping flow...\n")
                     sys.stdout.flush()
                     
                 # Re-initialize keypress detector if it was active
@@ -443,7 +443,7 @@ class YouTubeScraperEngine(BaseScraper):
                         time.sleep(0.05)
                         
                     if not self.silent:
-                        sys.stdout.write("\r\033[K")
+                        sys.stdout.write(f"\r\033[K[*] Throttling protection delay finished. Resuming...\n")
                         sys.stdout.flush()
                         
                     if self.keypress_detector is None:

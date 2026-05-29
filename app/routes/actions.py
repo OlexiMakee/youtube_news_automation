@@ -319,24 +319,102 @@ def terminal_resize():
     return '', 204
 
 
+@actions_bp.route('/api/agent/models', methods=['GET'])
+def agent_models():
+    """Returns available AI models from the configured provider."""
+    try:
+        from app.services.agent import AgentService
+        models = AgentService.list_models()
+        return jsonify({"models": models})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @actions_bp.route('/api/agent/chat', methods=['POST'])
 def agent_chat():
+    """Legacy non-streaming chat endpoint (kept for compatibility)."""
     data = request.json or {}
     message = data.get("message", "").strip()
     if not message:
         return jsonify({"error": "Message content cannot be empty."}), 400
-        
+
+    channel_ids = data.get("channel_ids") or []
+    start_date  = data.get("start_date", "")
+    end_date    = data.get("end_date", "")
+    model_id    = data.get("model_id") or None
+
     try:
         from app.services.agent import AgentService
-        response_text = AgentService.get_chat_response(message)
-        return jsonify({"response": response_text})
+        context_override = data.get("context_override")
+        if context_override:
+            ctx = context_override
+        else:
+            ctx = AgentService.build_dashboard_context(
+                channel_ids=channel_ids,
+                start_date=start_date,
+                end_date=end_date
+            )
+        # Collect streamed text into a single string
+        full_text = ""
+        for chunk in AgentService.stream_chat_response(message, ctx, model_id=model_id):
+            if chunk.startswith("data: [DONE]"):
+                break
+            if chunk.startswith("data: "):
+                try:
+                    import json as _json
+                    obj = _json.loads(chunk[len("data: "):].strip())
+                    if "text" in obj:
+                        full_text += obj["text"]
+                    elif "error" in obj:
+                        return jsonify({"error": obj["error"]}), 500
+                except Exception:
+                    pass
+        return jsonify({"response": full_text})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+@actions_bp.route('/api/agent/chat/stream', methods=['POST'])
+def agent_chat_stream():
+    """Streaming SSE chat endpoint."""
+    data = request.json or {}
+    message = data.get("message", "").strip()
+    if not message:
+        return jsonify({"error": "Message content cannot be empty."}), 400
+
+    channel_ids = data.get("channel_ids") or []
+    start_date  = data.get("start_date", "")
+    end_date    = data.get("end_date", "")
+    model_id    = data.get("model_id") or None
+
+    from app.services.agent import AgentService
+    from flask import stream_with_context
+
+    context_override = data.get("context_override")
+    if context_override:
+        ctx = context_override
+    else:
+        ctx = AgentService.build_dashboard_context(
+            channel_ids=channel_ids,
+            start_date=start_date,
+            end_date=end_date
+        )
+
+    def generate():
+        yield from AgentService.stream_chat_response(message, ctx, model_id=model_id)
+
+    return Response(
+        stream_with_context(generate()),
+        mimetype="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no"
+        }
+    )
 
 
 @actions_bp.route('/api/action/shutdown', methods=['POST'])
 def actions_shutdown():
     trigger_server_shutdown()
     return jsonify({"message": "Server shutting down..."}), 200
-
 

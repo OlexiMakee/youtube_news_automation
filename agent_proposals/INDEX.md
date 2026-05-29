@@ -234,6 +234,19 @@ Use when:
 - estimating UX feature value versus risk;
 - connecting product features to marketing claims.
 
+### 15. `2026-05-29_antigravity_multi_provider_agent.md`
+
+Scope:
+
+- role tabs (Аналітик / Асистент);
+- dynamic multi-provider selector (Gemini, OpenAI, Ollama, OpenRouter);
+- SQLite database logs (`agent_chats`).
+
+Use when:
+
+- implementing provider selection in the chat drawer;
+- setting up SQLite schema migrations for the chat logs.
+
 ## Suggested Reading Order For New Agents
 
 1. `README.md`

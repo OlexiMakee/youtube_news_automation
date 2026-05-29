@@ -16,7 +16,7 @@
 - **Сервер:** `python web_app.py` → `http://127.0.0.1:5001`
 - **БД:** `data/youtube_news.db` (SQLite, ~135MB, 18k+ відео, 3 канали)
 - **Пакет:** `news_scraper/` (db_client, scraper_engine, postgres_sync, kaggle_sync)
-- **Версія:** v0.5.2-alpha
+- **Версія:** v0.5.3-alpha
 
 ## Правило для агентів
 

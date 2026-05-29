@@ -51,7 +51,13 @@ def get_charts():
                 "best_promo_words": [],
                 "worst_promo_words": [],
                 "best_promo_tags": [],
-                "worst_promo_tags": []
+                "worst_promo_tags": [],
+                "top_title_words": [],
+                "best_promo_title_words": [],
+                "worst_promo_title_words": [],
+                "top_thumb_words": [],
+                "best_promo_thumb_words": [],
+                "worst_promo_thumb_words": []
             })
         
         # Build date filter clause (applied to all queries)
@@ -122,7 +128,7 @@ def get_charts():
         
         # 3. Top viewed videos
         cursor.execute(f"""
-            SELECT v.title, v.view_count, v.published_at, v.video_id, v.views_update, v.full_description, v.description, v.channel_id
+            SELECT v.title, v.view_count, v.published_at, v.video_id, v.views_update, v.full_description, v.description, v.channel_id, v.thumbnail_text
             FROM videos v
             WHERE v.channel_id IN ({placeholders}){date_filter}
             ORDER BY v.view_count DESC
@@ -132,7 +138,7 @@ def get_charts():
         
         # 3b. Worst viewed videos
         cursor.execute(f"""
-            SELECT v.title, v.view_count, v.published_at, v.video_id, v.views_update, v.full_description, v.description, v.channel_id
+            SELECT v.title, v.view_count, v.published_at, v.video_id, v.views_update, v.full_description, v.description, v.channel_id, v.thumbnail_text
             FROM videos v
             WHERE v.channel_id IN ({placeholders}){date_filter}
             ORDER BY v.view_count ASC
@@ -142,7 +148,7 @@ def get_charts():
         
         # 4. Top liked videos
         cursor.execute(f"""
-            SELECT v.title, v.like_count, v.published_at, v.video_id, v.views_update, v.full_description, v.description, v.channel_id
+            SELECT v.title, v.like_count, v.published_at, v.video_id, v.views_update, v.full_description, v.description, v.channel_id, v.thumbnail_text
             FROM videos v
             WHERE v.channel_id IN ({placeholders}){date_filter}
             ORDER BY v.like_count DESC
@@ -152,7 +158,7 @@ def get_charts():
         
         # 4b. Worst liked videos
         cursor.execute(f"""
-            SELECT v.title, v.like_count, v.published_at, v.video_id, v.views_update, v.full_description, v.description, v.channel_id
+            SELECT v.title, v.like_count, v.published_at, v.video_id, v.views_update, v.full_description, v.description, v.channel_id, v.thumbnail_text
             FROM videos v
             WHERE v.channel_id IN ({placeholders}){date_filter}
             ORDER BY v.like_count ASC
@@ -162,7 +168,7 @@ def get_charts():
  
         # 5. Top commented videos
         cursor.execute(f"""
-            SELECT v.title, v.comment_count, v.published_at, v.video_id, v.views_update, v.full_description, v.description, v.channel_id
+            SELECT v.title, v.comment_count, v.published_at, v.video_id, v.views_update, v.full_description, v.description, v.channel_id, v.thumbnail_text
             FROM videos v
             WHERE v.channel_id IN ({placeholders}){date_filter}
             ORDER BY v.comment_count DESC
@@ -172,7 +178,7 @@ def get_charts():
         
         # 5b. Worst commented videos
         cursor.execute(f"""
-            SELECT v.title, v.comment_count, v.published_at, v.video_id, v.views_update, v.full_description, v.description, v.channel_id
+            SELECT v.title, v.comment_count, v.published_at, v.video_id, v.views_update, v.full_description, v.description, v.channel_id, v.thumbnail_text
             FROM videos v
             WHERE v.channel_id IN ({placeholders}){date_filter}
             ORDER BY v.comment_count ASC
@@ -232,7 +238,7 @@ def get_charts():
         
         # 9. Dynamic Text Analytics based on video_phrases and active filters
         cursor.execute(f"""
-            SELECT vp.phrase, vp.ngram_type, v.view_count
+            SELECT vp.phrase, vp.ngram_type, vp.source, v.view_count
             FROM video_phrases vp
             JOIN videos v ON vp.video_id = v.video_id
             WHERE v.channel_id IN ({placeholders}){date_filter}
@@ -241,30 +247,46 @@ def get_charts():
         from collections import defaultdict
         phrase_views = defaultdict(list)
         for row in cursor.fetchall():
-            phrase_views[(row['phrase'], row['ngram_type'])].append(row['view_count'] or 0)
+            phrase_views[(row['phrase'], row['ngram_type'], row['source'])].append(row['view_count'] or 0)
             
         chan_median = max(1, median_views)
         
+        # Description
         hashtag_list = []
         word_list = []
         promo_words_list = []
         promo_tags_list = []
+
+        # Title
+        title_word_list = []
+        promo_title_words_list = []
+
+        # Thumbnail
+        thumb_word_list = []
+        promo_thumb_words_list = []
         
-        for (phrase, ngram_type), views in phrase_views.items():
+        for (phrase, ngram_type, source), views in phrase_views.items():
             is_hashtag = phrase.startswith('#')
             video_count = len(views)
             total_views = sum(views)
             
-            # 9.1 & 9.2: Top Hashtags / Words (based on total views of containing videos)
+            # Top Lists (based on total views of containing videos)
             if ngram_type == 1:
-                if is_hashtag:
-                    if video_count >= 3:
-                        hashtag_list.append({"tag": phrase, "count": total_views, "video_count": video_count})
-                else:
-                    if video_count >= 3:
-                        word_list.append({"word": phrase, "count": total_views, "video_count": video_count})
+                if source == 'description':
+                    if is_hashtag:
+                        if video_count >= 3:
+                            hashtag_list.append({"tag": phrase, "count": total_views, "video_count": video_count})
+                    else:
+                        if video_count >= 3:
+                            word_list.append({"word": phrase, "count": total_views, "video_count": video_count})
+                elif source == 'title':
+                    if not is_hashtag and video_count >= 3:
+                        title_word_list.append({"word": phrase, "count": total_views, "video_count": video_count})
+                elif source == 'thumbnail':
+                    if not is_hashtag and video_count >= 3:
+                        thumb_word_list.append({"word": phrase, "count": total_views, "video_count": video_count})
                         
-            # 9.3 to 9.6: Promo Words / Tags (performance lift)
+            # Promo Lists (performance lift)
             if video_count >= 5:
                 sorted_v = sorted(views)
                 n_v = len(sorted_v)
@@ -275,29 +297,54 @@ def get_charts():
                     
                 lift = phrase_median / chan_median
                 
-                if is_hashtag:
-                    promo_tags_list.append({
-                        "tag": phrase,
-                        "median_views": phrase_median,
-                        "video_count": video_count,
-                        "lift": lift
-                    })
-                else:
-                    promo_words_list.append({
-                        "word": phrase,
-                        "median_views": phrase_median,
-                        "video_count": video_count,
-                        "lift": lift
-                    })
+                if source == 'description':
+                    if is_hashtag:
+                        promo_tags_list.append({
+                            "tag": phrase,
+                            "median_views": phrase_median,
+                            "video_count": video_count,
+                            "lift": lift
+                        })
+                    else:
+                        promo_words_list.append({
+                            "word": phrase,
+                            "median_views": phrase_median,
+                            "video_count": video_count,
+                            "lift": lift
+                        })
+                elif source == 'title':
+                    if not is_hashtag:
+                        promo_title_words_list.append({
+                            "word": phrase,
+                            "median_views": phrase_median,
+                            "video_count": video_count,
+                            "lift": lift
+                        })
+                elif source == 'thumbnail':
+                    if not is_hashtag:
+                        promo_thumb_words_list.append({
+                            "word": phrase,
+                            "median_views": phrase_median,
+                            "video_count": video_count,
+                            "lift": lift
+                        })
                     
         top_hashtags = sorted(hashtag_list, key=lambda x: x["count"], reverse=True)[:10]
         top_words = sorted(word_list, key=lambda x: x["count"], reverse=True)[:10]
+        top_title_words = sorted(title_word_list, key=lambda x: x["count"], reverse=True)[:10]
+        top_thumb_words = sorted(thumb_word_list, key=lambda x: x["count"], reverse=True)[:10]
         
         best_promo_words = sorted(promo_words_list, key=lambda x: x["lift"], reverse=True)[:limit]
         worst_promo_words = sorted(promo_words_list, key=lambda x: x["lift"])[:limit]
         
         best_promo_tags = sorted(promo_tags_list, key=lambda x: x["lift"], reverse=True)[:limit]
         worst_promo_tags = sorted(promo_tags_list, key=lambda x: x["lift"])[:limit]
+
+        best_promo_title_words = sorted(promo_title_words_list, key=lambda x: x["lift"], reverse=True)[:limit]
+        worst_promo_title_words = sorted(promo_title_words_list, key=lambda x: x["lift"])[:limit]
+
+        best_promo_thumb_words = sorted(promo_thumb_words_list, key=lambda x: x["lift"], reverse=True)[:limit]
+        worst_promo_thumb_words = sorted(promo_thumb_words_list, key=lambda x: x["lift"])[:limit]
         
         return jsonify({
             "channel_id": channel_id_raw,
@@ -317,7 +364,13 @@ def get_charts():
             "best_promo_words": best_promo_words,
             "worst_promo_words": worst_promo_words,
             "best_promo_tags": best_promo_tags,
-            "worst_promo_tags": worst_promo_tags
+            "worst_promo_tags": worst_promo_tags,
+            "top_title_words": top_title_words,
+            "best_promo_title_words": best_promo_title_words,
+            "worst_promo_title_words": worst_promo_title_words,
+            "top_thumb_words": top_thumb_words,
+            "best_promo_thumb_words": best_promo_thumb_words,
+            "worst_promo_thumb_words": worst_promo_thumb_words
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500

@@ -18,7 +18,7 @@ if root_dir not in sys.path:
 
 import news_scraper.utils as utils
 # Automatically reboot inside venv if not already active, ensuring all dependencies are met
-utils.setup_and_run_venv(__file__, required_libs=["psycopg2-binary"])
+utils.setup_and_run_venv(__file__, required_libs=["psycopg2-binary", "pytesseract", "pillow"])
 
 from app import create_app
 from app.state import trigger_background_update

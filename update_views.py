@@ -120,36 +120,59 @@ def main():
         try:
             url = f"https://www.youtube.com/watch?v={video_id}"
             new_views = None
+            new_likes = 0
+            new_comments = 0
             
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(url, download=False)
                 new_views = info.get('view_count')
+                new_likes = info.get('like_count') or 0
+                new_comments = info.get('comment_count') or 0
                 
             if new_views is not None:
                 new_views = int(new_views)
+                new_likes = int(new_likes)
+                new_comments = int(new_comments)
                 
-                # Check if view count grew or changed
-                views_changed = (new_views != old_views)
+                # Pad existing history to 4 items per point: [timestamp, views, likes, comments]
+                new_history = []
+                for item in views_history:
+                    if isinstance(item, list):
+                        if len(item) == 2:
+                            new_history.append([item[0], item[1], None, None])
+                        elif len(item) == 4:
+                            new_history.append(item)
                 
-                # Append new measurement to history: [timestamp_sec, view_count]
+                # Append new measurement
                 timestamp = int(time.time())
-                views_history.append([timestamp, new_views])
+                new_history.append([timestamp, new_views, new_likes, new_comments])
                 
-                # Keep history bounded to last 50 entries to prevent cell size explosion
-                if len(views_history) > 50:
-                    views_history = views_history[-50:]
+                # Downsample to exactly 16 points (keeping oldest, newest, and 14 middle points)
+                if len(new_history) > 16:
+                    first = new_history[0]
+                    last = new_history[-1]
+                    middle_pool = new_history[1:-1]
+                    num_to_select = 14
+                    n = len(middle_pool)
+                    selected_middle = []
+                    for i in range(num_to_select):
+                        idx = int(round(i * (n - 1) / (num_to_select - 1)))
+                        selected_middle.append(middle_pool[idx])
+                    new_history = [first] + selected_middle + [last]
                     
-                views_update_json = json.dumps(views_history)
+                views_update_json = json.dumps(new_history)
                 
-                # Update DB row
+                # Update DB row with new counts and history
                 cursor.execute("""
                     UPDATE videos 
                     SET view_count = ?, 
+                        like_count = ?,
+                        comment_count = ?,
                         views_update = ?, 
                         updated_at = datetime('now', 'localtime'),
                         synced = 0
                     WHERE video_id = ?
-                """, (new_views, views_update_json, video_id))
+                """, (new_views, new_likes, new_comments, views_update_json, video_id))
                 
                 conn.commit()
                 

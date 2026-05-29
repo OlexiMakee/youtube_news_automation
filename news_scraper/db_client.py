@@ -189,18 +189,28 @@ class DatabaseClient(BaseStorage):
             synced INTEGER DEFAULT 0,
             full_description TEXT,
             views_update TEXT,
+            thumbnail_text TEXT,
+            top_comments TEXT,
             FOREIGN KEY (channel_id) REFERENCES channels (channel_id)
         )
         """)
         
         # 2b. Create video_phrases table
         cursor.execute("DROP TABLE IF EXISTS word_trends;")
+        
+        # Drop table first if the source column is missing (migration logic)
+        cursor.execute("PRAGMA table_info(video_phrases)")
+        vp_cols = [row['name'] for row in cursor.fetchall()]
+        if vp_cols and 'source' not in vp_cols:
+            cursor.execute("DROP TABLE IF EXISTS video_phrases;")
+
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS video_phrases (
             video_id TEXT NOT NULL,
             phrase TEXT NOT NULL,
             ngram_type INTEGER NOT NULL, -- 1 = word/hashtag, 2 = bigram, 3 = trigram
-            PRIMARY KEY (video_id, phrase)
+            source TEXT NOT NULL,         -- 'description', 'title', 'thumbnail'
+            PRIMARY KEY (video_id, phrase, source)
         )
         """)
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_video_phrases_phrase ON video_phrases(phrase);")
@@ -243,6 +253,14 @@ class DatabaseClient(BaseStorage):
             
         if 'views_update' not in videos_cols:
             cursor.execute("ALTER TABLE videos ADD COLUMN views_update TEXT;")
+            conn.commit()
+
+        if 'thumbnail_text' not in videos_cols:
+            cursor.execute("ALTER TABLE videos ADD COLUMN thumbnail_text TEXT;")
+            conn.commit()
+
+        if 'top_comments' not in videos_cols:
+            cursor.execute("ALTER TABLE videos ADD COLUMN top_comments TEXT;")
             conn.commit()
 
         # 4. Performance indexes (CREATE IF NOT EXISTS — safe to run repeatedly)

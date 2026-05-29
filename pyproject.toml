@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "news-scraper"
-version = "0.5.2-alpha"
+version = "0.5.3-alpha"
 description = "YouTube news channel monitoring — scraping, analytics, and web dashboard"
 readme = "README.md"
 authors = [

@@ -1,7 +1,7 @@
 import { state } from './state.js';
 import { translations } from './translations.js';
 import { openVideoModal } from './ui.js';
-import { isD3ChartType, renderD3VideoChart, hideD3Tooltip } from './d3-charts.js';
+import { isD3ChartType, renderD3Chart, hideD3Tooltip } from './d3-charts.js';
 
 export const CHART_DEFS = [
     // Group 1: Stats split-buttons (video metrics)
@@ -15,6 +15,9 @@ export const CHART_DEFS = [
     { id: 'worst_commented',    group: 'stats', pair: 'right', pairId: 'top_commented',     icon: '📉', labelKey: 'chart_worst_sub' },
     
     // Group 2: Promo split-buttons (text analytics)
+    { id: 'best_promo_title_words', group: 'promo', pair: 'left', pairId: 'worst_promo_title_words', icon: '🚀', labelKey: 'chart_best_promo_title_words' },
+    { id: 'worst_promo_title_words', group: 'promo', pair: 'right', pairId: 'best_promo_title_words', icon: '📉', labelKey: 'chart_worst_sub' },
+
     { id: 'best_promo_words',   group: 'promo', pair: 'left',  pairId: 'worst_promo_words', icon: '🚀', labelKey: 'chart_best_promo_words' },
     { id: 'worst_promo_words',  group: 'promo', pair: 'right', pairId: 'best_promo_words',  icon: '📉', labelKey: 'chart_worst_sub' },
     
@@ -32,6 +35,27 @@ export function initChartUI() {
     if (!container) return;
     
     container.innerHTML = '';
+    
+    // Setup explicit row wrapper containers to keep them strictly separated in 3 rows
+    const row1 = document.createElement('div');
+    row1.className = 'chart-controls-row stats-row';
+    row1.style.display = 'flex';
+    row1.style.gap = '8px';
+    row1.style.marginBottom = '8px';
+    row1.style.flexWrap = 'wrap';
+
+    const row2 = document.createElement('div');
+    row2.className = 'chart-controls-row promo-row';
+    row2.style.display = 'flex';
+    row2.style.gap = '8px';
+    row2.style.marginBottom = '8px';
+    row2.style.flexWrap = 'wrap';
+
+    const row3 = document.createElement('div');
+    row3.className = 'chart-controls-row other-row';
+    row3.style.display = 'flex';
+    row3.style.gap = '8px';
+    row3.style.flexWrap = 'wrap';
     
     const statsElements = [];
     const promoElements = [];
@@ -117,23 +141,13 @@ export function initChartUI() {
         }
     });
     
-    statsElements.forEach(el => container.appendChild(el));
+    statsElements.forEach(el => row1.appendChild(el));
+    promoElements.forEach(el => row2.appendChild(el));
+    otherElements.forEach(el => row3.appendChild(el));
     
-    if (statsElements.length > 0 && promoElements.length > 0) {
-        const divider = document.createElement('div');
-        divider.className = 'chart-group-divider';
-        container.appendChild(divider);
-    }
-    
-    promoElements.forEach(el => container.appendChild(el));
-    
-    if ((statsElements.length > 0 || promoElements.length > 0) && otherElements.length > 0) {
-        const divider = document.createElement('div');
-        divider.className = 'chart-group-divider';
-        container.appendChild(divider);
-    }
-    
-    otherElements.forEach(el => container.appendChild(el));
+    if (statsElements.length > 0) container.appendChild(row1);
+    if (promoElements.length > 0) container.appendChild(row2);
+    if (otherElements.length > 0) container.appendChild(row3);
 }
 
 export function selectChart(chartType) {
@@ -206,7 +220,7 @@ export function renderActiveChart(dashboardCard) {
             }
         }
         
-        renderD3VideoChart(chartType, d3Root);
+        renderD3Chart(chartType, d3Root);
         return;
     }
     
@@ -218,7 +232,12 @@ export function renderActiveChart(dashboardCard) {
     }
     if (canvasEl) canvasEl.style.display = 'block';
     
-    const isScrollable = ["best_promo_words", "worst_promo_words", "best_promo_tags", "worst_promo_tags"].includes(chartType);
+    const isScrollable = [
+        "best_promo_words", "worst_promo_words", 
+        "best_promo_tags", "worst_promo_tags",
+        "best_promo_title_words", "worst_promo_title_words",
+        "best_promo_thumb_words", "worst_promo_thumb_words"
+    ].includes(chartType);
     
     if (container) {
         if (isScrollable) {
@@ -233,6 +252,10 @@ export function renderActiveChart(dashboardCard) {
             else if (chartType === "worst_promo_words" && state.chartRawData.worst_promo_words) itemCount = state.chartRawData.worst_promo_words.length;
             else if (chartType === "best_promo_tags" && state.chartRawData.best_promo_tags) itemCount = state.chartRawData.best_promo_tags.length;
             else if (chartType === "worst_promo_tags" && state.chartRawData.worst_promo_tags) itemCount = state.chartRawData.worst_promo_tags.length;
+            else if (chartType === "best_promo_title_words" && state.chartRawData.best_promo_title_words) itemCount = state.chartRawData.best_promo_title_words.length;
+            else if (chartType === "worst_promo_title_words" && state.chartRawData.worst_promo_title_words) itemCount = state.chartRawData.worst_promo_title_words.length;
+            else if (chartType === "best_promo_thumb_words" && state.chartRawData.best_promo_thumb_words) itemCount = state.chartRawData.best_promo_thumb_words.length;
+            else if (chartType === "worst_promo_thumb_words" && state.chartRawData.worst_promo_thumb_words) itemCount = state.chartRawData.worst_promo_thumb_words.length;
             
             // 18px per bar + 60px header/footer
             const canvasH = Math.max(300, itemCount * 18 + 60);
@@ -377,178 +400,6 @@ export function renderActiveChart(dashboardCard) {
                                     (state.currentLang === "ua" ? "Перегляди: " : "Views: ") + item.count.toLocaleString(),
                                     (state.currentLang === "ua" ? "Відео: " : "Videos: ") + item.video_count,
                                     (state.currentLang === "ua" ? "Сер. переглядів/відео: " : "Avg views/video: ") + avgViews.toLocaleString()
-                                ];
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    x: { grid: { color: gridColor }, ticks: { color: labelColor } },
-                    y: { grid: { display: false }, ticks: { color: labelColor, autoSkip: false, font: { size: 11 } } }
-                }
-            }
-        };
-    } else if (chartType === "best_promo_words") {
-        const labels = state.chartRawData.best_promo_words.map(d => d.word);
-        const values = state.chartRawData.best_promo_words.map(d => d.lift);
-        
-        chartConfig = {
-            type: "bar",
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: state.currentLang === "ua" ? "Приріст (Lift)" : "Performance Lift",
-                    data: values,
-                    backgroundColor: "#10b981"
-                }]
-            },
-            options: {
-                indexAxis: "y",
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false },
-                    title: { display: true, text: state.currentLang === "ua" ? "Найкращі слова для просування (Множник медіани)" : "Top Promotion Keywords (Median Lift Factor)", color: titleColor },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                const idx = context.dataIndex;
-                                const item = state.chartRawData.best_promo_words[idx];
-                                const changePct = Math.round((item.lift - 1) * 100);
-                                const changeSign = changePct >= 0 ? "+" : "";
-                                return [
-                                    (state.currentLang === "ua" ? "Ефективність: " : "Performance Lift: ") + item.lift.toFixed(2) + "x (" + changeSign + changePct + "%)",
-                                    (state.currentLang === "ua" ? "Медіана переглядів слова: " : "Word Median Views: ") + item.median_views.toLocaleString(),
-                                    (state.currentLang === "ua" ? "Кількість відео: " : "Videos count: ") + item.video_count
-                                ];
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    x: { grid: { color: gridColor }, ticks: { color: labelColor } },
-                    y: { grid: { display: false }, ticks: { color: labelColor, autoSkip: false, font: { size: 11 } } }
-                }
-            }
-        };
-    } else if (chartType === "worst_promo_words") {
-        const labels = state.chartRawData.worst_promo_words.map(d => d.word);
-        const values = state.chartRawData.worst_promo_words.map(d => d.lift);
-        
-        chartConfig = {
-            type: "bar",
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: state.currentLang === "ua" ? "Приріст (Lift)" : "Performance Lift",
-                    data: values,
-                    backgroundColor: "#ef4444"
-                }]
-            },
-            options: {
-                indexAxis: "y",
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false },
-                    title: { display: true, text: state.currentLang === "ua" ? "Топ-30 найгірших слів для просування (Множник медіани)" : "Worst Promotion Keywords (Median Lift Factor)", color: titleColor },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                const idx = context.dataIndex;
-                                const item = state.chartRawData.worst_promo_words[idx];
-                                const changePct = Math.round((item.lift - 1) * 100);
-                                const changeSign = changePct >= 0 ? "+" : "";
-                                return [
-                                    (state.currentLang === "ua" ? "Ефективність: " : "Performance Lift: ") + item.lift.toFixed(2) + "x (" + changeSign + changePct + "%)",
-                                    (state.currentLang === "ua" ? "Медіана переглядів слова: " : "Word Median Views: ") + item.median_views.toLocaleString(),
-                                    (state.currentLang === "ua" ? "Кількість відео: " : "Videos count: ") + item.video_count
-                                ];
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    x: { grid: { color: gridColor }, ticks: { color: labelColor } },
-                    y: { grid: { display: false }, ticks: { color: labelColor, autoSkip: false, font: { size: 11 } } }
-                }
-            }
-        };
-    } else if (chartType === "best_promo_tags") {
-        const labels = state.chartRawData.best_promo_tags.map(d => d.tag);
-        const values = state.chartRawData.best_promo_tags.map(d => d.lift);
-        
-        chartConfig = {
-            type: "bar",
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: state.currentLang === "ua" ? "Приріст (Lift)" : "Performance Lift",
-                    data: values,
-                    backgroundColor: "#10b981"
-                }]
-            },
-            options: {
-                indexAxis: "y",
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false },
-                    title: { display: true, text: state.currentLang === "ua" ? "Топ-30 найкращих хештегів для просування (Множник медіани)" : "Top 30 Promotion Hashtags (Median Lift Factor)", color: titleColor },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                const idx = context.dataIndex;
-                                const item = state.chartRawData.best_promo_tags[idx];
-                                const changePct = Math.round((item.lift - 1) * 100);
-                                const changeSign = changePct >= 0 ? "+" : "";
-                                return [
-                                    (state.currentLang === "ua" ? "Ефективність: " : "Performance Lift: ") + item.lift.toFixed(2) + "x (" + changeSign + changePct + "%)",
-                                    (state.currentLang === "ua" ? "Медіана переглядів тегу: " : "Tag Median Views: ") + item.median_views.toLocaleString(),
-                                    (state.currentLang === "ua" ? "Кількість відео: " : "Videos count: ") + item.video_count
-                                ];
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    x: { grid: { color: gridColor }, ticks: { color: labelColor } },
-                    y: { grid: { display: false }, ticks: { color: labelColor, autoSkip: false, font: { size: 11 } } }
-                }
-            }
-        };
-    } else if (chartType === "worst_promo_tags") {
-        const labels = state.chartRawData.worst_promo_tags.map(d => d.tag);
-        const values = state.chartRawData.worst_promo_tags.map(d => d.lift);
-        
-        chartConfig = {
-            type: "bar",
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: state.currentLang === "ua" ? "Приріст (Lift)" : "Performance Lift",
-                    data: values,
-                    backgroundColor: "#ef4444"
-                }]
-            },
-            options: {
-                indexAxis: "y",
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false },
-                    title: { display: true, text: state.currentLang === "ua" ? "Топ-30 найгірших хештегів для просування (Множник медіани)" : "Worst Promotion Hashtags (Median Lift Factor)", color: titleColor },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                const idx = context.dataIndex;
-                                const item = state.chartRawData.worst_promo_tags[idx];
-                                const changePct = Math.round((item.lift - 1) * 100);
-                                const changeSign = changePct >= 0 ? "+" : "";
-                                return [
-                                    (state.currentLang === "ua" ? "Ефективність: " : "Performance Lift: ") + item.lift.toFixed(2) + "x (" + changeSign + changePct + "%)",
-                                    (state.currentLang === "ua" ? "Медіана переглядів тегу: " : "Tag Median Views: ") + item.median_views.toLocaleString(),
-                                    (state.currentLang === "ua" ? "Кількість відео: " : "Videos count: ") + item.video_count
                                 ];
                             }
                         }
@@ -741,51 +592,143 @@ export function renderModalViewsChart(history) {
         });
     });
     
-    const data = history.map(item => item[1]);
+    // Extract series and detect presence of likes and comments
+    const viewsData = [];
+    const likesData = [];
+    const commentsData = [];
+    
+    let hasLikes = false;
+    let hasComments = false;
+    
+    history.forEach(item => {
+        viewsData.push(item[1]);
+        
+        if (item.length > 2 && item[2] !== null && item[2] !== undefined) {
+            likesData.push(item[2]);
+            hasLikes = true;
+        } else {
+            likesData.push(null);
+        }
+        
+        if (item.length > 3 && item[3] !== null && item[3] !== undefined) {
+            commentsData.push(item[3]);
+            hasComments = true;
+        } else {
+            commentsData.push(null);
+        }
+    });
+    
+    const datasets = [
+        {
+            label: state.currentLang === 'ua' ? 'Перегляди' : 'Views',
+            data: viewsData,
+            borderColor: '#38bdf8',
+            backgroundColor: 'rgba(56, 189, 248, 0.08)',
+            borderWidth: 2,
+            fill: true,
+            tension: 0.15,
+            pointRadius: 2.5,
+            pointHoverRadius: 4.5,
+            yAxisID: 'y'
+        }
+    ];
+    
+    if (hasComments) {
+        datasets.push({
+            label: state.currentLang === 'ua' ? 'Коментарі' : 'Comments',
+            data: commentsData,
+            borderColor: '#a855f7',
+            backgroundColor: 'transparent',
+            borderWidth: 2,
+            fill: false,
+            tension: 0.15,
+            pointRadius: 2.5,
+            pointHoverRadius: 4.5,
+            yAxisID: 'y1'
+        });
+    }
+    
+    if (hasLikes) {
+        datasets.push({
+            label: state.currentLang === 'ua' ? 'Лайки' : 'Likes',
+            data: likesData,
+            borderColor: '#f43f5e',
+            backgroundColor: 'transparent',
+            borderWidth: 2,
+            fill: false,
+            tension: 0.15,
+            pointRadius: 2.5,
+            pointHoverRadius: 4.5,
+            yAxisID: 'y2'
+        });
+    }
     
     const isDark = ["dark-black", "dark-blue"].includes(state.currentTheme);
     const gridColor = isDark ? "#334155" : "#e2e8f0";
     const labelColor = isDark ? "#94a3b8" : "#5f6368";
     
+    const scales = {
+        x: {
+            grid: { color: gridColor },
+            ticks: { color: labelColor, maxRotation: 45, minRotation: 0, font: { size: 9 } }
+        },
+        y: {
+            type: 'linear',
+            display: true,
+            position: 'left',
+            grid: { color: gridColor },
+            ticks: { color: '#38bdf8', font: { size: 9 }, callback: value => value.toLocaleString() }
+        }
+    };
+    
+    if (hasComments) {
+        scales.y1 = {
+            type: 'linear',
+            display: true,
+            position: 'right',
+            grid: { drawOnChartArea: false },
+            ticks: { color: '#a855f7', font: { size: 9 }, callback: value => value.toLocaleString() }
+        };
+    }
+    
+    if (hasLikes) {
+        scales.y2 = {
+            type: 'linear',
+            display: true,
+            position: 'right',
+            grid: { drawOnChartArea: false },
+            ticks: { color: '#f43f5e', font: { size: 9 }, callback: value => value.toLocaleString() }
+        };
+    }
+    
     state.activeModalChartInstance = new Chart(ctx, {
         type: 'line',
         data: {
             labels: labels,
-            datasets: [{
-                label: state.currentLang === 'ua' ? 'Перегляди' : 'Views',
-                data: data,
-                borderColor: '#38bdf8',
-                backgroundColor: 'rgba(56, 189, 248, 0.08)',
-                borderWidth: 2,
-                fill: true,
-                tension: 0.15,
-                pointRadius: 2.5,
-                pointHoverRadius: 4.5
-            }]
+            datasets: datasets
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                legend: { display: false },
+                legend: { 
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        boxWidth: 8,
+                        font: { size: 9 },
+                        color: labelColor
+                    }
+                },
                 tooltip: {
                     callbacks: {
                         label: function(context) {
-                            return context.raw.toLocaleString();
+                            return `${context.dataset.label}: ${context.raw.toLocaleString()}`;
                         }
                     }
                 }
             },
-            scales: {
-                x: {
-                    grid: { color: gridColor },
-                    ticks: { color: labelColor, maxRotation: 45, minRotation: 0, font: { size: 9 } }
-                },
-                y: {
-                    grid: { color: gridColor },
-                    ticks: { color: labelColor, font: { size: 9 }, callback: value => value.toLocaleString() }
-                }
-            }
+            scales: scales
         }
     });
 }

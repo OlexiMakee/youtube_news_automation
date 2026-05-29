@@ -9,12 +9,15 @@ Runs incrementally by only processing videos not already in the 'video_phrases' 
 import sys
 import os
 import re
-import sqlite3
 
 # Add project root to Python path
 script_dir = os.path.dirname(os.path.abspath(__file__))
 root_dir = os.path.dirname(script_dir)
 sys.path.insert(0, root_dir)
+
+import news_scraper.utils as utils
+# Automatically reboot inside venv if not already active
+utils.setup_and_run_venv(__file__, required_libs=["pytesseract", "pillow"])
 
 from news_scraper.db_client import DatabaseClient
 
@@ -102,8 +105,8 @@ def main():
         processed_ids = {row[0] for row in cursor.fetchall()}
         print(f"[*] Found {len(processed_ids)} already processed videos in 'video_phrases'.")
         
-        # Load all videos to check for unprocessed ones
-        cursor.execute("SELECT video_id, title, description FROM videos")
+        # Load all videos to check for unprocessed ones (including thumbnail_text)
+        cursor.execute("SELECT video_id, title, description, thumbnail_text FROM videos")
         all_videos = cursor.fetchall()
         
         unprocessed_videos = [v for v in all_videos if v['video_id'] not in processed_ids]
@@ -119,28 +122,33 @@ def main():
             video_id = v['video_id']
             title = v['title'] or ""
             desc = v['description'] or ""
+            thumb = v['thumbnail_text'] or ""
             
-            full_text = title + " " + desc
-            tokens = clean_and_tokenize(full_text)
-            uni, bi, tri = generate_ngrams(tokens)
-            
-            # De-duplicate phrases per video using set
-            seen_phrases = set()
-            
-            for phrase in uni:
-                if phrase not in seen_phrases:
-                    insert_rows.append((video_id, phrase, 1))
-                    seen_phrases.add(phrase)
-                    
-            for phrase in bi:
-                if phrase not in seen_phrases:
-                    insert_rows.append((video_id, phrase, 2))
-                    seen_phrases.add(phrase)
-                    
-            for phrase in tri:
-                if phrase not in seen_phrases:
-                    insert_rows.append((video_id, phrase, 3))
-                    seen_phrases.add(phrase)
+            # Helper to generate and add rows to the insert list
+            def add_source_ngrams(source_name, source_text):
+                tokens = clean_and_tokenize(source_text)
+                uni, bi, tri = generate_ngrams(tokens)
+                
+                # De-duplicate phrases per video + source
+                seen_phrases = set()
+                for phrase in uni:
+                    if phrase not in seen_phrases:
+                        insert_rows.append((video_id, phrase, 1, source_name))
+                        seen_phrases.add(phrase)
+                for phrase in bi:
+                    if phrase not in seen_phrases:
+                        insert_rows.append((video_id, phrase, 2, source_name))
+                        seen_phrases.add(phrase)
+                for phrase in tri:
+                    if phrase not in seen_phrases:
+                        insert_rows.append((video_id, phrase, 3, source_name))
+                        seen_phrases.add(phrase)
+
+            # Tokenize title, description, and thumbnail (if populated)
+            add_source_ngrams('title', title)
+            add_source_ngrams('description', desc)
+            if thumb.strip():
+                add_source_ngrams('thumbnail', thumb)
                     
             if (idx + 1) % 2000 == 0 or (idx + 1) == len(unprocessed_videos):
                 print(f"  Processed {idx + 1}/{len(unprocessed_videos)} videos...")
@@ -148,8 +156,8 @@ def main():
         # Perform bulk write
         print(f"[*] Inserting {len(insert_rows)} associations into 'video_phrases' table...")
         cursor.executemany("""
-            INSERT OR IGNORE INTO video_phrases (video_id, phrase, ngram_type)
-            VALUES (?, ?, ?)
+            INSERT OR IGNORE INTO video_phrases (video_id, phrase, ngram_type, source)
+            VALUES (?, ?, ?, ?)
         """, insert_rows)
         
         conn.commit()

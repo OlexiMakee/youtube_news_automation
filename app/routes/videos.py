@@ -91,15 +91,25 @@ def get_videos():
                 'scraped_at': 'v.scraped_at',
                 'updated_at': 'v.updated_at',
                 'channel_name': 'c.channel_name',
-                'channel_handle': 'c.channel_handle'
+                'channel_handle': 'c.channel_handle',
+                'thumbnail_text': 'v.thumbnail_text',
+                'full_description': 'v.full_description',
+                'top_comments': 'v.top_comments'
             }
             for col in chosen:
                 if col in valid_fields:
                     selected_cols.append(f"{valid_fields[col]} AS {col}")
         
         if not selected_cols:
-            selected_cols = ['v.video_id', 'v.title', 'c.channel_name', 'v.published_at', 'v.view_count', 'v.like_count', 'v.comment_count']
+            selected_cols = ['v.video_id', 'v.title', 'c.channel_name', 'v.published_at', 'v.view_count', 'v.like_count', 'v.comment_count', 'v.thumbnail_text', 'v.full_description', 'v.top_comments']
             
+        # Ensure key detailed fields are always selected for hover previews and background scraping checks
+        mandatory_cols = ['full_description', 'top_comments', 'views_update', 'duration', 'like_count', 'comment_count']
+        for col in mandatory_cols:
+            col_alias = f"v.{col} AS {col}"
+            if not any(c.strip().split(' AS ')[-1] == col for c in selected_cols):
+                selected_cols.append(col_alias)
+                
         select_fields = ", ".join(selected_cols)
         
         # Main Query
@@ -198,9 +208,11 @@ def scrape_video_details_route(video_id):
             'skip_download': True,
             'quiet': True,
             'no_warnings': True,
+            'getcomments': True,
             'extractor_args': {
                 'youtube': {
-                    'player_client': ['android', 'ios']
+                    'player_client': ['android', 'ios'],
+                    'max_comments': ['50']
                 }
             }
         }
@@ -211,9 +223,25 @@ def scrape_video_details_route(video_id):
         desc = info.get('description', '')
         views = info.get('view_count') or 0
         likes = info.get('like_count') or 0
-        comments = info.get('comment_count') or 0
+        comments_count = info.get('comment_count') or 0
         tags_list = info.get('tags') or []
         tags_str = ", ".join(tags_list) if tags_list else ''
+        
+        # Scrape and sort top comments
+        raw_comments = info.get('comments') or []
+        sorted_comments = sorted(
+            raw_comments,
+            key=lambda c: c.get('like_count') or c.get('likes') or 0,
+            reverse=True
+        )
+        top_10 = []
+        for c in sorted_comments[:10]:
+            top_10.append({
+                "author": c.get('author') or c.get('author_id') or "Anonymous",
+                "text": c.get('text') or "",
+                "likes": c.get('like_count') or c.get('likes') or 0
+            })
+        top_comments_json = json.dumps(top_10)
         
         # Update SQLite DB
         conn = get_sqlite_conn()
@@ -229,14 +257,53 @@ def scrape_video_details_route(video_id):
             except Exception:
                 views_history = []
         
+        if not isinstance(views_history, list):
+            views_history = []
+
+        # Pad existing history to 4 items: [timestamp, views, likes, comments]
+        new_history = []
+        for item in views_history:
+            if isinstance(item, list):
+                if len(item) == 2:
+                    new_history.append([item[0], item[1], None, None])
+                elif len(item) == 4:
+                    new_history.append(item)
+
         # Append new measurement
         timestamp = int(time.time())
-        views_history.append([timestamp, int(views)])
-        if len(views_history) > 50:
-            views_history = views_history[-50:]
-            
-        views_update_json = json.dumps(views_history)
+        new_history.append([
+            timestamp, 
+            int(views) if views is not None else 0, 
+            int(likes) if likes is not None else 0, 
+            int(comments_count) if comments_count is not None else 0
+        ])
         
+        # Downsample to exactly 16 points (keeping oldest, newest, and 14 middle points)
+        if len(new_history) > 16:
+            first = new_history[0]
+            last = new_history[-1]
+            middle_pool = new_history[1:-1]
+            num_to_select = 14
+            n = len(middle_pool)
+            selected_middle = []
+            for i in range(num_to_select):
+                idx = int(round(i * (n - 1) / (num_to_select - 1)))
+                selected_middle.append(middle_pool[idx])
+            new_history = [first] + selected_middle + [last]
+            
+        views_update_json = json.dumps(new_history)
+        
+        # Extract thumbnail text via OCR
+        from news_scraper.ocr import extract_thumbnail_text
+        try:
+            thumbnail_text = extract_thumbnail_text(video_id)
+        except Exception as ocr_err:
+            print(f"[OCR] Error during scrape_details OCR: {ocr_err}")
+            thumbnail_text = ""
+
+        # Invalidate tokenizer cache for this video to trigger re-tokenization
+        cursor.execute("DELETE FROM video_phrases WHERE video_id = ?", (video_id,))
+
         cursor.execute("""
             UPDATE videos 
             SET full_description = ?,
@@ -245,24 +312,93 @@ def scrape_video_details_route(video_id):
                 comment_count = ?,
                 tags = ?,
                 views_update = ?,
+                thumbnail_text = ?,
+                top_comments = ?,
                 updated_at = datetime('now', 'localtime'),
                 synced = 0
             WHERE video_id = ?
-        """, (desc, views, likes, comments, tags_str, views_update_json, video_id))
+        """, (desc, views, likes, comments_count, tags_str, views_update_json, thumbnail_text, top_comments_json, video_id))
         conn.commit()
         conn.close()
+        
+        # Trigger background N-gram re-tokenization for updated video details
+        def run_tokenization():
+            try:
+                import subprocess
+                script_path = os.path.join(root_dir, "scripts", "analyze_trends.py")
+                subprocess.run([sys.executable, script_path], check=False)
+            except Exception as err:
+                print(f"[Scrape Details] Error running analyze_trends: {err}")
+        
+        import threading
+        threading.Thread(target=run_tokenization, daemon=True).start()
         
         return jsonify({
             "message": "Video details scraped and updated successfully.",
             "description": desc,
             "view_count": views,
             "like_count": likes,
-            "comment_count": comments,
+            "comment_count": comments_count,
             "tags": tags_str,
-            "views_update": views_history
+            "views_update": new_history,
+            "thumbnail_text": thumbnail_text,
+            "top_comments": top_10
         })
     except Exception as e:
         return jsonify({"error": f"Failed to scrape details: {e}"}), 500
+
+
+@videos_bp.route('/api/videos/ocr_thumbnails', methods=['POST'])
+def ocr_thumbnails_batch_route():
+    import threading
+    data = request.json or {}
+    video_ids = data.get("video_ids", [])
+    if not video_ids:
+        return jsonify({"message": "No video IDs provided."}), 200
+
+    def process_batch():
+        from news_scraper.ocr import extract_thumbnail_text
+        conn = get_sqlite_conn()
+        cursor = conn.cursor()
+        try:
+            any_processed = False
+            for v_id in video_ids:
+                # Check if it already has OCR text
+                cursor.execute("SELECT thumbnail_text FROM videos WHERE video_id = ?", (v_id,))
+                row = cursor.fetchone()
+                if row and (row['thumbnail_text'] is None or row['thumbnail_text'].strip() == ''):
+                    try:
+                        text = extract_thumbnail_text(v_id)
+                    except Exception as err:
+                        print(f"[OCR Batch] Error processing {v_id}: {err}")
+                        text = ""
+
+                    cursor.execute("""
+                        UPDATE videos 
+                        SET thumbnail_text = ?,
+                            updated_at = datetime('now', 'localtime'),
+                            synced = 0
+                        WHERE video_id = ?
+                    """, (text, v_id))
+                    cursor.execute("DELETE FROM video_phrases WHERE video_id = ?", (v_id,))
+                    conn.commit()
+                    any_processed = True
+            
+            if any_processed:
+                try:
+                    import subprocess
+                    script_path = os.path.join(root_dir, "scripts", "analyze_trends.py")
+                    subprocess.run([sys.executable, script_path], check=False)
+                    print("[OCR Batch] Re-tokenization of updated thumbnails completed.")
+                except Exception as trend_err:
+                    print(f"[OCR Batch] Error running analyze_trends: {trend_err}")
+        except Exception as e:
+            print(f"[OCR Batch] Error in thread: {e}")
+        finally:
+            conn.close()
+
+    threading.Thread(target=process_batch, daemon=True).start()
+    return jsonify({"message": f"Started background OCR for {len(video_ids)} videos."}), 202
 
 
 @videos_bp.route('/api/videos/<video_id>/formats', methods=['GET'])

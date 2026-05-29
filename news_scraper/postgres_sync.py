@@ -86,7 +86,9 @@ class PostgresSyncClient:
                     scraped_at VARCHAR(100),
                     updated_at VARCHAR(100),
                     full_description TEXT,
-                    views_update TEXT
+                    views_update TEXT,
+                    thumbnail_text TEXT,
+                    top_comments TEXT
                 );
                 """)
                 conn.commit()
@@ -99,6 +101,16 @@ class PostgresSyncClient:
                     conn.rollback()
                 try:
                     cursor.execute("ALTER TABLE videos ADD COLUMN views_update TEXT;")
+                    conn.commit()
+                except Exception:
+                    conn.rollback()
+                try:
+                    cursor.execute("ALTER TABLE videos ADD COLUMN thumbnail_text TEXT;")
+                    conn.commit()
+                except Exception:
+                    conn.rollback()
+                try:
+                    cursor.execute("ALTER TABLE videos ADD COLUMN top_comments TEXT;")
                     conn.commit()
                 except Exception:
                     conn.rollback()
@@ -205,7 +217,7 @@ class PostgresSyncClient:
                         INSERT INTO videos (
                             video_id, channel_id, title, description, published_at, duration,
                             view_count, like_count, comment_count, tags, scraped_at, updated_at,
-                            full_description, views_update
+                            full_description, views_update, thumbnail_text, top_comments
                         )
                         VALUES %s
                         ON CONFLICT (video_id) DO UPDATE SET
@@ -219,7 +231,9 @@ class PostgresSyncClient:
                             tags = EXCLUDED.tags,
                             updated_at = EXCLUDED.updated_at,
                             full_description = EXCLUDED.full_description,
-                            views_update = EXCLUDED.views_update;
+                            views_update = EXCLUDED.views_update,
+                            thumbnail_text = EXCLUDED.thumbnail_text,
+                            top_comments = EXCLUDED.top_comments;
                         """
                         values = [(
                             v['video_id'],
@@ -235,7 +249,9 @@ class PostgresSyncClient:
                             v['scraped_at'],
                             v['updated_at'],
                             v.get('full_description'),
-                            v.get('views_update')
+                            v.get('views_update'),
+                            v.get('thumbnail_text'),
+                            v.get('top_comments')
                         ) for v in videos_to_sync]
                         
                         execute_values(cursor, insert_query, values)

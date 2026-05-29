@@ -65,6 +65,7 @@ export function changeTheme(theme) {
 
 // SECTION TOGGLER (For real tab switching)
 export function switchSection(tabId, element) {
+    state.currentSection = tabId;
     document.querySelectorAll(".sidebar-menu-item").forEach(item => {
         item.classList.remove("active");
     });
@@ -273,6 +274,17 @@ export function renderTable(videos) {
             openVideoModal(v);
         };
         
+        // Hover video preview tooltip
+        tr.onmouseenter = (e) => {
+            showTableTooltip(e, v);
+        };
+        tr.onmousemove = (e) => {
+            positionTableTooltip(e);
+        };
+        tr.onmouseleave = () => {
+            hideTableTooltip();
+        };
+        
         state.activeColumns.forEach(col => {
             const td = document.createElement("td");
             let val = v[col];
@@ -295,6 +307,21 @@ export function renderTable(videos) {
         
         bodyTbody.appendChild(tr);
     });
+
+    // Trigger background OCR for top 20 most viewed visible thumbnails without text
+    const ocrQueue = [...videos]
+        .sort((a, b) => (b.view_count || 0) - (a.view_count || 0))
+        .filter(v => !v.thumbnail_text || v.thumbnail_text.trim() === "")
+        .slice(0, 20)
+        .map(v => v.video_id);
+        
+    if (ocrQueue.length > 0) {
+        fetch("/api/videos/ocr_thumbnails", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ video_ids: ocrQueue })
+        }).catch(err => console.error("[OCR Auto] Failed to queue background OCR:", err));
+    }
 }
 
 // SORT TOGGLE
@@ -565,12 +592,23 @@ export function openVideoModal(video) {
     }
     
     renderModalViewsChart(history);
+    renderModalComments(video.top_comments);
+    
+    // Hide table hover tooltip if visible
+    hideTableTooltip();
     
     // Show Modal overlay
     const modal = document.getElementById("video-details-modal");
     if (modal) {
         modal.style.display = "flex";
         document.body.classList.add("modal-open");
+    }
+    
+    // Automatically trigger detailed scraping if the database record is missing details
+    if (!isVideoFullyScraped(video)) {
+        setTimeout(() => {
+            scrapeDetailsFromModal(true);
+        }, 100);
     }
 }
 
@@ -781,7 +819,7 @@ export async function startVideoDownload() {
     }
 }
 
-export async function scrapeDetailsFromModal() {
+export async function scrapeDetailsFromModal(isAuto = false) {
     const btn = document.getElementById("mv-modal-scrape-btn");
     const txt = document.getElementById("mv-modal-scrape-text");
     if (!state.activeModalVideoId || btn.disabled) return;
@@ -810,6 +848,7 @@ export async function scrapeDetailsFromModal() {
         
         // Redraw Views Trend line chart
         renderModalViewsChart(data.views_update || []);
+        renderModalComments(data.top_comments);
         
         // Synchronize this updated object inside the locally cached chartRawData!
         const updateVideoFields = (list, videoId, scrapedData) => {
@@ -822,6 +861,7 @@ export async function scrapeDetailsFromModal() {
                 found.comment_count = scrapedData.comment_count;
                 found.tags = scrapedData.tags;
                 found.views_update = scrapedData.views_update;
+                found.top_comments = scrapedData.top_comments;
             }
         };
         
@@ -833,9 +873,15 @@ export async function scrapeDetailsFromModal() {
         
         loadVideos();
         loadStats();
-        alert(state.currentLang === 'ua' ? "Дані успішно оновлено!" : "Video statistics successfully updated!");
+        if (!isAuto) {
+            alert(state.currentLang === 'ua' ? "Дані успішно оновлено!" : "Video statistics successfully updated!");
+        }
     } catch (err) {
-        alert(state.currentLang === 'ua' ? `Не вдалося отримати деталі: ${err.message}` : `Scrape failed: ${err.message}`);
+        if (!isAuto) {
+            alert(state.currentLang === 'ua' ? `Не вдалося отримати деталі: ${err.message}` : `Scrape failed: ${err.message}`);
+        } else {
+            console.error("Auto scrape failed:", err);
+        }
     } finally {
         btn.disabled = false;
         txt.innerText = oldText;
@@ -1029,84 +1075,512 @@ export async function submitAddChannel(event) {
     }
 }
 
-// AI CHAT UI METHODS
-export function toggleChatDrawer() {
-    const drawer = document.getElementById("chat-drawer");
-    if (drawer) {
-        const isOpen = drawer.classList.toggle("open");
-        if (window.innerWidth > 768) {
-            document.body.classList.toggle("chat-drawer-open", isOpen);
+
+/** Scrapes all text information from the currently active visualization */
+function _scrapeActiveChartText() {
+    const chartType = state.activeChartType || "top_viewed";
+    const chartData = state.chartRawData ? state.chartRawData[chartType] : null;
+    
+    const chartTitleKey = 'chart_' + chartType;
+    const chartTitle = (translations[state.currentLang] && translations[state.currentLang][chartTitleKey]) || chartType;
+    
+    if (!chartData || !Array.isArray(chartData) || chartData.length === 0) {
+        return `Немає даних для поточної візуалізації "${chartTitle}".`;
+    }
+
+    let text = `Дані з вікна візуалізації "${chartTitle}":\n\n`;
+
+    const isVideoChart = [
+        "top_viewed", "worst_viewed", "top_liked", "worst_liked", "top_commented", "worst_commented"
+    ].includes(chartType);
+
+    if (isVideoChart) {
+        chartData.forEach((v, index) => {
+            const num = index + 1;
+            const title = v.title || (state.currentLang === "ua" ? "Без назви" : "Untitled");
+            const published = v.published_at ? v.published_at.substring(0, 10) : "-";
+            const channel = (state.allChannels || []).find(c => c.channel_id === v.channel_id);
+            const channelName = channel ? channel.channel_name : "Unknown";
+            
+            let metricText = "";
+            if (chartType.includes("viewed")) {
+                metricText = `${state.currentLang === 'ua' ? 'Перегляди' : 'Views'}: ${v.view_count || 0}`;
+            } else if (chartType.includes("liked")) {
+                metricText = `${state.currentLang === 'ua' ? 'Лайки' : 'Likes'}: ${v.like_count || 0}`;
+            } else if (chartType.includes("commented")) {
+                metricText = `${state.currentLang === 'ua' ? 'Коментарі' : 'Comments'}: ${v.comment_count || 0}`;
+            }
+            
+            text += `${num}. "${title}" | ${state.currentLang === 'ua' ? 'Канал' : 'Channel'}: ${channelName} | ${state.currentLang === 'ua' ? 'Дата' : 'Date'}: ${published} | ${metricText}\n`;
+        });
+    } else {
+        // Words, tags, etc.
+        chartData.forEach((item, index) => {
+            const num = index + 1;
+            const label = item.word || item.tag || item.phrase || "Unknown";
+            const lift = item.lift ? item.lift.toFixed(2) : "0.00";
+            const count = item.video_count || item.count || 0;
+            const views = item.total_views || item.sum_views || item.views || 0;
+            
+            if (state.currentLang === 'ua') {
+                text += `${num}. Слово/Тег: "${label}" | Множник Lift: ${lift}x | Кількість відео: ${count} | Сума переглядів: ${views}\n`;
+            } else {
+                text += `${num}. Word/Tag: "${label}" | Lift Factor: ${lift}x | Videos: ${count} | Total Views: ${views}\n`;
+            }
+        });
+    }
+
+    return text;
+}
+
+/** Returns {channelIds, startDate, endDate} from current UI state */
+function _getChatContext() {
+    const startEl = document.getElementById("filter-start-date");
+    const endEl   = document.getElementById("filter-end-date");
+    return {
+        channel_ids: state.selectedChannelIds || [],
+        start_date:  startEl ? startEl.value : "",
+        end_date:    endEl   ? endEl.value   : ""
+    };
+}
+
+/** Selected model id from the dropdown (empty = server default) */
+function _getSelectedModel() {
+    const sel = document.getElementById("chat-model-select");
+    return sel ? sel.value : "";
+}
+
+/** Loads model list from backend and populates the selector */
+async function _loadModels() {
+    const sel = document.getElementById("chat-model-select");
+    if (!sel) return;
+    try {
+        const res  = await fetch("/api/agent/models");
+        const data = await res.json();
+        const models = data.models || [];
+        sel.innerHTML = "";
+        if (models.length === 0) {
+            sel.innerHTML = '<option value="">Авто (за замовчуванням)</option>';
+        } else {
+            const def = document.createElement("option");
+            def.value = ""; def.textContent = "Авто (за замовчуванням)";
+            sel.appendChild(def);
+            models.forEach(m => {
+                const opt = document.createElement("option");
+                opt.value = m.id;
+                opt.textContent = m.id;
+                sel.appendChild(opt);
+            });
         }
+    } catch (e) {
+        sel.innerHTML = '<option value="">Авто (за замовчуванням)</option>';
+        console.warn("[chat] loadModels error:", e);
     }
 }
 
-export async function handleSendChatMessage(event) {
-    if (event) {
-        event.preventDefault();
-        event.stopPropagation();
+/** Streams a response from /api/agent/chat/stream, appending tokens to botDiv */
+async function _streamBotMessage(message, containerEl, contextOverride = null) {
+    const ctx = _getChatContext();
+    const modelId = _getSelectedModel();
+
+    // Create bubble immediately
+    const botDiv = document.createElement("div");
+    botDiv.className = "chat-bubble bot streaming";
+    botDiv.innerText = "";
+    containerEl.appendChild(botDiv);
+    containerEl.scrollTop = containerEl.scrollHeight;
+
+    let hasError = false;
+    try {
+        const payload = {
+            message,
+            channel_ids: ctx.channel_ids,
+            start_date:  ctx.start_date,
+            end_date:    ctx.end_date,
+            model_id:    modelId || null
+        };
+        if (contextOverride) {
+            payload.context_override = contextOverride;
+        }
+
+        const res = await fetch("/api/agent/chat/stream", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) {
+            throw new Error(`HTTP ${res.status}`);
+        }
+
+        const reader  = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+
+            const lines = buffer.split("\n");
+            buffer = lines.pop(); // keep incomplete line in buffer
+
+            for (const line of lines) {
+                if (!line.startsWith("data:")) continue;
+                const payload = line.slice(5).trim();
+                if (payload === "[DONE]") {
+                    botDiv.classList.remove("streaming");
+                    return;
+                }
+                try {
+                    const obj = JSON.parse(payload);
+                    if (obj.error) {
+                        hasError = true;
+                        botDiv.classList.add("error");
+                        botDiv.innerText = `Помилка: ${obj.error}`;
+                        botDiv.classList.remove("streaming");
+                        return;
+                    }
+                    if (obj.text) {
+                        botDiv.innerText += obj.text;
+                        containerEl.scrollTop = containerEl.scrollHeight;
+                    }
+                } catch (_) { /* skip malformed */ }
+            }
+        }
+    } catch (err) {
+        if (!hasError) {
+            botDiv.classList.add("error");
+            botDiv.innerText = `Помилка з'єднання: ${err.message}`;
+        }
+    } finally {
+        botDiv.classList.remove("streaming");
     }
-    
-    const inputEl = document.getElementById("chat-input");
+}
+
+export function toggleChatDrawer(forceClose = false) {
+    const drawer = document.getElementById("chat-drawer");
+    if (!drawer) return;
+
+    const isCurrentlyOpen = drawer.classList.contains("open");
+
+    if (isCurrentlyOpen && !forceClose) {
+        // Chat is open, and we clicked the global "Summarize" button again -> request another summary from the current screen!
+        _requestAddScreenSummary();
+        return;
+    }
+
+    let newOpenState = !isCurrentlyOpen;
+    if (forceClose) {
+        newOpenState = false;
+    }
+
+    if (newOpenState) {
+        drawer.classList.add("open");
+    } else {
+        drawer.classList.remove("open");
+    }
+
+    if (window.innerWidth > 768) {
+        document.body.classList.toggle("chat-drawer-open", newOpenState);
+    }
+
+    if (newOpenState) {
+        _loadModels();
+        _requestAutoSummary();
+    }
+}
+
+async function _requestAutoSummary() {
+    const containerEl = document.getElementById("chat-messages");
+    if (!containerEl) return;
+    containerEl.innerHTML = "";
+
+    // Show typing indicator while context builds
+    const typingDiv = document.createElement("div");
+    typingDiv.className = "chat-bubble bot typing";
+    typingDiv.innerHTML = `<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span>`;
+    containerEl.appendChild(typingDiv);
+    containerEl.scrollTop = containerEl.scrollHeight;
+
+    // Brief delay so model selector starts loading first
+    await new Promise(r => setTimeout(r, 400));
+    if (typingDiv.parentNode) typingDiv.parentNode.removeChild(typingDiv);
+
+    const screenText = _scrapeCurrentScreenText();
+    await _streamBotMessage(
+        "Зроби висновки",
+        containerEl,
+        screenText
+    );
+}
+
+export async function handleSendChatMessage(event) {
+    if (event) { event.preventDefault(); event.stopPropagation(); }
+
+    const inputEl     = document.getElementById("chat-input");
     const containerEl = document.getElementById("chat-messages");
     if (!inputEl || !containerEl) return;
-    
+
     const message = inputEl.value.trim();
     if (!message) return;
-    
-    // Clear input
     inputEl.value = "";
-    
-    // Append User Bubble
+
+    // User bubble
     const userDiv = document.createElement("div");
     userDiv.className = "chat-bubble user";
     userDiv.innerText = message;
     containerEl.appendChild(userDiv);
-    
-    // Auto-scroll
     containerEl.scrollTop = containerEl.scrollHeight;
+
+    // Stream bot reply with context of current screen
+    const screenText = _scrapeCurrentScreenText();
+    await _streamBotMessage(message, containerEl, screenText);
+}
+
+
+export function renderModalComments(topComments) {
+    const commentsTitle = document.getElementById("mv-modal-comments-title");
+    const commentsList = document.getElementById("mv-modal-comments-list");
     
-    // Add Bot Typing placeholder
-    const botTypingDiv = document.createElement("div");
-    botTypingDiv.className = "chat-bubble bot typing";
-    botTypingDiv.innerHTML = `<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span>`;
-    containerEl.appendChild(botTypingDiv);
-    containerEl.scrollTop = containerEl.scrollHeight;
+    if (!commentsTitle || !commentsList) return;
     
-    try {
-        const res = await fetch("/api/agent/chat", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ message: message })
+    let parsedComments = [];
+    if (topComments) {
+        try {
+            parsedComments = typeof topComments === "string" ? JSON.parse(topComments) : topComments;
+        } catch (err) {
+            console.error("Failed to parse top_comments:", err);
+            parsedComments = [];
+        }
+    }
+    
+    if (parsedComments && parsedComments.length > 0) {
+        commentsList.innerHTML = "";
+        parsedComments.forEach(c => {
+            const commentDiv = document.createElement("div");
+            commentDiv.style.borderBottom = "1px solid var(--border-color)";
+            commentDiv.style.paddingBottom = "6px";
+            commentDiv.style.marginBottom = "6px";
+            
+            commentDiv.innerHTML = `
+                <div style="font-weight: 600; color: var(--accent-color); margin-bottom: 2px; display: flex; justify-content: space-between;">
+                    <span>${c.author}</span>
+                    <span style="font-weight: normal; font-size: 10px; color: var(--text-color); opacity: 0.8;"><i class="fa-solid fa-thumbs-up"></i> ${c.likes}</span>
+                </div>
+                <div style="color: var(--text-color); line-height: 1.3;">${c.text}</div>
+            `;
+            commentsList.appendChild(commentDiv);
         });
-        const data = await res.json();
-        
-        // Remove typing indicator
-        if (botTypingDiv.parentNode) {
-            botTypingDiv.parentNode.removeChild(botTypingDiv);
+        if (commentsList.lastChild) {
+            commentsList.lastChild.style.borderBottom = "none";
+            commentsList.lastChild.style.paddingBottom = "0";
+            commentsList.lastChild.style.marginBottom = "0";
         }
-        
-        // Append Bot Response
-        const botDiv = document.createElement("div");
-        botDiv.className = "chat-bubble bot";
-        if (data.error) {
-            botDiv.classList.add("error");
-            botDiv.innerText = `Error: ${data.error}`;
-        } else {
-            botDiv.innerText = data.response;
-        }
-        containerEl.appendChild(botDiv);
-        containerEl.scrollTop = containerEl.scrollHeight;
-        
-    } catch (err) {
-        if (botTypingDiv.parentNode) {
-            botTypingDiv.parentNode.removeChild(botTypingDiv);
-        }
-        const errorDiv = document.createElement("div");
-        errorDiv.className = "chat-bubble bot error";
-        errorDiv.innerText = `Network error: ${err.message}`;
-        containerEl.appendChild(errorDiv);
-        containerEl.scrollTop = containerEl.scrollHeight;
+        commentsTitle.style.display = "block";
+        commentsList.style.display = "flex";
+    } else {
+        commentsTitle.style.display = "none";
+        commentsList.style.display = "none";
     }
 }
+
+// ─── Table Hover Tooltip & Auto-Scrape Helpers ───────────────────────
+
+let tableTooltipEl = null;
+
+function ensureTableTooltip() {
+    if (tableTooltipEl) return tableTooltipEl;
+    tableTooltipEl = document.createElement("div");
+    tableTooltipEl.className = "d3-tooltip";
+    tableTooltipEl.style.display = "none";
+    document.body.appendChild(tableTooltipEl);
+    return tableTooltipEl;
+}
+
+function showTableTooltip(event, video) {
+    if (state.activeModalVideoId) return; // Don't show hover preview if modal is open
+    const tip = ensureTableTooltip();
+    const lang = state.currentLang === 'ua' ? 'ua' : 'en';
+    const title = video.title || (lang === 'ua' ? 'Без назви' : 'Untitled');
+    const channel = video.channel_name || '—';
+    const date = video.published_at || '—';
+    const views = video.view_count ? parseInt(video.view_count).toLocaleString() : '0';
+    const likes = video.like_count ? parseInt(video.like_count).toLocaleString() : '0';
+    const comments = video.comment_count ? parseInt(video.comment_count).toLocaleString() : '0';
+    const thumbnailUrl = `https://img.youtube.com/vi/${video.video_id}/mqdefault.jpg`;
+    
+    const viewsLabel = lang === 'ua' ? 'Перегляди' : 'Views';
+    const likesLabel = lang === 'ua' ? 'Лайки' : 'Likes';
+    const commentsLabel = lang === 'ua' ? 'Коментарі' : 'Comments';
+
+    tip.innerHTML = `
+        <div class="d3-tip-thumb-wrap">
+            <img class="d3-tip-thumb" src="${thumbnailUrl}" alt="" loading="lazy" onerror="this.style.display='none'">
+        </div>
+        <div class="d3-tip-body" style="padding: 10px 14px 12px;">
+            <div class="d3-tip-title" style="margin-bottom: 8px;">${title}</div>
+            <div style="font-size: 11px; color: var(--text-color); opacity: 0.8; margin-bottom: 6px;">
+                <i class="fa-solid fa-tv" style="margin-right: 4px;"></i>${channel}
+            </div>
+            <div class="d3-tip-meta" style="display: flex; flex-direction: column; align-items: flex-start; gap: 4px;">
+                <div style="display: flex; justify-content: space-between; width: 100%; font-size: 11px;">
+                    <span class="d3-tip-metric">${viewsLabel}: <strong>${views}</strong></span>
+                    <span class="d3-tip-metric">${likesLabel}: <strong>${likes}</strong></span>
+                </div>
+                <div style="display: flex; justify-content: space-between; width: 100%; font-size: 11px;">
+                    <span class="d3-tip-metric">${commentsLabel}: <strong>${comments}</strong></span>
+                    <span class="d3-tip-date">${date}</span>
+                </div>
+            </div>
+        </div>
+    `;
+    tip.style.display = 'block';
+    positionTableTooltip(event);
+}
+
+function positionTableTooltip(event) {
+    if (!tableTooltipEl) return;
+    const tipW = tableTooltipEl.offsetWidth;
+    const tipH = tableTooltipEl.offsetHeight;
+    const pad = 16;
+    let x = event.pageX + pad;
+    let y = event.pageY - tipH / 2;
+
+    if (x + tipW > window.innerWidth + window.scrollX - pad) {
+        x = event.pageX - tipW - pad;
+    }
+    if (y < window.scrollY + pad) {
+        y = window.scrollY + pad;
+    }
+    if (y + tipH > window.innerHeight + window.scrollY - pad) {
+        y = window.innerHeight + window.scrollY - tipH - pad;
+    }
+
+    tableTooltipEl.style.left = `${x}px`;
+    tableTooltipEl.style.top = `${y}px`;
+}
+
+function hideTableTooltip() {
+    if (tableTooltipEl) {
+        tableTooltipEl.style.display = 'none';
+    }
+}
+
+function isVideoFullyScraped(video) {
+    if (!video) return true;
+    const hasFullDesc = video.full_description !== null && video.full_description !== undefined && video.full_description !== "";
+    const hasTopComments = video.top_comments !== null && video.top_comments !== undefined && video.top_comments !== "" && video.top_comments !== "[]";
+    const hasViewsUpdate = video.views_update !== null && video.views_update !== undefined && video.views_update !== "" && video.views_update !== "[]";
+    const hasLikes = video.like_count !== null && video.like_count !== undefined;
+    const hasComments = video.comment_count !== null && video.comment_count !== undefined;
+    return hasFullDesc && hasTopComments && hasViewsUpdate && hasLikes && hasComments;
+}
+
+// ─── AI Screen Summarization Parsers ─────────────────────────────────
+
+async function _requestAddScreenSummary() {
+    const containerEl = document.getElementById("chat-messages");
+    if (!containerEl) return;
+
+    // User bubble
+    const userDiv = document.createElement("div");
+    userDiv.className = "chat-bubble user";
+    userDiv.innerText = state.currentLang === "ua" ? "Зроби висновки з поточного екрану" : "Make conclusions from the current screen";
+    containerEl.appendChild(userDiv);
+    containerEl.scrollTop = containerEl.scrollHeight;
+
+    // Stream bot reply with context of current screen
+    const screenText = _scrapeCurrentScreenText();
+    await _streamBotMessage(
+        "Зроби висновки",
+        containerEl,
+        screenText
+    );
+}
+
+function _scrapeCurrentScreenText() {
+    if (state.activeModalVideoId) {
+        const modal = document.getElementById("video-details-modal");
+        if (modal && modal.style.display === "flex") {
+            return _scrapeVideoModalText();
+        }
+    }
+    if (state.currentSection === "terminal-tab") {
+        return _scrapeTerminalAndTableText();
+    }
+    return _scrapeActiveChartText();
+}
+
+function _scrapeVideoModalText() {
+    const title = document.getElementById("mv-modal-title")?.innerText || "";
+    const views = document.getElementById("mv-modal-views")?.innerText || "";
+    const likes = document.getElementById("mv-modal-likes")?.innerText || "";
+    const commentsCount = document.getElementById("mv-modal-comments")?.innerText || "";
+    const date = document.getElementById("mv-modal-date")?.innerText || "";
+    const description = document.getElementById("mv-modal-description")?.innerText || "";
+    
+    let text = `Дані з відкритого вікна відео:\n`;
+    text += `Назва: "${title}"\n`;
+    text += `Дата публікації: ${date}\n`;
+    text += `Перегляди: ${views} | Лайки: ${likes} | Коментарі: ${commentsCount}\n\n`;
+    text += `Опис:\n${description}\n\n`;
+    
+    const commentsList = document.getElementById("mv-modal-comments-list");
+    if (commentsList && commentsList.style.display !== "none") {
+        text += `Коментарі глядачів:\n`;
+        Array.from(commentsList.children).forEach(div => {
+            text += `- ${div.innerText.replace(/\n/g, ' | ')}\n`;
+        });
+    }
+    return text;
+}
+
+function _scrapeTerminalAndTableText() {
+    let text = "Дані з вікна терміналу та таблиці відео:\n\n";
+    
+    text += "--- Останні рядки терміналу ---\n";
+    let termText = "";
+    if (state.term) {
+        const buffer = state.term.buffer.active;
+        const startLine = Math.max(0, buffer.length - 60);
+        for (let i = startLine; i < buffer.length; i++) {
+            const line = buffer.getLine(i);
+            if (line) {
+                termText += line.translateToString(true) + "\n";
+            }
+        }
+    }
+    text += (termText.trim() || "[Термінал порожній або не ініціалізований]") + "\n\n";
+    
+    text += "--- Дані таблиці відео (Database Explorer) ---\n";
+    text += _scrapeTableText();
+    
+    return text;
+}
+
+function _scrapeTableText() {
+    let text = "";
+    const recordsCount = document.getElementById("explorer-records-count")?.innerText || "";
+    text += `Статус таблиці: ${recordsCount}\n\n`;
+    
+    const table = document.getElementById("data-table");
+    if (table) {
+        const headers = Array.from(table.querySelectorAll("thead th")).map(th => th.innerText.trim());
+        text += `Колонки: ${headers.join(" | ")}\n`;
+        
+        const rows = table.querySelectorAll("tbody tr");
+        if (rows.length > 0) {
+            text += `Записи в таблиці:\n`;
+            rows.forEach((tr, idx) => {
+                if (tr.innerText.includes("Жодних записів") || tr.innerText.includes("No records match")) {
+                    return;
+                }
+                const cells = Array.from(tr.querySelectorAll("td")).map(td => td.innerText.trim());
+                text += `${idx + 1}. ${cells.join(" | ")}\n`;
+            });
+        }
+    }
+    return text;
+}
+

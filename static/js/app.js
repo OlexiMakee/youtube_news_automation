@@ -143,11 +143,9 @@ document.addEventListener("DOMContentLoaded", () => {
     changeTheme(state.currentTheme);
     changeLanguage(state.currentLang);
     
-    // Apply sidebar collapsed state on desktop (hidden by default unless explicitly expanded)
-    const storedSidebar = localStorage.getItem("sidebar_collapsed");
-    if (storedSidebar === "0" && window.innerWidth > 768) {
-        document.body.classList.remove("sidebar-collapsed");
-    }
+    // Sidebar is always collapsed by default — user must manually expand
+    document.body.classList.add("sidebar-collapsed");
+    localStorage.removeItem("sidebar_collapsed");
     
     // Build chart buttons/dropdown from CHART_DEFS
     initChartUI();

@@ -249,7 +249,7 @@ def run_multi_scraping(channels_list, days, stop_on_known=True, single_channel_m
                 sys.stdout.write(f"\r\033[K[*] Channel processing finished. Transitioning to next channel in {sec} seconds...")
                 sys.stdout.flush()
                 time.sleep(1)
-            sys.stdout.write("\r\033[K")
+            sys.stdout.write(f"\r\033[K[*] Transitioning to next channel...\n")
             sys.stdout.flush()
             
     print("\n" + "=" * 60)

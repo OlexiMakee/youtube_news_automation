@@ -42,8 +42,10 @@ export const translations = {
         chart_worst_liked: "Найгірші 100 за лайками",
         chart_top_commented: "Топ-100 за коментарями",
         chart_worst_commented: "Найгірші 100 за коментарями",
-        chart_top_hashtags: "Топ-100 хештегів за переглядами",
-        chart_top_description_words: "Топ-100 слів в описах за переглядами",
+        chart_top_hashtags: "Топ-100 хештегів з описів",
+        chart_top_description_words: "Топ-100 слів з описів",
+        chart_top_title_words: "Топ-100 слів з заголовків",
+        chart_top_thumb_words: "Топ-100 слів з тамбнейлів",
         title_visualizations: "Візуалізація каналу",
         lbl_chart_limit: "Записів:",
         lbl_rows_per_page: "Рядків на сторінку:",
@@ -58,10 +60,14 @@ export const translations = {
         chart_best_day_to_post: "Активність по днях тижня",
         chart_duration_vs_views: "Тривалість vs Перегляди",
         chart_views_distribution: "Розподіл за переглядами",
-        chart_best_promo_words: "Найкращі слова для просування",
-        chart_worst_promo_words: "Найгірші слова для просування",
-        chart_best_promo_tags: "Найкращі теги для просування",
-        chart_worst_promo_tags: "Найгірші теги для просування",
+        chart_best_promo_words: "Найкращі слова з описів",
+        chart_worst_promo_words: "Найгірші слова з описів",
+        chart_best_promo_tags: "Найкращі теги з описів",
+        chart_worst_promo_tags: "Найгірші теги з описів",
+        chart_best_promo_title_words: "Найкращі слова з заголовків",
+        chart_worst_promo_title_words: "Найгірші слова з заголовків",
+        chart_best_promo_thumb_words: "Найкращі слова з тамбнейлів",
+        chart_worst_promo_thumb_words: "Найгірші слова з тамбнейлів",
         chart_placeholder: "-- Оберіть графік --",
         qd_1d: "1 доба",
         qd_1w: "1 Тиждень",
@@ -109,7 +115,11 @@ export const translations = {
         modal_add_channel_title: "Додати новий канал",
         lbl_channel_url: "Введіть назву або URL каналу",
         lbl_scraping_mode: "Режим збору даних",
-        btn_apply: "Застосувати"
+        btn_apply: "Застосувати",
+
+        // AI Chat
+        btn_summarize: "✨ Підсумувати",
+        chat_title: "Підсумок"
     },
     en: {
         menu_dashboard: "Data & Analytics",
@@ -153,8 +163,10 @@ export const translations = {
         chart_worst_liked: "Worst 100 Liked",
         chart_top_commented: "Top 100 Commented",
         chart_worst_commented: "Worst 100 Commented",
-        chart_top_hashtags: "Top 100 Hashtags by Views",
-        chart_top_description_words: "Top 100 Words in Descriptions by Views",
+        chart_top_hashtags: "Top 100 Hashtags from Descriptions",
+        chart_top_description_words: "Top 100 Words from Descriptions",
+        chart_top_title_words: "Top 100 Words from Titles",
+        chart_top_thumb_words: "Top 100 Words from Thumbnails",
         title_visualizations: "Channel Visualizations",
         lbl_chart_limit: "Limit:",
         lbl_rows_per_page: "Rows per page:",
@@ -169,10 +181,14 @@ export const translations = {
         chart_best_day_to_post: "Best Day to Post",
         chart_duration_vs_views: "Duration vs Views (Scatter)",
         chart_views_distribution: "Views Distribution",
-        chart_best_promo_words: "Best Words for Promotion",
-        chart_worst_promo_words: "Worst Words for Promotion",
-        chart_best_promo_tags: "Best Tags for Promotion",
-        chart_worst_promo_tags: "Worst Tags for Promotion",
+        chart_best_promo_words: "Best Words from Descriptions",
+        chart_worst_promo_words: "Worst Words from Descriptions",
+        chart_best_promo_tags: "Best Tags from Descriptions",
+        chart_worst_promo_tags: "Worst Tags from Descriptions",
+        chart_best_promo_title_words: "Best Words from Titles",
+        chart_worst_promo_title_words: "Worst Words from Titles",
+        chart_best_promo_thumb_words: "Best Words from Thumbnails",
+        chart_worst_promo_thumb_words: "Worst Words from Thumbnails",
         chart_placeholder: "-- Select Chart --",
         qd_1d: "1 Day",
         qd_1w: "1 Week",
@@ -220,6 +236,10 @@ export const translations = {
         modal_add_channel_title: "Add New Channel",
         lbl_channel_url: "Enter channel name or URL",
         lbl_scraping_mode: "Scraping Mode",
-        btn_apply: "Apply"
+        btn_apply: "Apply",
+
+        // AI Chat
+        btn_summarize: "✨ Summarize",
+        chat_title: "Summary"
     }
 };

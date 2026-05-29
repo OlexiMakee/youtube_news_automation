@@ -785,82 +785,6 @@ body {
     position: relative;
 }
 
-.chart-copy-layer {
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    background-color: var(--bg-color);
-    color: var(--text-color);
-    margin-top: 10px;
-    max-height: 260px;
-    overflow: auto;
-    padding: 10px 12px;
-    user-select: text;
-}
-
-.chart-copy-layer[hidden] {
-    display: none;
-}
-
-.chart-copy-heading {
-    color: var(--text-muted);
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0;
-    margin-bottom: 8px;
-    text-transform: uppercase;
-    user-select: text;
-}
-
-.chart-copy-list {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    list-style-position: inside;
-    margin: 0;
-    padding: 0;
-}
-
-.chart-copy-row {
-    color: var(--text-muted);
-    font-size: 12px;
-    line-height: 1.35;
-    user-select: text;
-}
-
-.chart-copy-label {
-    color: var(--text-color);
-    font-weight: 600;
-    user-select: text;
-}
-
-.chart-copy-meta {
-    margin-left: 6px;
-    user-select: text;
-}
-
-.chart-copy-video-title {
-    appearance: none;
-    background: transparent;
-    border: 0;
-    color: var(--accent-color);
-    cursor: pointer;
-    display: inline;
-    font: inherit;
-    font-weight: 700;
-    padding: 0;
-    text-align: left;
-    text-decoration: underline;
-    text-decoration-thickness: 1px;
-    text-underline-offset: 2px;
-    user-select: text;
-}
-
-.chart-copy-video-title:hover,
-.chart-copy-video-title:focus {
-    color: var(--accent-hover);
-    outline: none;
-}
-
 /* Inner wrapper div that grows to fit all bars — outer container scrolls */
 .chart-scroll-inner {
     position: relative;
@@ -2123,15 +2047,12 @@ body {
     opacity: 0.9;
 }
 
-/* Channel Header Controls Overlay */
+/* Channel Header Controls inside Visualizations */
 #channel-header-controls {
-    position: absolute;
-    top: 16px;
-    right: 24px;
-    z-index: 100;
     display: flex;
     gap: 12px;
     align-items: center;
+    flex-wrap: wrap;
 }
 
 #channel-header-controls .top-filter-item {
@@ -2139,21 +2060,8 @@ body {
 }
 
 #channel-header-controls #channels-dropdown-menu {
-    right: 0;
-    left: auto;
-}
-
-/* Responsive adjustments for header controls */
-@media (max-width: 900px) {
-    #channel-header-controls {
-        position: relative;
-        top: auto;
-        right: auto;
-        margin: 12px 16px;
-        justify-content: center;
-        flex-wrap: wrap;
-        width: calc(100% - 32px);
-    }
+    left: 0;
+    right: auto;
 }
 
 /* --- VIEWPORT HEIGHT FLEX-SPLIT FOR TERMINAL TAB --- */

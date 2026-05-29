@@ -20,6 +20,7 @@ import {
     updateColumns, 
     changePage, 
     changePerPage, 
+    changeChartLimit,
     toggleExportDropdown,
     exportData, 
     openVideoModal, 
@@ -54,8 +55,6 @@ import {
     selectPromoChart,
     formatChartValue,
     truncateChartTitle,
-    getChartTextRows,
-    renderChartCopyLayer,
     renderModalViewsChart 
 } from './charts.js';
 import { 
@@ -88,6 +87,7 @@ window.toggleColumnsSelector = toggleColumnsSelector;
 window.updateColumns = updateColumns;
 window.changePage = changePage;
 window.changePerPage = changePerPage;
+window.changeChartLimit = changeChartLimit;
 window.toggleExportDropdown = toggleExportDropdown;
 window.exportData = exportData;
 window.openVideoModal = openVideoModal;
@@ -120,8 +120,6 @@ window.selectChart = selectChart;
 window.selectPromoChart = selectPromoChart;
 window.formatChartValue = formatChartValue;
 window.truncateChartTitle = truncateChartTitle;
-window.getChartTextRows = getChartTextRows;
-window.renderChartCopyLayer = renderChartCopyLayer;
 window.renderModalViewsChart = renderModalViewsChart;
 
 window.initTerminal = initTerminal;
@@ -141,6 +139,12 @@ document.addEventListener("DOMContentLoaded", () => {
     
     // Build chart buttons/dropdown from CHART_DEFS
     initChartUI();
+    
+    // Synchronize chart limit dropdown value
+    const chartLimitSelector = document.getElementById("chart-limit-selector");
+    if (chartLimitSelector) {
+        chartLimitSelector.value = state.chartLimit;
+    }
     
     // Switch to initial tab content
     switchSection("analytics-tab", document.getElementById("menu-item-analytics").querySelector("a"));

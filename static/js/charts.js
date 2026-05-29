@@ -160,142 +160,6 @@ export function truncateChartTitle(title, maxLength = 90) {
     return safeTitle.length > maxLength ? `${safeTitle.substring(0, maxLength - 1)}...` : safeTitle;
 }
 
-export function getChartTextRows(chartType) {
-    if (!state.chartRawData) return [];
-    
-    const videoChartMap = {
-        top_viewed: { list: state.chartRawData.top_viewed || [], metric: state.currentLang === "ua" ? "Перегляди" : "Views", field: "view_count" },
-        worst_viewed: { list: state.chartRawData.worst_viewed || [], metric: state.currentLang === "ua" ? "Перегляди" : "Views", field: "view_count" },
-        top_liked: { list: state.chartRawData.top_liked || [], metric: state.currentLang === "ua" ? "Лайки" : "Likes", field: "like_count" },
-        worst_liked: { list: state.chartRawData.worst_liked || [], metric: state.currentLang === "ua" ? "Лайки" : "Likes", field: "like_count" },
-        top_commented: { list: state.chartRawData.top_commented || [], metric: state.currentLang === "ua" ? "Коментарі" : "Comments", field: "comment_count" },
-        worst_commented: { list: state.chartRawData.worst_commented || [], metric: state.currentLang === "ua" ? "Коментарі" : "Comments", field: "comment_count" }
-    };
-    
-    if (videoChartMap[chartType]) {
-        const cfg = videoChartMap[chartType];
-        return cfg.list.map((video, index) => ({
-            type: "video",
-            item: video,
-            label: video.title || (state.currentLang === "ua" ? "Без назви" : "Untitled"),
-            meta: [
-                `${cfg.metric}: ${formatChartValue(video[cfg.field])}`,
-                video.published_at ? `${state.currentLang === "ua" ? "Дата" : "Date"}: ${video.published_at}` : null
-            ].filter(Boolean).join(" | "),
-            index
-        }));
-    }
-    
-    const rowsByType = {
-        by_month: (state.chartRawData.by_month || []).map((d, index) => ({
-            label: d.month,
-            meta: `${state.currentLang === "ua" ? "Відео" : "Videos"}: ${formatChartValue(d.video_count)}`,
-            index
-        })),
-        duration_dist: (state.chartRawData.duration_dist || []).map((d, index) => ({
-            label: d.category,
-            meta: `${state.currentLang === "ua" ? "Відео" : "Videos"}: ${formatChartValue(d.video_count)}`,
-            index
-        })),
-        top_hashtags: (state.chartRawData.top_hashtags || []).map((d, index) => ({
-            label: d.tag,
-            meta: `${state.currentLang === "ua" ? "Перегляди" : "Views"}: ${formatChartValue(d.count)} | ${state.currentLang === "ua" ? "Відео" : "Videos"}: ${formatChartValue(d.video_count)}`,
-            index
-        })),
-        top_description_words: (state.chartRawData.top_words || []).map((d, index) => ({
-            label: d.word,
-            meta: `${state.currentLang === "ua" ? "Перегляди" : "Views"}: ${formatChartValue(d.count)} | ${state.currentLang === "ua" ? "Відео" : "Videos"}: ${formatChartValue(d.video_count)}`,
-            index
-        })),
-        best_promo_words: (state.chartRawData.best_promo_words || []).map((d, index) => ({
-            label: d.word,
-            meta: `Lift: ${formatChartValue(Number(d.lift || 0).toFixed(2), "x")} | ${state.currentLang === "ua" ? "Медіана" : "Median"}: ${formatChartValue(d.median_views)} | ${state.currentLang === "ua" ? "Відео" : "Videos"}: ${formatChartValue(d.video_count)}`,
-            index
-        })),
-        worst_promo_words: (state.chartRawData.worst_promo_words || []).map((d, index) => ({
-            label: d.word,
-            meta: `Lift: ${formatChartValue(Number(d.lift || 0).toFixed(2), "x")} | ${state.currentLang === "ua" ? "Медіана" : "Median"}: ${formatChartValue(d.median_views)} | ${state.currentLang === "ua" ? "Відео" : "Videos"}: ${formatChartValue(d.video_count)}`,
-            index
-        })),
-        best_promo_tags: (state.chartRawData.best_promo_tags || []).map((d, index) => ({
-            label: d.tag,
-            meta: `Lift: ${formatChartValue(Number(d.lift || 0).toFixed(2), "x")} | ${state.currentLang === "ua" ? "Медіана" : "Median"}: ${formatChartValue(d.median_views)} | ${state.currentLang === "ua" ? "Відео" : "Videos"}: ${formatChartValue(d.video_count)}`,
-            index
-        })),
-        worst_promo_tags: (state.chartRawData.worst_promo_tags || []).map((d, index) => ({
-            label: d.tag,
-            meta: `Lift: ${formatChartValue(Number(d.lift || 0).toFixed(2), "x")} | ${state.currentLang === "ua" ? "Медіана" : "Median"}: ${formatChartValue(d.median_views)} | ${state.currentLang === "ua" ? "Відео" : "Videos"}: ${formatChartValue(d.video_count)}`,
-            index
-        })),
-        best_day_to_post: (state.chartRawData.best_day_to_post || []).map((d, index) => ({
-            label: d.day_of_week,
-            meta: `${state.currentLang === "ua" ? "Відео" : "Videos"}: ${formatChartValue(d.video_count)} | ${state.currentLang === "ua" ? "Перегляди" : "Views"}: ${formatChartValue(d.total_views)}`,
-            index
-        })),
-        duration_vs_views: (state.chartRawData.duration_vs_views || []).map((d, index) => ({
-            label: d.title,
-            meta: `${state.currentLang === "ua" ? "Тривалість" : "Duration"}: ${formatChartValue(d.duration, "s")} | ${state.currentLang === "ua" ? "Перегляди" : "Views"}: ${formatChartValue(d.view_count)}`,
-            index
-        })),
-        views_distribution: (state.chartRawData.views_distribution || []).map((d, index) => ({
-            label: d.category,
-            meta: `${state.currentLang === "ua" ? "Відео" : "Videos"}: ${formatChartValue(d.video_count)}`,
-            index
-        }))
-    };
-    
-    return rowsByType[chartType] || [];
-}
-
-export function renderChartCopyLayer(chartType, chartTitle) {
-    const layer = document.getElementById("chart-copy-layer");
-    if (!layer) return;
-    
-    layer.innerHTML = "";
-    const rows = getChartTextRows(chartType);
-    
-    if (!rows.length) {
-        layer.hidden = true;
-        return;
-    }
-    
-    layer.hidden = false;
-    
-    const heading = document.createElement("div");
-    heading.className = "chart-copy-heading";
-    heading.textContent = chartTitle || (state.currentLang === "ua" ? "Текстова версія візуалізації" : "Visualization text version");
-    layer.appendChild(heading);
-    
-    const list = document.createElement("ol");
-    list.className = "chart-copy-list";
-    
-    rows.forEach(row => {
-        const item = document.createElement("li");
-        item.className = row.type === "video" ? "chart-copy-row chart-copy-row-video" : "chart-copy-row";
-        
-        const label = document.createElement(row.type === "video" ? "button" : "span");
-        label.className = row.type === "video" ? "chart-copy-label chart-copy-video-title" : "chart-copy-label";
-        label.textContent = truncateChartTitle(row.label);
-        label.title = row.label || "";
-        
-        if (row.type === "video") {
-            label.type = "button";
-            label.setAttribute("aria-label", `${state.currentLang === "ua" ? "Відкрити деталі відео" : "Open video details"}: ${row.label}`);
-            label.addEventListener("click", () => openVideoModal(row.item));
-        }
-        
-        const meta = document.createElement("span");
-        meta.className = "chart-copy-meta";
-        meta.textContent = row.meta || "";
-        
-        item.appendChild(label);
-        item.appendChild(meta);
-        list.appendChild(item);
-    });
-    
-    layer.appendChild(list);
-}
-
 export function renderActiveChart() {
     const chartType = state.activeChartType;
     if (!state.chartRawData || !chartType) return;
@@ -332,10 +196,6 @@ export function renderActiveChart() {
         }
         
         renderD3VideoChart(chartType);
-        
-        // Update copy layer
-        const configTitle = getD3ChartTitle(chartType);
-        renderChartCopyLayer(chartType, configTitle);
         return;
     }
     
@@ -867,25 +727,6 @@ export function renderActiveChart() {
     
     
     state.activeChartInstance = new Chart(ctx, chartConfig);
-    
-    const chartTitle = chartConfig?.options?.plugins?.title?.text;
-    renderChartCopyLayer(chartType, chartTitle);
-}
-
-/**
- * Get D3 chart title for copy layer integration.
- */
-function getD3ChartTitle(chartType) {
-    const titles = {
-        top_viewed:      { ua: 'Топ відео за переглядами', en: 'Top Videos by Views' },
-        worst_viewed:    { ua: 'Найгірші відео за переглядами', en: 'Worst Videos by Views' },
-        top_liked:       { ua: 'Топ відео за лайками', en: 'Top Videos by Likes' },
-        worst_liked:     { ua: 'Найгірші відео за лайками', en: 'Worst Videos by Likes' },
-        top_commented:   { ua: 'Топ відео за коментарями', en: 'Top Videos by Comments' },
-        worst_commented: { ua: 'Найгірші відео за коментарями', en: 'Worst Videos by Comments' }
-    };
-    const lang = state.currentLang === 'ua' ? 'ua' : 'en';
-    return titles[chartType]?.[lang] || chartType;
 }
 
 export function renderModalViewsChart(history) {

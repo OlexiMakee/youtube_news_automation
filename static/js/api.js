@@ -73,6 +73,10 @@ export async function loadChannelStatsHeader() {
             const videoCountStr = data.db_video_count !== null ? data.db_video_count.toLocaleString() : "0";
             const totalViewsStr = data.db_total_views !== null ? data.db_total_views.toLocaleString() : "0";
             const medianViewsStr = data.db_median_views !== null ? data.db_median_views.toLocaleString() : "0";
+            const likeRatio = data.db_total_views > 0 ? ((data.db_total_likes || 0) / data.db_total_views * 100) : 0;
+            const commentRatio = data.db_total_views > 0 ? ((data.db_total_comments || 0) / data.db_total_views * 100) : 0;
+            const likeRatioStr = likeRatio.toFixed(2) + "%";
+            const commentRatioStr = commentRatio.toFixed(2) + "%";
             
             // Set cover banner
             const bannerStyle = data.banner_url 
@@ -114,6 +118,14 @@ export async function loadChannelStatsHeader() {
                                 <span class="header-stat-num">${medianViewsStr}</span>
                                 <span class="header-stat-lbl">${state.currentLang === 'ua' ? 'Медіана' : 'Median'}</span>
                             </div>
+                            <div class="header-stat-badge">
+                                <span class="header-stat-num">${likeRatioStr}</span>
+                                <span class="header-stat-lbl">${state.currentLang === 'ua' ? 'Лайки/Перегляди' : 'Likes/Views'}</span>
+                            </div>
+                            <div class="header-stat-badge">
+                                <span class="header-stat-num">${commentRatioStr}</span>
+                                <span class="header-stat-lbl">${state.currentLang === 'ua' ? 'Коментарі/Перегляди' : 'Comments/Views'}</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -124,6 +136,10 @@ export async function loadChannelStatsHeader() {
             const videoCountStr = data.db_video_count !== null ? data.db_video_count.toLocaleString() : "0";
             const totalViewsStr = data.db_total_views !== null ? data.db_total_views.toLocaleString() : "0";
             const medianViewsStr = data.db_median_views !== null ? data.db_median_views.toLocaleString() : "0";
+            const likeRatio = data.db_total_views > 0 ? ((data.db_total_likes || 0) / data.db_total_views * 100) : 0;
+            const commentRatio = data.db_total_views > 0 ? ((data.db_total_comments || 0) / data.db_total_views * 100) : 0;
+            const likeRatioStr = likeRatio.toFixed(2) + "%";
+            const commentRatioStr = commentRatio.toFixed(2) + "%";
             
             headerDetails.innerHTML = `
                 <div class="combined-premium-banner">
@@ -150,6 +166,14 @@ export async function loadChannelStatsHeader() {
                         <div class="header-stat-badge">
                             <span class="header-stat-num">${medianViewsStr}</span>
                             <span class="header-stat-lbl">${state.currentLang === 'ua' ? 'Медіана' : 'Median'}</span>
+                        </div>
+                        <div class="header-stat-badge">
+                            <span class="header-stat-num">${likeRatioStr}</span>
+                            <span class="header-stat-lbl">${state.currentLang === 'ua' ? 'Лайки/Перегляди' : 'Likes/Views'}</span>
+                        </div>
+                        <div class="header-stat-badge">
+                            <span class="header-stat-num">${commentRatioStr}</span>
+                            <span class="header-stat-lbl">${state.currentLang === 'ua' ? 'Коментарі/Перегляди' : 'Comments/Views'}</span>
                         </div>
                     </div>
                 </div>
@@ -392,7 +416,6 @@ export async function checkProcessStatus() {
     }
 }
 
-// API CALL: FETCH CHARTS DATA FOR SELECTED CHANNEL
 export async function loadChartsData(channelId) {
     if (!channelId) return;
     try {
@@ -401,21 +424,13 @@ export async function loadChartsData(channelId) {
         
         const params = new URLSearchParams({ 
             channel_id: channelId,
-            limit: state.pagination.per_page
+            limit: state.chartLimit || state.pagination.per_page
         });
         if (startDate) params.append("start_date", startDate);
         if (endDate) params.append("end_date", endDate);
         
         const res = await fetch(`/api/charts?${params.toString()}`);
         state.chartRawData = await res.json();
-        
-        // Populate KPIs
-        if (state.chartRawData.kpis) {
-            document.getElementById("kpi-total-views").innerText = state.chartRawData.kpis.total_views.toLocaleString();
-            document.getElementById("kpi-median-views").innerText = state.chartRawData.kpis.median_views.toLocaleString();
-            document.getElementById("kpi-like-ratio").innerText = state.chartRawData.kpis.like_ratio.toFixed(2) + "%";
-            document.getElementById("kpi-comment-ratio").innerText = state.chartRawData.kpis.comment_ratio.toFixed(2) + "%";
-        }
         
         renderActiveChart();
     } catch (err) {
@@ -447,12 +462,8 @@ export function applyFilters() {
     if (selected.length > 0) {
         loadChartsData(selected.join(','));
     } else {
-        // Clear charts/KPIs if nothing is selected
+        // Clear charts if nothing is selected
         state.chartRawData = null;
-        document.getElementById("kpi-total-views").innerText = "0";
-        document.getElementById("kpi-median-views").innerText = "0";
-        document.getElementById("kpi-like-ratio").innerText = "0.00%";
-        document.getElementById("kpi-comment-ratio").innerText = "0.00%";
         if (state.activeChartInstance) {
             state.activeChartInstance.destroy();
             state.activeChartInstance = null;

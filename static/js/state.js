@@ -6,6 +6,7 @@ export const state = {
     activeChartInstance: null,
     chartRawData: null,
     activeChartType: 'top_viewed',
+    chartLimit: parseInt(localStorage.getItem("chart_limit")) || 25,
     
     // Video Details Modal State
     activeModalChartInstance: null,

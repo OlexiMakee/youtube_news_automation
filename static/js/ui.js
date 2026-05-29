@@ -155,25 +155,25 @@ export function updateActiveChannelNameLabel() {
     const btnText = document.getElementById("dropdown-selected-text");
     const label = document.getElementById("active-analytics-channel-name");
     
-    if (!btnText || !label) return;
+    if (!btnText) return;
     
     if (selected.length === 0) {
         btnText.innerText = translations[state.currentLang].dropdown_choose_channels || "Оберіть канали";
-        label.innerText = "";
+        if (label) label.innerText = "";
     } else if (selected.length === 1) {
         const chId = selected[0];
         const chObj = state.allChannels.find(c => c.channel_id === chId);
         const name = chObj ? chObj.channel_name : chId;
         btnText.innerText = name;
-        label.innerText = `[${name}]`;
+        if (label) label.innerText = `[${name}]`;
     } else if (selected.length === state.allChannels.length) {
         const txt = state.currentLang === "ua" ? "Всі канали" : "All Channels";
         btnText.innerText = txt;
-        label.innerText = `[${txt}]`;
+        if (label) label.innerText = `[${txt}]`;
     } else {
         const countText = state.currentLang === "ua" ? `Обрано: ${selected.length} кан.` : `${selected.length} channels`;
         btnText.innerText = countText;
-        label.innerText = `[${countText}]`;
+        if (label) label.innerText = `[${countText}]`;
     }
 }
 
@@ -432,8 +432,13 @@ export function changePerPage(val) {
     
     state.pagination.page = 1;
     loadVideos();
+}
+
+export function changeChartLimit(val) {
+    const numericVal = parseInt(val) || 25;
+    state.chartLimit = numericVal;
+    localStorage.setItem("chart_limit", numericVal);
     
-    // Refresh charts to reflect the new limit of records
     const selected = getSelectedChannels();
     if (selected.length > 0) {
         loadChartsData(selected.join(','));

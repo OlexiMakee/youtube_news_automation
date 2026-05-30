@@ -512,3 +512,94 @@ scripts/analytics/               ← Decision-First CLI
 
 **Git:** `[pending commit]` · tag: `v0.6.0-strategy-kb-alpha`
 
+
+---
+
+## v0.6.0 — Strategy Implementation & RAG Structure (2026-05-30)
+
+**Branch:** `feature/d3-visualization`  
+**Commits:** 
+  - 2507a7b: handshake v2.0 + agent sync infrastructure
+  - e5044d8: agent-sync: complete handshake infrastructure  
+  - 89eef46: rag: complete RAG structure optimization
+
+**ЩО ЗРОБЛЕНО:**
+
+**ФАЗА 1: Multi-Agent Handoff Infrastructure (DONE)**
+- Переписано `handshake.md` v2.0 (7-крок протокол, 9.4KB)
+- Створено `.ai_context.md` (state snapshot для Antigravity)
+- Створено `.cursorrules` (behavioral guardrails, 280+ lines)
+- Створено `.windsurf` (IDE-specific rules, lightweight)
+
+**ФАЗА 2: Архітектурні рішення (ADR) (DONE)**
+- Створено `agent_context/decisions/ADR-001-SHARED_KB_ARCHITECTURE.md` (210 lines)
+  - Problem: Multi-agent без конфліктів
+  - Solution: Git-backed JSON KB, Last-Write-Wins
+  - Implementation phases + approval chain
+
+**ФАЗА 3: Metric Dictionary & Caveats (DONE)**
+- Створено `knowledge_base/docs/METRIC_DICTIONARY.md` (620 lines)
+  - 10 metrics (engagement, statistical, time-based, comparative)
+  - 16 caveat types з severity levels
+  - Caveat injection algorithm (step-by-step)
+  - Integration points (CLI, API, Dashboard)
+
+**ФАЗА 4: Knowledge Base Navigation (DONE)**
+- Створено `knowledge_base/INDEX.md` (master map, 230 lines)
+- Створено `knowledge_base/docs/INDEX.md` (150 lines)
+- Створено `knowledge_base/decisions/INDEX.md` (140 lines)
+- Створено `knowledge_base/insights/INDEX.md` (90 lines)
+- Створено `knowledge_base/learnings/INDEX.md` (120 lines)
+
+**ФАЗА 5: RAG Optimization (DONE)**
+- Створено `knowledge_base/RAG_RETRIEVAL_PATTERNS.md` (330 lines)
+  - KB design philosophy
+  - Hierarchical navigation patterns
+  - Atomic sections for partial retrieval
+  - Semantic search optimization
+
+**ФАЗА 6: Analytics Module Scaffold (DONE)**
+- Створено `scripts/analytics/__init__.py` (package init)
+- Створено `scripts/analytics/cli.py` (Click CLI, 150 lines)
+- Створено `scripts/analytics/anomaly_detector.py` (scaffold, 160 lines)
+- Створено `scripts/analytics/INDEX.md` (180 lines)
+
+**ФАЗА 7: Metadata Registry (DONE)**
+- Оновлено `knowledge_base/kb.json` v1.1 (1 → 10 documents)
+- Оновлено `knowledge_base/kb.log` (+20 entries)
+
+**Ключові рішення:**
+- Atomic documents (500 lines max) для RAG оптимізації
+- JSON kb.json index для <10ms lookup
+- Deterministic navigation (no false positives for agents)
+- Decision-First (all specs before coding)
+- Locked architecture (ADR-001 approved)
+- Caveat layer formalized (16 types with algorithm)
+
+**Статистика:**
+- **Total KB documents:** 13 files
+- **Total KB lines:** 2,100+ lines
+- **Metrics defined:** 10 (all with caveats)
+- **Caveat types:** 16 with algorithm
+- **Analytics commands:** 4 (anomalies, trend, kpi, brief)
+- **Commits:** 3 (handshake, sync, RAG)
+- **Files created:** 17
+- **Lines added:** 2,186+
+
+**Готовність для Antigravity:**
+✅ Handshake.md (5-min onboarding)
+✅ .ai_context.md (state snapshot)
+✅ Strategy.md (architecture locked)
+✅ ARCHITECTURE.md (system design)
+✅ METRIC_DICTIONARY.md (all metrics + caveats)
+✅ BEST_PRACTICES.md (patterns)
+✅ analytics/README.md (implementation spec)
+✅ kb.json (10 documents indexed)
+
+**Наступні кроки:**
+- Antigravity: Implement Anomaly Detector CLI (Sprint 1, 2-3h)
+- Copilot: Flask API integration (Sprint 1.5)
+- Both: Dashboard widget (Sprint 2)
+
+**Git Status:** All pushed ✅ (89eef46 on origin/feature/d3-visualization)
+

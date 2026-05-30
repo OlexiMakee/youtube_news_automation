@@ -1,0 +1,112 @@
+# 🤖 .cursorrules — Antigravity Agent Behavioral Protocol
+
+> **For:** Cursor IDE + Antigravity Agent  
+> **Purpose:** Behavioral guardrails for this project  
+> **Updated:** 2026-05-30
+
+---
+
+## CORE CONSTRAINTS
+
+### Philosophy (Understand First)
+
+**Local-First:** SQLite primary. Neon PostgreSQL is DR only.  
+**Decision-First:** High-depth metrics, not raw data.  
+**CLI-First:** All scripts must have `--help`.  
+**Text-First DOM:** Parallel JSON + Markdown output.  
+**Caveat Injection:** Every metric includes data quality flags.
+
+### What You CAN Do
+
+✅ SQL optimization + indexing  
+✅ CLI scripts (scripts/analytics/)  
+✅ Mathematical calculations  
+✅ Documentation  
+✅ Tests  
+✅ Knowledge Base updates
+
+### What You CANNOT Do
+
+❌ Modify `strategy.md` (requires ADR + approval)  
+❌ Change database schema  
+❌ Add new dependencies  
+❌ Make UI/UX changes  
+❌ Change architecture
+
+---
+
+## SESSION WORKFLOW
+
+```
+1. START: git pull, read .ai_context.md, read strategy.md
+2. CODE: Reference knowledge_base/, write tests, inject caveats
+3. BEFORE COMMIT: pytest, git diff self-review
+4. IF LIMITS: Update .ai_context.md + commit
+```
+
+---
+
+## KNOWLEDGE BASE QUICK LINKS
+
+| Need | File |
+|------|------|
+| What to build | `knowledge_base/decisions/FEATURE_PRIORITIES.md` |
+| Copy patterns | `knowledge_base/docs/BEST_PRACTICES.md` |
+| Avoid mistakes | `knowledge_base/learnings/COMMON_ERRORS_AND_WORKAROUNDS.md` |
+| System design | `knowledge_base/docs/ARCHITECTURE.md` |
+| Anomaly spec | `scripts/analytics/README.md` |
+| Conflicts | `knowledge_base/SYNC_PROTOCOL.md` |
+
+---
+
+## CURRENT TASK
+
+**Build:** Anomaly Detector CLI  
+**Files:** `scripts/analytics/cli.py` + `anomaly_detector.py` + tests + Flask endpoint  
+**Spec:** `scripts/analytics/README.md`  
+**Time:** ~2-3 hours  
+**Success:** `python -m scripts.analytics anomalies --channel uatv_english` works
+
+---
+
+## COMMUNICATION
+
+**When unsure, use DECISION FORMAT:**
+
+```
+Problem A: [decision needed]
+  A1. [option] — pros / cons
+  A2. [option] — pros / cons ← recommended
+
+User replies: a2
+```
+
+**Never assume or guess.**
+
+---
+
+## WHEN HITTING LIMITS
+
+```bash
+# 1. Update .ai_context.md with WIP status
+# 2. Fill MEMORY_SNAPSHOT_TEMPLATE.md
+# 3. Commit + push
+# 4. Tell user "Ліміти вичерпано"
+```
+
+---
+
+## CRITICAL REMINDERS
+
+1. Read `.ai_context.md` at session start
+2. Read `strategy.md` before coding
+3. Reference `knowledge_base/` constantly
+4. Write tests alongside code
+5. Inject caveats on metrics
+6. Output Text-First DOM (JSON + Markdown)
+7. Ask if unsure (DECISION FORMAT)
+8. Update `.ai_context.md` before limits hit
+
+---
+
+**For Details:** See `.cursorrules` (this file) or `handshake.md`

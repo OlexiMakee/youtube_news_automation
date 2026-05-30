@@ -1,0 +1,89 @@
+# 🌪️ .windsurf — Windsurf IDE Agent Rules
+
+> **For:** Windsurf IDE + Antigravity Agent  
+> **Status:** Active (2026-05-30)
+
+---
+
+## QUICK START
+
+```bash
+git pull origin main
+cat .ai_context.md
+cat strategy.md
+cat .cursorrules  # (for full rules)
+```
+
+---
+
+## CORE PRINCIPLES
+
+| Principle | Meaning |
+|-----------|---------|
+| **Local-First** | SQLite primary, no cloud-first |
+| **Decision-First** | High-depth analytics, not raw data |
+| **CLI-First** | Scripts need `--help` |
+| **Text-First** | JSON + Markdown output |
+| **Caveat Layer** | Quality flags on every metric |
+
+---
+
+## WHAT YOU CAN DO
+
+✅ Write CLI scripts  
+✅ SQL optimization  
+✅ Mathematical calculations  
+✅ Tests + documentation  
+✅ Update Knowledge Base
+
+## WHAT YOU CANNOT DO
+
+❌ Modify `strategy.md`  
+❌ Change database schema  
+❌ Add dependencies  
+❌ Make UI/UX changes  
+❌ Change architecture
+
+---
+
+## KNOWLEDGE BASE
+
+Before coding: `cat knowledge_base/decisions/FEATURE_PRIORITIES.md`  
+For patterns: `cat knowledge_base/docs/BEST_PRACTICES.md`  
+For errors: `cat knowledge_base/learnings/COMMON_ERRORS_AND_WORKAROUNDS.md`
+
+---
+
+## CURRENT TASK
+
+Build Anomaly Detector CLI (see `scripts/analytics/README.md`)
+
+---
+
+## WORKFLOW
+
+```
+git pull → read .ai_context.md → read strategy.md → code → test → commit → (if limits: update .ai_context.md + commit)
+```
+
+---
+
+## WHEN UNSURE
+
+Use DECISION FORMAT (A1/A2/A3 options, not open-ended)
+
+---
+
+## CRITICAL RULES
+
+1. Read `.ai_context.md` every session start
+2. Never modify `strategy.md` directly
+3. Always inject caveats
+4. Always output JSON + Markdown
+5. Always test before commit
+6. Always ask if unsure
+
+---
+
+For detailed rules: `cat .cursorrules`  
+For onboarding: `cat handshake.md`

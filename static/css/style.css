@@ -767,14 +767,12 @@ body {
     }
     
     /* Right sidebar (chat drawer) open layout mirroring */
-    body.chat-drawer-open .main-content,
-    body.chat-drawer-open .top-bar {
+    body.chat-drawer-open .main-content {
         margin-right: var(--chat-width);
         max-width: calc(100vw - 260px - var(--chat-width));
     }
     
-    body.sidebar-collapsed.chat-drawer-open .main-content,
-    body.sidebar-collapsed.chat-drawer-open .top-bar {
+    body.sidebar-collapsed.chat-drawer-open .main-content {
         margin-right: var(--chat-width);
         max-width: calc(100vw - var(--chat-width));
     }
@@ -2108,15 +2106,16 @@ body.dragging-chat {
 }
 
 /* Floating Summarize Button Overlays */
-body.modal-open #chat-toggle-btn {
+#chat-toggle-btn {
     position: fixed;
-    top: 15px;
-    right: 24px;
+    bottom: 16px;
+    right: 20px;
     z-index: 10005;
+    transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1), bottom 0.3s, transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
 }
 
-body.modal-open.chat-drawer-open #chat-toggle-btn {
-    right: calc(var(--chat-width) + 24px);
+body.chat-drawer-open #chat-toggle-btn {
+    right: calc(var(--chat-width) + 20px);
 }
 
 .chat-drawer.open {

@@ -229,6 +229,32 @@ class DatabaseClient(BaseStorage):
             created_at TEXT DEFAULT (datetime('now', 'localtime'))
         )
         """)
+
+        # 2d. Create user_invites table
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS user_invites (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            token TEXT UNIQUE NOT NULL,
+            email TEXT UNIQUE NOT NULL,
+            role TEXT NOT NULL DEFAULT 'user',
+            tag TEXT,
+            created_at TEXT DEFAULT (datetime('now', 'localtime')),
+            used_at TEXT DEFAULT NULL
+        )
+        """)
+
+        # 2e. Create users table
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email TEXT UNIQUE NOT NULL,
+            role TEXT NOT NULL,
+            tag TEXT,
+            google_id TEXT,
+            avatar_url TEXT,
+            created_at TEXT DEFAULT (datetime('now', 'localtime'))
+        )
+        """)
         
         conn.commit()
         

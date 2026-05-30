@@ -434,3 +434,81 @@ idx_channels_synced
 | `app.js` монолітний (108 KB) | P3 | Середня |
 | `bg_state` не thread-safe | P3 | Низька |
 | Python 3.9 deprecation warnings | Вирішено | — |
+
+---
+
+## v0.6.0 — Strategy Implementation & Shared Knowledge Base (2026-05-30)
+
+**Що зроблено:**
+- ✅ Реалізована `strategy.md` архітектура (Decision-First Analytics, Local-First, Human-in-Loop)
+- ✅ **ADR система** (`agent_context/decisions/`) — JSON-based Architectural Decision Records
+- ✅ **Shared Knowledge Base** (`knowledge_base/`) — децентралізована синхронізація між Antigravity + Copilot
+  - `kb.json` — канонічний стан + метаданні
+  - `kb.log` — audit trail всіх змін
+  - `SYNC_PROTOCOL.md` — Last-Write-Wins + manual merge для critical files
+- ✅ **Analytics Suite Scaffold** (`scripts/analytics/`) — Decision-First CLI framework
+  - `cli.py` — Click-based CLI entry point
+  - `anomaly_detector.py` — Z-score detection (MVP ready)
+  - `trend_analyzer.py` — Polynomial regression (spec)
+  - `metrics_engine.py` — KPI aggregation (spec)
+  - Caveat System (auto-inject data quality flags)
+- ✅ **Memory Snapshot Protocol** — auto-generate summaries після кожного циклу
+- ✅ **RAG-Friendly Documentation** — Text-First DOM, atomic READMEs
+- ✅ **Оновлена `.env.example`** — повна база (DATABASE_URL, KAGGLE, YOUTUBE_API_KEY + security notes)
+- ✅ **Knowledge Base Documents:**
+  - `docs/ARCHITECTURE.md` — система architecture + data flow
+  - `docs/BEST_PRACTICES.md` — SQL optimization, CLI patterns, Caveat system, Testing
+  - `insights/CHANNEL_PERFORMANCE_PATTERNS.md` — initial findings (time-of-day, weekends, keywords)
+  - `decisions/FEATURE_PRIORITIES.md` — roadmap + rejected ideas + decision log
+  - `learnings/COMMON_ERRORS_AND_WORKAROUNDS.md` — bugs, fixes, debugging tips
+
+**Ключові рішення:**
+- **ADR-001**: JSON-based KB архітектура (Git-backed, Last-Write-Wins, atomic sections)
+- **Caveat Layer**: Кожна метрика сопровождається якісними флагами (age < 4h, < 10 snapshots, etc.)
+- **Text-First DOM**: Результати аналітики мають паралельний Markdown output (copy-as-brief)
+- **CLI-First Analytics**: Всі скрипти мають `--help`, self-documenting
+- **Local-First Philosophy**: SQLite primary, Neon PostgreSQL only for DR
+- **Dual Autonomy Model**:
+  - Full autonomy: SQL optimization, CLI scripts, mathematical calculations, docs
+  - Requires approval: schema changes, API contracts, UI/UX, dependencies
+
+**Статус:**
+- ✅ Strategy implementation 100% complete
+- ✅ Knowledge base architecture ready for Antigravity + Copilot sync
+- ⏳ Anomaly Detector MVP (next: CLI integration + Flask endpoint)
+- ⏳ Dashboard widget for anomalies (depends on anomaly detector)
+
+**Структура каталогів:**
+```
+agent_context/decisions/         ← ADR system
+  ├── ADR-001_shared_knowledge_base_architecture.json
+  └── INDEX.md
+
+knowledge_base/                  ← Shared KB
+  ├── kb.json (canonical state)
+  ├── kb.log (audit trail)
+  ├── SYNC_PROTOCOL.md (conflict rules)
+  ├── INDEX.md
+  ├── docs/ (ARCHITECTURE, BEST_PRACTICES)
+  ├── insights/ (CHANNEL_PERFORMANCE_PATTERNS)
+  ├── decisions/ (FEATURE_PRIORITIES)
+  └── learnings/ (COMMON_ERRORS_AND_WORKAROUNDS)
+
+scripts/analytics/               ← Decision-First CLI
+  ├── cli.py
+  ├── anomaly_detector.py
+  ├── trend_analyzer.py
+  ├── metrics_engine.py
+  ├── README.md (deep dive)
+  └── INDEX.md (quick ref)
+```
+
+**Наступні кроки:**
+1. Реалізація Anomaly Detector CLI (Z-score, caveat injection)
+2. Flask API endpoint `/api/analytics/anomalies`
+3. Dashboard widget для anomalies
+4. Trend Analyzer (polynomial regression)
+5. Brief Generator (Markdown output)
+
+**Git:** `[pending commit]` · tag: `v0.6.0-strategy-kb-alpha`
+

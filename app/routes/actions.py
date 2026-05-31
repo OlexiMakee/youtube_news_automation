@@ -5,7 +5,13 @@ import subprocess
 import threading
 from datetime import datetime
 from flask import Blueprint, jsonify, request, Response
-from app.services.rbac import assistant_role_for_request, require_admin as _admin_required
+from app.services.rbac import (
+    assistant_role_for_request,
+    configured_admin_token,
+    current_request_role,
+    has_admin_access,
+    require_admin as _admin_required,
+)
 from app.state import (
     background_daemons_disabled,
     bg_state,
@@ -64,6 +70,19 @@ def _write_proposal_rows(rows):
         for row in rows:
             f.write(json.dumps(row, ensure_ascii=False, separators=(",", ":")) + "\n")
     os.replace(tmp_path, proposals_path)
+
+
+@actions_bp.route('/api/auth/status', methods=['GET'])
+def auth_status():
+    """Return non-secret request auth status for UI gating."""
+    token_configured = bool(configured_admin_token())
+    return jsonify({
+        "ok": True,
+        "token_configured": token_configured,
+        "admin": has_admin_access(request),
+        "role": current_request_role(request),
+        "auth_methods": ["X-Admin-Token", "Authorization: Bearer"] if token_configured else []
+    })
 
 
 @actions_bp.route('/api/action/add_channel', methods=['POST'])

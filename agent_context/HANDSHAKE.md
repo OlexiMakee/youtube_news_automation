@@ -14,6 +14,7 @@
 - [x] Added token-backed RBAC helpers; chat admin role is now derived server-side.
 - [x] Added admin-only `GET /api/admin/health` with non-secret stdlib/SQLite metrics.
 - [x] Added widget registry/state API with localStorage fallback and file-backed persistence.
+- [x] Added public non-secret `GET /api/auth/status` for UI auth gating.
 
 ## Blocked / Pending
 - [ ] Keep live DB migrations blocked until explicit user confirmation.
@@ -27,5 +28,5 @@
   4. Refresh the compressed JSON memory snapshot for future Claude initialization if needed.
 
 ## Last Change
-- Files: `app/services/widgets.py`, `app/routes/actions.py`, `static/js/widgets.js`, `scratch/test_widgets_state.py`, `app/routes/README.md`, `app/README.md`, `agent_context/memory_snapshot.json`, `agent_context/HANDSHAKE.md`.
-- Verification: compile, focused widget state tests, Flask route smoke, full scratch unittest suite; JS syntax check unavailable because `node` is not installed.
+- Files: `app/routes/actions.py`, `scratch/test_auth_status.py`, `app/routes/README.md`, `agent_context/memory_snapshot.json`, `agent_context/HANDSHAKE.md`.
+- Verification: compile, focused auth status tests, Flask route smoke, full scratch unittest suite.

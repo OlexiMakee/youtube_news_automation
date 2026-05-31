@@ -7,7 +7,7 @@
     },
     "skipped": 2
   },
-  "generated_at": "2026-06-01T00:39:57",
+  "generated_at": "2026-06-01T00:46:38",
   "items": [
     {
       "meta": {
@@ -118,7 +118,7 @@
     },
     {
       "meta": {
-        "bytes": 1708,
+        "bytes": 1889,
         "file": "agent_context/HANDSHAKE.md",
         "headings": [
           "Agent Handshake",
@@ -129,7 +129,7 @@
           "Last Change"
         ],
         "layer": "meta-layer",
-        "sha256_16": "0227c567f69bf23f"
+        "sha256_16": "f7a6ddfefd8d00ed"
       },
       "vector_text": "agent_context/HANDSHAKE.md Agent Handshake Current Session Status Completed Today Blocked / Pending Next Handover: Gemini Auditor Last Change <!-- HANDSHAKE_PROMPT: Read this first; obey AGENT_RULES.md tiers; continue the NEXT HANDOVER only; keep patches scoped; backend-test by default; UI click-through stays with user. --> # Agent Handshake ## Current Session Status - Active Agent: Codex - Budget Tier applied: `codex max limits` - Target: System workflow integration and meta-file update. ## Compl"
     },
@@ -160,12 +160,12 @@
     },
     {
       "meta": {
-        "bytes": 73296,
+        "bytes": 74642,
         "file": "agent_context/memory_snapshot.json",
         "layer": "meta-layer",
-        "sha256_16": "1263ecd7a10d9381"
+        "sha256_16": "6c9902a5485c4eb7"
       },
-      "vector_text": "agent_context/memory_snapshot.json { \"counts\": { \"items\": 71, \"layers\": { \"domain-layer\": 47, \"meta-layer\": 24 }, \"skipped\": 2 }, \"generated_at\": \"2026-06-01T00:35:44\", \"items\": [ { \"meta\": { \"bytes\": 1884, \"file\": \"README.md\", \"headings\": [ \"YouTube News Automation\", \"Start\", \"Read Order\", \"Current Architecture\", \"Main Paths\", \"Locked Rules\" ], \"layer\": \"meta-layer\", \"sha256_16\": \"7c7c65ab55"
+      "vector_text": "agent_context/memory_snapshot.json { \"counts\": { \"items\": 72, \"layers\": { \"domain-layer\": 48, \"meta-layer\": 24 }, \"skipped\": 2 }, \"generated_at\": \"2026-06-01T00:39:57\", \"items\": [ { \"meta\": { \"bytes\": 1884, \"file\": \"README.md\", \"headings\": [ \"YouTube News Automation\", \"Start\", \"Read Order\", \"Current Architecture\", \"Main Paths\", \"Locked Rules\" ], \"layer\": \"meta-layer\", \"sha256_16\": \"7c7c65ab55"
     },
     {
       "meta": {
@@ -374,7 +374,7 @@
     },
     {
       "meta": {
-        "bytes": 26558,
+        "bytes": 27120,
         "classes": [],
         "dependencies": [
           "app",
@@ -396,39 +396,40 @@
         ],
         "file": "app/routes/actions.py",
         "functions": [
-          "_proposal_inbox_path:25",
-          "_read_proposal_rows:31",
-          "_write_proposal_rows:60",
-          "add_channel_route:71",
-          "start_scrape:120",
-          "start_sync:157",
-          "start_update:189",
-          "start_views_update:208",
-          "get_action_status:222",
-          "admin_health:246",
-          "widgets_registry:254",
-          "widgets_state_get:263",
-          "widgets_state_put:272",
-          "cleanup_terminal:294",
-          "start_terminal:328",
-          "terminal_stream:372",
-          "trigger_server_shutdown:410",
-          "terminal_input:442",
-          "terminal_resize:462",
-          "agent_models:484",
-          "agent_chat:496",
-          "agent_chat_stream:543",
-          "list_agent_proposals:586",
-          "submit_agent_proposal:601",
-          "update_agent_proposal_status:637",
-          "chat_clear_context:673",
-          "chat_feedback:683",
-          "chat_report_quota:738",
-          "actions_shutdown:771",
-          "generate:379"
+          "_proposal_inbox_path:31",
+          "_read_proposal_rows:37",
+          "_write_proposal_rows:66",
+          "auth_status:76",
+          "add_channel_route:90",
+          "start_scrape:139",
+          "start_sync:176",
+          "start_update:208",
+          "start_views_update:227",
+          "get_action_status:241",
+          "admin_health:265",
+          "widgets_registry:273",
+          "widgets_state_get:282",
+          "widgets_state_put:291",
+          "cleanup_terminal:313",
+          "start_terminal:347",
+          "terminal_stream:391",
+          "trigger_server_shutdown:429",
+          "terminal_input:461",
+          "terminal_resize:481",
+          "agent_models:503",
+          "agent_chat:515",
+          "agent_chat_stream:562",
+          "list_agent_proposals:605",
+          "submit_agent_proposal:620",
+          "update_agent_proposal_status:656",
+          "chat_clear_context:692",
+          "chat_feedback:702",
+          "chat_report_quota:757",
+          "actions_shutdown:790"
         ],
         "layer": "domain-layer",
         "routes": [
+          "/api/auth/status ['GET']",
           "/api/action/add_channel ['POST']",
           "/api/action/scrape ['POST']",
           "/api/action/sync ['POST']",
@@ -453,9 +454,9 @@
           "/api/chat/report-quota ['POST']",
           "/api/action/shutdown ['POST']"
         ],
-        "sha256_16": "f5c7b9a06bf2baab"
+        "sha256_16": "cef0ba5cc6bb4db4"
       },
-      "vector_text": "app/routes/actions.py _proposal_inbox_path:25 _read_proposal_rows:31 _write_proposal_rows:60 add_channel_route:71 start_scrape:120 start_sync:157 start_update:189 start_views_update:208 get_action_status:222 admin_health:246 widgets_registry:254 widgets_state_get:263 widgets_state_put:272 cleanup_terminal:294 start_terminal:328 terminal_stream:372 trigger_server_shutdown:410 terminal_input:442 terminal_resize:462 agent_models:484 agent_chat:496 agent_chat_stream:543 list_agent_proposals:586 submit_agent_proposal:601 update_agent_proposal_status:637 chat_clear_context:673 chat_feedback:683 chat_report_quota:738 actions_shutdown:771 generate:379 import os import sys import json import subprocess import threading "
+      "vector_text": "app/routes/actions.py _proposal_inbox_path:31 _read_proposal_rows:37 _write_proposal_rows:66 auth_status:76 add_channel_route:90 start_scrape:139 start_sync:176 start_update:208 start_views_update:227 get_action_status:241 admin_health:265 widgets_registry:273 widgets_state_get:282 widgets_state_put:291 cleanup_terminal:313 start_terminal:347 terminal_stream:391 trigger_server_shutdown:429 terminal_input:461 terminal_resize:481 agent_models:503 agent_chat:515 agent_chat_stream:562 list_agent_proposals:605 submit_agent_proposal:620 update_agent_proposal_status:656 chat_clear_context:692 chat_feedback:702 chat_report_quota:757 actions_shutdown:790 import os import sys import json import subprocess import threadin"
     },
     {
       "meta": {
@@ -471,15 +472,15 @@
     },
     {
       "meta": {
-        "bytes": 555,
+        "bytes": 568,
         "file": "app/routes/README.md",
         "headings": [
           "app/routes/"
         ],
         "layer": "meta-layer",
-        "sha256_16": "7b3d69c7338b41d9"
+        "sha256_16": "e19b3b0b49088983"
       },
-      "vector_text": "app/routes/README.md app/routes/ # app/routes/ Flask blueprints. | File | Routes | |---|---| | `main.py` | `GET /` | | `stats.py` | `GET /api/stats`, `/api/channels`, `/api/channel/stats` | | `videos.py` | `GET /api/videos`, export, detail scrape, thumbnail OCR, formats, download | | `charts.py` | `GET /api/charts` with cache | | `actions.py` | background actions, admin health, widget regis"
+      "vector_text": "app/routes/README.md app/routes/ # app/routes/ Flask blueprints. | File | Routes | |---|---| | `main.py` | `GET /` | | `stats.py` | `GET /api/stats`, `/api/channels`, `/api/channel/stats` | | `videos.py` | `GET /api/videos`, export, detail scrape, thumbnail OCR, formats, download | | `charts.py` | `GET /api/charts` with cache | | `actions.py` | auth status, background actions, admin health,"
     },
     {
       "meta": {

@@ -21,6 +21,7 @@ data/
 *.xls
 *.json
 !configs/schemas/*.json
+!agent_context/memory_snapshot.json
 
 # OS-specific files
 .DS_Store

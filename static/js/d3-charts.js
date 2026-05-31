@@ -235,11 +235,12 @@ export function hideD3Tooltip() {
  * 
  * @param {string} chartType — one of D3_VIDEO_CHART_TYPES
  */
-export function renderD3VideoChart(chartType, d3RootNode) {
+export function renderD3VideoChart(chartType, d3RootNode, chartState = state) {
     const config = VIDEO_CHART_CONFIGS[chartType];
-    if (!config || !state.chartRawData) return;
+    const chartRawData = chartState.chartRawData;
+    if (!config || !chartRawData) return;
 
-    const data = state.chartRawData[config.dataKey] || [];
+    const data = chartRawData[config.dataKey] || [];
     if (!data.length) return;
 
     const root = d3RootNode || document.getElementById('d3-chart-root');
@@ -253,12 +254,12 @@ export function renderD3VideoChart(chartType, d3RootNode) {
     let chartTitle = config.titleKey[lang];
     if (lang === 'ua') {
         chartTitle = chartTitle
-            .replace('Топ ', `Топ-${state.chartLimit} `)
-            .replace('Найгірші ', `Найгірші ${state.chartLimit} `);
+            .replace('Топ ', `Топ-${chartState.chartLimit || state.chartLimit} `)
+            .replace('Найгірші ', `Найгірші ${chartState.chartLimit || state.chartLimit} `);
     } else {
         chartTitle = chartTitle
-            .replace('Top ', `Top ${state.chartLimit} `)
-            .replace('Worst ', `Worst ${state.chartLimit} `);
+            .replace('Top ', `Top ${chartState.chartLimit || state.chartLimit} `)
+            .replace('Worst ', `Worst ${chartState.chartLimit || state.chartLimit} `);
     }
 
     // Dimensions
@@ -369,7 +370,7 @@ export function renderD3VideoChart(chartType, d3RootNode) {
         .attr('height', BAR_HEIGHT - 2)
         .attr('rx', 3)
         .attr('ry', 3)
-        .style('fill', d => state.channelColors[d.channel_id] || config.color)
+        .style('fill', d => (chartState.channelColors || state.channelColors)[d.channel_id] || config.color)
         .style('opacity', 0.85)
         // Animate from 0 width
         .attr('width', 0)
@@ -430,11 +431,12 @@ export function renderD3VideoChart(chartType, d3RootNode) {
  * 
  * @param {string} chartType — one of D3_PROMO_CHART_TYPES
  */
-export function renderD3PromoChart(chartType, d3RootNode) {
+export function renderD3PromoChart(chartType, d3RootNode, chartState = state) {
     const config = PROMO_CHART_CONFIGS[chartType];
-    if (!config || !state.chartRawData) return;
+    const chartRawData = chartState.chartRawData;
+    if (!config || !chartRawData) return;
 
-    const data = state.chartRawData[config.dataKey] || [];
+    const data = chartRawData[config.dataKey] || [];
     if (!data.length) return;
 
     const root = d3RootNode || document.getElementById('d3-chart-root');
@@ -610,11 +612,11 @@ export function renderD3PromoChart(chartType, d3RootNode) {
 /**
  * Unified entry point to render D3 charts (both video metric and keywords lift).
  */
-export function renderD3Chart(chartType, d3RootNode) {
+export function renderD3Chart(chartType, d3RootNode, chartState = state) {
     if (D3_VIDEO_CHART_TYPES.includes(chartType)) {
-        renderD3VideoChart(chartType, d3RootNode);
+        renderD3VideoChart(chartType, d3RootNode, chartState);
     } else if (D3_PROMO_CHART_TYPES.includes(chartType)) {
-        renderD3PromoChart(chartType, d3RootNode);
+        renderD3PromoChart(chartType, d3RootNode, chartState);
     }
 }
 

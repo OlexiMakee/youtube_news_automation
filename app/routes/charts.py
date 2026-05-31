@@ -405,11 +405,18 @@ def get_charts():
             "worst_promo_thumb_words": worst_promo_thumb_words
         }
         
+        db_client.close_connection(conn)
+        conn = None
+        # Opening/closing SQLite in WAL mode can touch database metadata during
+        # a miss. Store the post-query mtime so the immediate next request can
+        # reuse the payload unless another writer changes the database later.
+        cached_db_mtime = get_db_mtime()
         with cache_lock:
-            CHARTS_CACHE[cache_key] = (response_data, db_mtime, current_time)
+            CHARTS_CACHE[cache_key] = (response_data, cached_db_mtime, current_time)
             
         return jsonify(response_data)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     finally:
-        db_client.close_connection(conn)
+        if conn is not None:
+            db_client.close_connection(conn)

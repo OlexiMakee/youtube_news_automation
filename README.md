@@ -82,7 +82,7 @@ python scripts/backup_db.py          # SQLite backup
 
 **Phase 1 (Complete):** Memory compression + JSON schema pointers ✅
 **Phase 2 (Next):** DB schema v2 (users, invites, telemetry, feedback)
-**Phase 3:** Cloud LLM rotation (Gemini Free, OpenRouter, Ollama)
+**Phase 3:** Cloud LLM rotation (Gemini Free, OpenRouter Free, Ollama Cloud; no local LLMs)
 **Phase 4:** Frontend enhancements (resizable chat, health bar, drag-drop)
 **Phase 5:** Integration sweep → v1.1.0 release
 

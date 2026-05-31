@@ -16,7 +16,7 @@
     <script src="/static/vendor/xterm.js"></script>
     <script src="/static/vendor/xterm-addon-fit.js"></script>
 </head>
-<body class="sidebar-collapsed">
+<body data-template="templates/index.html">
 
     <!-- SIDEBAR -->
     <aside class="sidebar" id="sidebar">
@@ -25,20 +25,15 @@
             <span>News Scraper</span>
             <span class="sidebar-brand-sub">v1.0.0</span>
         </div>
-        <ul class="sidebar-menu">
-            <li class="sidebar-menu-item active" id="menu-item-analytics">
-                <a href="#" class="sidebar-menu-link" onclick="switchSection('analytics-tab', this)">
-                    <i class="fa-solid fa-chart-line"></i>
-                    <span data-i18n="menu_dashboard">Data & Analytics</span>
-                </a>
-            </li>
-            <li class="sidebar-menu-item" id="menu-item-terminal">
-                <a href="#" class="sidebar-menu-link" onclick="switchSection('terminal-tab', this)">
-                    <i class="fa-solid fa-terminal"></i>
-                    <span data-i18n="menu_terminal">Terminal</span>
-                </a>
-            </li>
-        </ul>
+        <div class="sidebar-widget-library">
+            <div class="sidebar-section-title">Widgets</div>
+            <div class="widget-palette" aria-label="Widget palette">
+                <button class="widget-template" type="button" draggable="true" data-widget-type="channel-analytics" title="Drag channel analytics widget">
+                    <i class="fa-solid fa-chart-simple"></i>
+                    <span>Channel</span>
+                </button>
+            </div>
+        </div>
         
         <!-- Sidebar Settings (Theme & Language) -->
         <div class="sidebar-settings">
@@ -69,10 +64,25 @@
     <div class="main-content">
         <!-- TOP BAR -->
         <header class="top-bar">
-            <div style="display: flex; align-items: center; gap: 12px; flex-grow: 1; max-width: calc(100% - 250px);">
+            <div class="top-bar-main">
                 <button class="top-bar-menu-toggle" onclick="toggleSidebar()">
                     <i class="fa-solid fa-bars"></i>
                 </button>
+
+                <ul class="top-section-tabs" aria-label="Workspace tabs">
+                    <li class="top-section-tab active" id="menu-item-analytics">
+                        <a href="#" onclick="switchSection('analytics-tab', this)">
+                            <i class="fa-solid fa-chart-line"></i>
+                            <span data-i18n="menu_dashboard">Data</span>
+                        </a>
+                    </li>
+                    <li class="top-section-tab" id="menu-item-terminal">
+                        <a href="#" onclick="switchSection('terminal-tab', this)">
+                            <i class="fa-solid fa-terminal"></i>
+                            <span data-i18n="menu_terminal">Terminal</span>
+                        </a>
+                    </li>
+                </ul>
                 
                 <!-- TOP FILTER BAR -->
                 <div class="top-filter-bar" id="top-filter-bar">
@@ -96,7 +106,9 @@
                     </div>
                 </div>
             </div>
-            
+            <button class="chat-open-btn top-chat-open-btn" onclick="openChatDrawer()" id="chat-open-btn" title="Розгорнути чат">
+                <i class="fa-solid fa-chevron-left"></i>
+            </button>
 
         </header>
 
@@ -110,7 +122,8 @@
                     
                     <!-- VISUALIZATIONS (ABOVE TABLE) -->
                     <div class="dashboards-container">
-                        <div class="card dashboard-column-card" id="card-visualizations-container">
+                        <div class="dashboard-workspace" id="dashboard-workspace">
+                        <div class="card dashboard-column-card dashboard-widget legacy-dashboard-widget" id="card-visualizations-container">
                             <div class="card-header dashboard-card-header">
                                 <!-- Left Side: Controls -->
                                 <div class="card-header-left" id="channel-header-controls">
@@ -184,6 +197,7 @@
                                     <canvas id="analytics-chart"></canvas>
                                 </div>
                             </div>
+                        </div>
                         </div>
                     </div>
 
@@ -584,24 +598,31 @@
         </div>
     </div>
 
-    <!-- Summarize / AI Chat Button -->
-    <button class="chat-toggle-btn summarize-btn" onclick="toggleChatDrawer()" id="chat-toggle-btn" title="Підсумувати дані">
-        <i class="fa-solid fa-wand-magic-sparkles"></i>
-        <span data-i18n="btn_summarize">✨ Підсумувати</span>
+    <!-- Summarize / AI Chat Controls -->
+    <button class="chat-toggle-btn summarize-btn" onclick="summarizeCurrentScreen()" id="chat-toggle-btn" title="Додати поточний екран у чат">
+        <i class="fa-solid fa-wand-magic-sparkles" id="chat-toggle-icon"></i>
+        <span data-i18n="btn_summarize">Assistant</span>
     </button>
 
     <!-- AI ASSISTANT CHAT DRAWER -->
-    <div class="chat-drawer" id="chat-drawer">
+    <div class="chat-drawer" id="chat-drawer" data-code-src="templates/index.html:chat-drawer">
         <!-- Resizer handle -->
         <div class="chat-resizer" id="chat-resizer"></div>
         <div class="chat-header">
+            <div class="chat-header-actions chat-header-actions-left">
+                <button class="chat-header-btn" onclick="clearChatHistory()" id="chat-clear-btn" title="Очистити історію">
+                    <i class="fa-solid fa-trash-can"></i>
+                </button>
+            </div>
             <div class="chat-title">
                 <i class="fa-solid fa-wand-magic-sparkles"></i>
-                <span data-i18n="chat_title">Підсумувати</span>
+                <span data-i18n="chat_title">Assistant</span>
             </div>
-            <button class="chat-close-btn" onclick="toggleChatDrawer(true)">
-                <i class="fa-solid fa-xmark"></i>
-            </button>
+            <div class="chat-header-actions">
+                <button class="chat-close-btn" onclick="closeChatDrawer()" id="chat-collapse-btn" title="Згорнути чат">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </button>
+            </div>
         </div>
         
         <!-- Role Tabs -->
@@ -624,8 +645,8 @@
                     <select class="chat-model-select" id="chat-provider-select" onchange="changeChatProvider(this.value)" style="width: 100%; font-size: 11px; padding: 6px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-color);">
                         <option value="gemini">Gemini</option>
                         <option value="openai">OpenAI</option>
-                        <option value="ollama">Ollama (Local)</option>
-                        <option value="openrouter">OpenRouter</option>
+                        <option value="ollama">Ollama Cloud</option>
+                        <option value="openrouter">OpenRouter Free</option>
                     </select>
                 </div>
                 <div style="flex: 1; display: flex; flex-direction: column; gap: 4px;">
@@ -639,9 +660,12 @@
             </div>
         </div>
         <div class="chat-messages" id="chat-messages">
-            <!-- auto-filled by JS on first open -->
+            <!-- restored from local chat history and appended by user actions -->
         </div>
         <form class="chat-input-area" id="chat-form" onsubmit="handleSendChatMessage(event)">
+            <button type="button" class="chat-tool-btn" onclick="exportChatMarkdown()" title="Експорт Markdown">
+                <i class="fa-solid fa-download"></i>
+            </button>
             <input type="text" class="chat-input" id="chat-input" data-i18n-placeholder="chat_placeholder" placeholder="Напишіть повідомлення...">
             <button type="submit" class="chat-send-btn">
                 <i class="fa-solid fa-paper-plane"></i>

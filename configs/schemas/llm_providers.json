@@ -1,0 +1,51 @@
+{
+  "cloud_rotation_chain": [
+    {
+      "provider": "gemini",
+      "label": "Gemini Free",
+      "endpoint": "https://generativelanguage.googleapis.com/v1beta",
+      "auth": "api_key",
+      "env_key": "GEMINI_API_KEY",
+      "rate_limit": "60_requests_per_minute",
+      "requires_paid_key": false,
+      "default_model": "gemini-2.5-flash",
+      "efficiency_score": 0.0
+    },
+    {
+      "provider": "openrouter",
+      "label": "OpenRouter Free",
+      "endpoint": "https://openrouter.ai/api/v1",
+      "auth": "bearer_token",
+      "env_key": "OPENROUTER_API_KEY",
+      "rate_limit": "20_requests_per_minute",
+      "requires_paid_key": false,
+      "default_model": "openrouter/free",
+      "efficiency_score": 0.0
+    },
+    {
+      "provider": "ollama",
+      "label": "Ollama Cloud",
+      "endpoint": "https://ollama.com/api",
+      "auth": "bearer_token",
+      "env_key": "OLLAMA_API_KEY",
+      "rate_limit": "cloud_account_limits",
+      "requires_paid_key": false,
+      "default_model": "gpt-oss:120b",
+      "efficiency_score": 0.0
+    },
+    {
+      "provider": "openai",
+      "label": "OpenAI Commercial",
+      "endpoint": "https://api.openai.com/v1",
+      "auth": "api_key",
+      "env_key": "OPENAI_API_KEY",
+      "rate_limit": "paid_account_limits",
+      "requires_paid_key": true,
+      "default_model": "gpt-4o-mini",
+      "efficiency_score": 0.0
+    }
+  ],
+  "fallback_strategy": "round_robin_with_efficiency_scoring",
+  "efficiency_calculation": "likes/(likes+dislikes)",
+  "quota_interceptor": "regex_match_against_leaked_quota_errors"
+}

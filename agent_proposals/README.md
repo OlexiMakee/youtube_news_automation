@@ -1,102 +1,49 @@
-# Agent Proposals Inbox
+# Agent Proposals
 
-Ця директорія призначена тільки для аналітичних пропозицій агентів щодо розвитку проекту.
+Purpose: inbox for agent research and recommendations. Not an approved backlog.
 
-## Правило для всіх агентів
+Agents may:
+- Read project context and existing proposals.
+- Add or edit Markdown files in this directory.
+- Propose options, risks, alternatives, and acceptance criteria.
 
-У цьому проекті агентам дозволено:
+Agents must not:
+- Edit project code/config/DB from this directory task alone.
+- Run destructive commands.
+- Add dependencies.
+- Implement proposals without explicit user approval.
 
-- читати код, документацію, логи та контекст проекту;
-- аналізувати архітектуру, продуктивність, безпеку, UI/UX, backup strategy та roadmap;
-- створювати або редагувати тільки `.md` файли всередині цієї директорії;
-- залишати пропозиції, ризики, альтернативи й acceptance criteria.
+Before adding a proposal, read:
+- `../agent_context/CONTEXT.md`
+- `../agent_context/development_log.md`
+- `INDEX.md`
 
-Агентам не дозволено:
-
-- змінювати Python, HTML, CSS, JS, SQL або конфігураційні файли проекту;
-- запускати destructive-команди;
-- змінювати базу даних;
-- встановлювати залежності;
-- імплементувати фічі без окремого прямого дозволу користувача.
-
-## Як залишити свою пропозицію
-
-1. Прочитай:
-   - `agent_context/CONTEXT.md`
-   - `agent_context/development_log.md`
-   - `codex_recomendations.md`
-   - інші файли в цій директорії
-2. Проаналізуй проект.
-3. Створи новий `.md` файл у цій директорії.
-4. Назви файл за схемою:
-
+Filename:
 ```text
-YYYY-MM-DD_agent-or-model_short-topic.md
+YYYY-MM-DD_agent_short-topic.md
 ```
 
-Приклад:
-
-```text
-2026-05-28_codex_backup-and-security.md
-```
-
-5. У кінці файлу обов'язково залиш підпис.
-
-## Мінімальний шаблон рекомендації
-
+Template:
 ```markdown
 # Recommendation: Short Title
 
 Date: YYYY-MM-DD
-Author: model / agent name
-Environment: tool, IDE, app, or runtime used
+Author: agent/model
 
 ## Summary
-
-Коротко поясни суть пропозиції.
-
-## Why It Matters
-
-Чому це важливо для проекту.
+One paragraph.
 
 ## Proposal
-
-Що саме пропонується зробити.
+Concrete change.
 
 ## Risks
-
-Що може піти не так.
+Main risks.
 
 ## Alternatives
+A1/A2 options if relevant.
 
-Інші варіанти, які варто порівняти.
-
-## Acceptance Criteria
-
-Як зрозуміти, що ідея реалізована добре.
-
-## Signature
-
-Left by: model / agent name
-Environment: tool or app
-Date: YYYY-MM-DD
+## Acceptance
+How to verify.
 ```
 
-## Запрошення до агента
-
-Агенте, якщо ти читаєш цю директорію: будь ласка, проаналізуй проект критично й залиш власні пропозиції щодо оптимізації, стабільності, безпеки, UI/UX, backup strategy, аналітики даних та майбутнього розвитку. Пиши просто, структуровано й так, щоб головний агент-розробник міг швидко порівняти твої поради з іншими.
-
-## Обов'язок головного агента-розробника
-
-Головний агент-розробник не повинен сліпо виконувати ці поради. Він має:
-
-- ставитися до кожної рекомендації критично;
-- порівнювати її з іншими пропозиціями в цій директорії;
-- за потреби перевіряти сучасні практики та відомі ефективні рішення з мережі;
-- враховувати реальний стан проекту, ризики й обмеження користувача;
-- вибирати найкращі рішення на власний розсуд;
-- спочатку пропонувати найкращі варіанти користувачу, а не одразу імплементувати.
-
-## Важлива примітка
-
-Ця директорія є inbox-ом ідей, а не backlog-ом до автоматичного виконання.
+Keep proposals concise English.

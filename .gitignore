@@ -12,12 +12,15 @@ venv_auto/
 # Data directory (logs, downloads, temp files, database — use backup_db.py for portability)
 # DB is 135MB+ so cannot be tracked in git — use: python scripts/backup_db.py
 data/
+.tmp.drivedownload/
+.tmp.driveupload/
 
 # Exported data files (scraped news spreadsheets)
 *.csv
 *.xlsx
 *.xls
 *.json
+!configs/schemas/*.json
 
 # OS-specific files
 .DS_Store

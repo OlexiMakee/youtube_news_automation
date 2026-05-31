@@ -13,6 +13,7 @@ import os
 import sys
 import time
 import argparse
+import select
 from datetime import date, timedelta
 
 # Add the current directory to sys.path so that news_scraper imports work seamlessly
@@ -32,24 +33,46 @@ from news_scraper.keypress import KeypressDetector
 
 # Maximum video limit per channel
 LIMIT_PER_CHANNEL = 17000
+SYNC_PROMPT_TIMEOUT_SECONDS = 10
+
+
+CHANNELS_FILE_CANDIDATES = [
+    os.path.join(root_dir, "channels_to_scrape.txt"),
+    os.path.join(root_dir, "data", "channels.txt"),
+]
+
+
+def _read_channels_file(channels_path):
+    """Reads a newline-delimited channel list while preserving order and removing duplicate channels."""
+    channels = []
+    seen = set()
+    with open(channels_path, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            _, normalized_url = utils.normalize_url(line)
+            dedupe_key = (normalized_url or line).rstrip("/").lower()
+            if dedupe_key in seen:
+                continue
+            channels.append(line)
+            seen.add(dedupe_key)
+    return channels
 
 
 def load_channels():
-    """Loads priority channels list from data/channels.txt, falling back to defaults if not found."""
-    channels_path = os.path.join(root_dir, "data", "channels.txt")
-    if os.path.exists(channels_path):
+    """Loads priority channels from root channels_to_scrape.txt, then data/channels.txt, then defaults."""
+    for channels_path in CHANNELS_FILE_CANDIDATES:
+        if not os.path.exists(channels_path):
+            continue
         try:
-            with open(channels_path, "r", encoding="utf-8") as f:
-                channels = []
-                for line in f:
-                    line = line.strip()
-                    if line and not line.startswith("#"):
-                        channels.append(line)
-                if channels:
-                    return channels
+            channels = _read_channels_file(channels_path)
+            if channels:
+                print(f"[*] Loaded {len(channels)} channels from {os.path.relpath(channels_path, root_dir)}")
+                return channels
         except Exception as e:
-            print(f"[!] Warning: Could not read channels.txt: {e}")
-            
+            print(f"[!] Warning: Could not read {channels_path}: {e}")
+
     # Fallback default channels
     return [
         "https://www.youtube.com/@UATVEspanol",
@@ -58,15 +81,96 @@ def load_channels():
         "https://www.youtube.com/@UATVDeutsch",
         "https://www.youtube.com/@UATVmagyarul",
         "https://www.youtube.com/@UATVArabic",
-        "https://www.youtube.com/@UATVFrançais", 
+        "@UATVFrançais",
+        "https://www.youtube.com/@FREEDOM_TV",
         "https://www.youtube.com/@FREEDOM_LIVE",
-        "https://www.youtube.com/@FREEDOM_TV"
+        "https://www.youtube.com/@tsn",
+        "https://www.youtube.com/@UNITED24media",
+        "https://www.youtube.com/@FREEDOM_KAVKAZ",
+        "https://www.youtube.com/@SiliconCurtain",
+        "https://www.youtube.com/@AnnafromUkraine",
+        "https://www.youtube.com/@JakeBroe",
+        "https://www.youtube.com/@PaulJWarburg",
+        "https://www.youtube.com/@CivDiv",
+        "https://www.youtube.com/@ukraine_tbic",
+        "https://www.youtube.com/@PrestonStewart",
+        "https://www.youtube.com/@DylanBurnsLIVE",
+        "https://www.youtube.com/@MalcolmNanceMedia",
+        "https://www.youtube.com/@VladVexler",
+        "https://www.youtube.com/@CombatVeteranReacts",
+        "https://www.youtube.com/@anderspuck",
+        "https://www.youtube.com/@ZeihanonGeopolitics",
+        "https://www.youtube.com/@SabbaticalTommy",
+        "https://www.youtube.com/@terrelljstarrofficial",
+        "https://www.youtube.com/@nucking_futs_yuri/videos",
+        "https://www.youtube.com/@TheSoupCentral/",
+        "https://www.youtube.com/@arturrehi",
+        "https://www.youtube.com/@DenysDavydov",
+        "https://www.youtube.com/@PaulJWarburg",
+        "https://www.youtube.com/@Professor-Gerdes/videos",
+        "https://www.youtube.com/@SiliconCurtain/videos",
+        "https://www.youtube.com/@GregTerryExperience",
+        "https://www.youtube.com/@CaolanRobertsonReport",
+        "https://www.youtube.com/@Harley-EOD",
+        "https://www.youtube.com/@StarskyUA",
+        "https://www.youtube.com/@AnnafromUkraine",
+        "https://www.youtube.com/@Savage_Sage",
+        "https://www.youtube.com/@BigMakBattleBlog",
+        "https://www.youtube.com/@ricktheukrainian",
+        "https://www.youtube.com/@PhilipIttner",
+        "https://www.youtube.com/@jplindsley",
+        "https://www.youtube.com/@UkraineMatters",
+        "https://www.youtube.com/channel/UCJDIGW0ywWw9Kh9_vtwqxXA",
+        "https://www.youtube.com/@PerunAU",
+        "https://www.youtube.com/@TheWorstTraveller",
+        "https://www.youtube.com/@INSIDERUSSIA"
     ]
 
 
 def get_history_cutoff_yyyymmdd(days):
     """Calculates date back by a number of days and returns YYYYMMDD string."""
     return (date.today() - timedelta(days=days)).strftime("%Y%m%d")
+
+
+def timed_yes_no_prompt(prompt, default=False, timeout=SYNC_PROMPT_TIMEOUT_SECONDS):
+    """
+    Ask a yes/no question with a countdown.
+    Returns default when stdin is not interactive or the timer expires.
+    """
+    default_label = "Y/n" if default else "y/N"
+    default_text = "yes" if default else "no"
+
+    if not sys.stdin.isatty():
+        print(f"{prompt} [{default_label}] non-interactive -> {default_text}")
+        return default
+
+    sys.stdout.write(f"{prompt} [{default_label}] ")
+    sys.stdout.flush()
+    answer = ""
+
+    try:
+        for remaining in range(timeout, 0, -1):
+            sys.stdout.write(f"\r\033[K{prompt} [{default_label}] default {default_text} in {remaining}s: ")
+            sys.stdout.flush()
+            ready, _, _ = select.select([sys.stdin], [], [], 1)
+            if ready:
+                answer = sys.stdin.readline().strip().lower()
+                break
+        else:
+            sys.stdout.write(f"\r\033[K{_format_timeout_message(prompt, default_text)}\n")
+            sys.stdout.flush()
+            return default
+    except KeyboardInterrupt:
+        sys.stdout.write("\n")
+        return default
+
+    if not answer:
+        return default
+    return answer in {"y", "yes", "так", "т", "1"}
+
+
+def _format_timeout_message(prompt, default_text):
+    return f"{prompt} timeout -> {default_text}"
 
 
 def make_auto_sync_callback(silent=False):
@@ -88,10 +192,10 @@ def make_auto_sync_callback(silent=False):
 def run_multi_scraping(channels_list, days, stop_on_known=True, single_channel_mode=False, no_prompt=False):
     """Main logic for sequential channel iteration."""
     db_path = os.path.join(root_dir, "data", "youtube_news.db")
-    
-    # 1. Kaggle Cloud database sync
-    run_kaggle = True
-    if not no_prompt and sys.stdin.isatty():
+
+    # 1. Kaggle Cloud database sync (timeout default: skip)
+    run_kaggle = False
+    if not no_prompt:
         db_size_mb = 0
         db_time_str = "N/A"
         if os.path.exists(db_path):
@@ -100,14 +204,12 @@ def run_multi_scraping(channels_list, days, stop_on_known=True, single_channel_m
         print(f"\n[*] Found local database: {db_path}")
         print(f"    - Size: {db_size_mb:.1f} MB")
         print(f"    - Last modified: {db_time_str}")
-        try:
-            ans = input("[?] Run Kaggle cloud database synchronization (smart check)? [y/N]: ").strip().lower()
-            if ans != "y":
-                run_kaggle = False
-                print("[i] Skipping Kaggle cloud database sync.")
-        except KeyboardInterrupt:
-            print("\n[!] Skipping Kaggle cloud database sync.")
-            run_kaggle = False
+        run_kaggle = timed_yes_no_prompt(
+            "[?] Run Kaggle cloud database synchronization (smart check)?",
+            default=False
+        )
+    if not run_kaggle:
+        print("[i] Skipping Kaggle cloud database sync.")
 
     if run_kaggle:
         try:
@@ -121,7 +223,7 @@ def run_multi_scraping(channels_list, days, stop_on_known=True, single_channel_m
     db_client = DatabaseClient()
     db_client.init_db()
 
-    # 2. Neon Postgres database sync
+    # 2. Neon Postgres database sync (timeout default: sync)
     run_postgres = True
     pg_configured = False
     try:
@@ -132,15 +234,13 @@ def run_multi_scraping(channels_list, days, stop_on_known=True, single_channel_m
         pass
 
     if pg_configured:
-        if not no_prompt and sys.stdin.isatty():
-            try:
-                ans = input("[?] Run Neon Postgres delta synchronization (delta upload)? [y/N]: ").strip().lower()
-                if ans != "y":
-                    run_postgres = False
-                    print("[i] Skipping Neon Postgres delta sync.")
-            except KeyboardInterrupt:
-                print("\n[!] Skipping Neon Postgres delta sync.")
-                run_postgres = False
+        if not no_prompt:
+            run_postgres = timed_yes_no_prompt(
+                "[?] Run Neon Postgres delta synchronization (delta upload)?",
+                default=True
+            )
+        if not run_postgres:
+            print("[i] Skipping Neon Postgres delta sync.")
 
         if run_postgres:
             try:
@@ -175,35 +275,35 @@ def run_multi_scraping(channels_list, days, stop_on_known=True, single_channel_m
         print("=" * 60)
 
         nickname, url = utils.normalize_url(channel_input)
-        
+
         detector = KeypressDetector(True)
         # Initialize scraper engine with the set limit and date constraint
         scraper = YouTubeScraperEngine(
-            url, 
+            url,
             storage=db_client,
-            limit=LIMIT_PER_CHANNEL, 
+            limit=LIMIT_PER_CHANNEL,
             date_after=history_cutoff,
             silent=False,
             keypress_detector=detector,
-            on_auto_sync=make_auto_sync_callback(silent=False)
+            on_auto_sync=make_auto_sync_callback(silent=False) if pg_configured and run_postgres else None
         )
-        
+
         print("[*] Checking connection and fetching channel metadata...")
         info = scraper.fetch_channel_info()
         if not info or not info["channel_id"]:
             print(f"[!] Error: Could not retrieve channel ID for '{channel_input}'. Skipping...")
             time.sleep(3)
             continue
-            
+
         channel_id = info["channel_id"]
         channel_name = info["channel_name"]
         channel_handle = info["channel_handle"]
-        
+
         print("-" * 60)
         print(f"Channel:      {channel_name} ({channel_handle or 'no handle'})")
         print(f"Channel ID:   {channel_id}")
         print("-" * 60)
-        
+
         # Check current status of the channel in the database
         db_info = db_client.get_channel_video_info(channel_id)
         if db_info and db_info["video_count"] > 0:
@@ -217,28 +317,28 @@ def run_multi_scraping(channels_list, days, stop_on_known=True, single_channel_m
             start_index = 1
 
         start_time = time.time()
-        
+
         # Create a dynamic prefix for the progress bar containing the channel index and handle
         current_name = channel_handle or channel_name
         progress_prefix = f"[{idx}/{len(channels_list)} - {current_name}]"
-        
+
         # Bind progress display and pause-trigger callbacks
         on_progress = cli_progress.make_progress_callback(history_cutoff, prefix=progress_prefix)
         on_pause = cli_progress.make_pause_callback(channel_id, start_time, db_client)
-        
+
         # Set the starting offset index in the scraper engine
         scraper.start_index = start_index
-        
+
         # Run history collection process
         success = scraper.run_archive_scraping(
             on_progress=on_progress,
             on_pause=on_pause,
             stop_on_known=stop_on_known
         )
-        
+
         # Display the final execution report for the channel
         cli_progress.print_final_report(scraper, channel_id, start_time, db_client, success=success)
-        
+
         # Check if the user selected Exit (option 3) during a pause
         if scraper.aborted:
             print("\n[!] Scraping process interrupted by user. Aborting remaining channels.")
@@ -253,29 +353,47 @@ def run_multi_scraping(channels_list, days, stop_on_known=True, single_channel_m
                 time.sleep(1)
             sys.stdout.write(f"\r\033[K[*] Transitioning to next channel...\n")
             sys.stdout.flush()
-            
+
     print("\n" + "=" * 60)
     print("Process complete! Channels processed.")
     print("=" * 60)
 
-    # Automatically synchronize final delta to Neon Postgres
+    # Final Neon Postgres sync (timeout default: sync)
     try:
         from news_scraper.postgres_sync import PostgresSyncClient
         pg_client = PostgresSyncClient()
         if pg_client.is_configured():
-            print("\n[*] Running final synchronization to Neon Postgres...")
-            pg_client.sync_delta(db_client, silent=False)
+            run_final_postgres = True
+            if not no_prompt:
+                run_final_postgres = timed_yes_no_prompt(
+                    "\n[?] Run final Neon Postgres delta synchronization?",
+                    default=True
+                )
+            if run_final_postgres:
+                print("\n[*] Running final synchronization to Neon Postgres...")
+                pg_client.sync_delta(db_client, silent=False)
+            else:
+                print("[i] Skipping final Neon Postgres sync.")
     except Exception as pg_final_err:
         print(f"[!] Warning: Final Neon Postgres sync failed: {pg_final_err}")
 
-    # Automatically backup database to Kaggle after successful completion
-    try:
-        from news_scraper.kaggle_sync import sync_db_with_kaggle
-        db_path = os.path.join(root_dir, "data", "youtube_news.db")
-        print("\n[*] Automated database backup to Kaggle...")
-        sync_db_with_kaggle(db_path, direction="smart", silent=False)
-    except Exception as e:
-        print(f"[!] Warning: Automated Kaggle backup failed: {e}")
+    # Final Kaggle backup (timeout default: skip)
+    run_final_kaggle = False
+    if not no_prompt:
+        run_final_kaggle = timed_yes_no_prompt(
+            "\n[?] Run final Kaggle cloud database synchronization?",
+            default=False
+        )
+    if run_final_kaggle:
+        try:
+            from news_scraper.kaggle_sync import sync_db_with_kaggle
+            db_path = os.path.join(root_dir, "data", "youtube_news.db")
+            print("\n[*] Running final Kaggle synchronization...")
+            sync_db_with_kaggle(db_path, direction="smart", silent=False)
+        except Exception as e:
+            print(f"[!] Warning: Final Kaggle sync failed: {e}")
+    else:
+        print("[i] Skipping final Kaggle sync.")
 
 
 def run_interactive_menu(channels):
@@ -286,7 +404,7 @@ def run_interactive_menu(channels):
     for i, ch in enumerate(channels, 1):
         print(f"  {i:2d}. {ch}")
     print("=" * 60)
-    
+
     # Select Channel
     while True:
         try:
@@ -307,7 +425,7 @@ def run_interactive_menu(channels):
         except KeyboardInterrupt:
             print("\n[!] Canceled.")
             sys.exit(0)
-            
+
     # Select Days
     while True:
         try:
@@ -323,7 +441,7 @@ def run_interactive_menu(channels):
         except KeyboardInterrupt:
             print("\n[!] Canceled.")
             sys.exit(0)
-            
+
     run_multi_scraping([selected_channel], days, stop_on_known=True, single_channel_mode=True, no_prompt=False)
 
 
@@ -334,13 +452,17 @@ def main():
     parser.add_argument("-i", "--interactive", action="store_true", help="Run interactive channel and days selector")
     parser.add_argument("--stop-on-known", type=str, choices=["true", "false"], default="true",
                         help="Stop scraping channel when a known video ID is encountered (default: true)")
-    parser.add_argument("--no-prompt", action="store_true", help="Bypass interactive sync prompts")
-    
+    parser.add_argument(
+        "--no-prompt",
+        action="store_true",
+        help="Bypass sync prompts using defaults: Kaggle skip, Postgres sync"
+    )
+
     args = parser.parse_args()
     channels = load_channels()
-    
+
     stop_known = args.stop_on_known == "true"
-    
+
     try:
         if args.interactive:
             run_interactive_menu(channels)
@@ -356,7 +478,7 @@ def main():
                     sys.exit(1)
             else:
                 selected_channel = args.channel
-                
+
             days = args.days if args.days is not None else 7
             run_multi_scraping([selected_channel], days, stop_on_known=stop_known, single_channel_mode=True, no_prompt=args.no_prompt)
         else:

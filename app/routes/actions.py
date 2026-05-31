@@ -1,5 +1,6 @@
 import os
 import sys
+import json
 import subprocess
 import threading
 from datetime import datetime
@@ -470,8 +471,137 @@ def agent_chat_stream():
     )
 
 
+@actions_bp.route('/api/proposals/submit', methods=['POST'])
+def submit_agent_proposal():
+    """Append contextual UI feedback to the admin proposals JSONL inbox."""
+    data = request.json or {}
+    proposal_type = (data.get("type") or "").strip().lower()
+    if proposal_type not in {"bug", "feature"}:
+        return jsonify({"error": "type must be 'bug' or 'feature'."}), 400
+
+    desc = (data.get("desc") or "").strip()
+    if not desc:
+        return jsonify({"error": "desc is required."}), 400
+
+    now = int(datetime.now().timestamp() * 1000)
+    row = {
+        "id": now,
+        "ts": now,
+        "role": "admin",
+        "type": proposal_type,
+        "el": (data.get("el") or "").strip(),
+        "src": (data.get("src") or "").strip(),
+        "desc": desc
+    }
+
+    proposals_dir = os.path.join(root_dir, "agent_proposals")
+    os.makedirs(proposals_dir, exist_ok=True)
+    proposals_path = os.path.join(proposals_dir, "admin_proposals.jsonl")
+    try:
+        with open(proposals_path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(row, ensure_ascii=False, separators=(",", ":")) + "\n")
+    except OSError as e:
+        return jsonify({"error": f"Failed to write proposal: {e}"}), 500
+
+    return jsonify({"ok": True, "proposal": row})
+
+
+@actions_bp.route('/api/chat/clear-context', methods=['POST'])
+def chat_clear_context():
+    """Compatibility hook for clearing server-side chat context."""
+    return jsonify({
+        "ok": True,
+        "message": "Chat context cleared."
+    })
+
+
+@actions_bp.route('/api/chat/feedback', methods=['POST'])
+def chat_feedback():
+    """Record like/dislike feedback for provider efficiency scoring."""
+    data = request.json or {}
+    feedback_type = (data.get("feedback_type") or "").strip().lower()
+    if not feedback_type and data.get("rating") is not None:
+        try:
+            feedback_type = "like" if int(data.get("rating")) > 0 else "dislike"
+        except (TypeError, ValueError):
+            feedback_type = ""
+    if feedback_type not in {"like", "dislike"}:
+        return jsonify({"error": "feedback_type must be 'like'/'dislike' or rating must be 1/-1."}), 400
+
+    provider_id = (data.get("provider_id") or data.get("provider") or "").strip()
+    model_id = (data.get("model_id") or data.get("model") or "").strip()
+    if not provider_id:
+        return jsonify({"error": "provider_id is required."}), 400
+    if not model_id:
+        return jsonify({"error": "model_id is required."}), 400
+
+    prompt_text = (data.get("prompt_text") or data.get("prompt") or "").strip()
+    response_text = (data.get("response_text") or data.get("response") or "").strip()
+    latency_ms = data.get("latency_ms") or 0
+    try:
+        latency_ms = int(latency_ms)
+    except (TypeError, ValueError):
+        return jsonify({"error": "latency_ms must be an integer."}), 400
+
+    from app.services.cloud_rotation import get_rotation_engine
+    engine = get_rotation_engine()
+    if engine is None:
+        return jsonify({"error": "Cloud rotation engine is not initialized."}), 503
+
+    ok = engine.record_feedback(
+        model_id=model_id,
+        provider_id=provider_id,
+        prompt_text=prompt_text,
+        response_text=response_text,
+        feedback_type=feedback_type,
+        latency_ms=latency_ms
+    )
+    if not ok:
+        return jsonify({"error": "Feedback storage is unavailable."}), 503
+
+    provider = engine.get_provider_by_id(provider_id)
+    return jsonify({
+        "ok": True,
+        "provider_id": provider_id,
+        "model_id": model_id,
+        "feedback_type": feedback_type,
+        "provider_efficiency": round(provider.efficiency_score, 2) if provider else None
+    })
+
+
+@actions_bp.route('/api/chat/report-quota', methods=['POST'])
+def chat_report_quota():
+    """Record a provider quota/rate-limit pattern for future interception."""
+    data = request.json or {}
+    error_text = (
+        data.get("error_text")
+        or data.get("err_pattern")
+        or data.get("response_text")
+        or data.get("raw_output")
+        or ""
+    ).strip()
+    if not error_text:
+        return jsonify({"error": "error_text is required."}), 400
+
+    provider_id = (data.get("provider_id") or data.get("provider") or "").strip() or None
+
+    from app.services.cloud_rotation import get_rotation_engine
+    engine = get_rotation_engine()
+    if engine is None:
+        return jsonify({"error": "Cloud rotation engine is not initialized."}), 503
+
+    ok = engine.report_quota_error(error_text, provider_id=provider_id)
+    if not ok:
+        return jsonify({"error": "Quota report storage is unavailable."}), 503
+
+    return jsonify({
+        "ok": True,
+        "provider_id": provider_id,
+        "message": "Quota pattern recorded."
+    })
+
+
 @actions_bp.route('/api/action/shutdown', methods=['POST'])
 def actions_shutdown():
     trigger_server_shutdown()
     return jsonify({"message": "Server shutting down..."}), 200
-

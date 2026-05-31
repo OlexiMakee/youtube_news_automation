@@ -1,150 +1,100 @@
-# Agent Context — YouTube News Automation
+# Project Context
 
-> **Для нових агентів:** прочитай цей файл ПЕРШИМ перед будь-якими діями.
-> Потім читай `development_log.md` для хронології рішень.
+Project: YouTube News Automation.
+Owner: Oleksii, news media analyst.
+State: local-first Flask dashboard, AI chat in progress.
+Runtime: macOS, Python 3.9, `venv_auto/`, SQLite local, Neon optional.
 
----
-
-## 🎯 Що це за проект
-
-**YouTube News Automation** — інструмент для моніторингу YouTube-каналів новинних медіа.
-
-**Поточний стан:** Pre-Alpha v0.5.3 (MVP, показано керівництву)
-
-**Власник:** Oleksii — журналіст/аналітик новинного медіа.
-
-**Середовище:** macOS, Python 3.9 (venv_auto/), SQLite (local) + Neon PostgreSQL (cloud)
-
----
-
-## 🏗 Архітектура
-
-```
-web_app.py          ← Flask сервер (http://127.0.0.1:5001)
-                       Запускати: python web_app.py
-update_db.py        ← Incremental scraping (new videos)
-update_views.py     ← Оновлення view_count для відео
-scrape_multi.py     ← Повний архівний скрапінг каналу
-
-news_scraper/       ← Core Python пакет
-  db_client.py      ← DatabaseClient (SQLite) — BaseStorage ABC
-  scraper_engine.py ← YouTubeScraperEngine (yt-dlp)
-  postgres_sync.py  ← PostgresSyncClient (Neon cloud)
-  kaggle_sync.py    ← KaggleSync (backup)
-  utils.py          ← setup_and_run_venv, load_env, normalize_url
-  cli_progress.py   ← CLI progress display
-
-scripts/            ← Утиліти (запускати з кореня: python scripts/init_db.py)
-  init_db.py        ← Ініціалізація нової БД
-  db_exporter.py    ← Експорт в CSV/Excel
-  sync_postgres_cli.py ← CLI для Neon PostgreSQL
-  sync_db.py        ← Manual Kaggle sync
-
-static/
-  css/style.css     ← 4 теми: light, dark-black, dark-blue, sepia
-  js/app.js         ← Frontend (Chart.js, i18n UA/EN)
-
-templates/index.html ← Single-page dashboard
-
-data/               ← Гітіgnored (крім youtube_news.db)
-  youtube_news.db   ← ⭐ ГОЛОВНА БД (tracked in git для offline)
-  *.log             ← Логи фонових процесів
-
-agent_context/      ← Ти зараз тут
-```
-
----
-
-## 💾 База даних
-
-**Шлях:** `data/youtube_news.db` (SQLite)
-
-**Таблиці:**
-```sql
-channels (channel_id PK, channel_name, channel_handle, avatar_url, banner_url,
-          subscribers, video_count, view_count, description, created_at, synced)
-
-videos (video_id PK, channel_id FK, title, description, published_at,
-        duration, view_count, like_count, comment_count, tags, scraped_at,
-        updated_at, synced, full_description, views_update)
-```
-
-**Поточний стан БД (2026-05-28):**
-- Канали: 3 (UATV English, UATV Français, UATV magyarul)
-- Відео: ~18,174
-- Індекси: 9 custom (channel_id, published_at, view_count, like_count, comment_count, synced, 2 composite)
-
-**views_update** — JSON масив `[[timestamp_sec, view_count], ...]` (макс. 50 записів) — зберігає динаміку переглядів.
-
----
-
-## 🔑 Змінні середовища (.env)
-
+## Start
 ```bash
-YOUTUBE_API_KEY=...          # YouTube Data API v3 (для update_db.py)
-DATABASE_URL=...             # Neon PostgreSQL connection string
-KAGGLE_USERNAME=...
-KAGGLE_KEY=...
-```
-
----
-
-## 🌐 Flask API (web_app.py)
-
-| Метод | URL | Опис |
-|-------|-----|------|
-| GET | / | Dashboard HTML |
-| GET | /api/stats | Загальна статистика |
-| GET | /api/channels | Список каналів |
-| GET | /api/channel/stats | Метадані каналу + YT stats |
-| GET | /api/charts | Всі дані для графіків + KPI |
-| GET | /api/videos | Таблиця відео (пагінація, сортування) |
-| POST | /api/videos/{id}/scrape_details | Скрапінг деталей відео |
-| GET | /api/videos/{id}/download | Завантаження MP4 |
-| POST | /api/action/update | Запустити update_db.py у фоні |
-| POST | /api/action/update_views | Запустити update_views.py у фоні |
-| POST | /api/action/scrape | Запустити scrape_multi.py у фоні |
-| POST | /api/action/sync | Neon Postgres sync у фоні |
-| POST | /api/action/add_channel | Додати новий канал |
-| GET | /api/action/status | Статус фонового завдання + logs |
-| GET | /api/action/logs | Останні рядки логу |
-
----
-
-## ⚡ Як запустити
-
-```bash
-# Перший запуск (автоматично встановить залежності):
 python web_app.py
-
-# Або через venv:
-source venv_auto/bin/activate && python web_app.py
 ```
+Default URL: `http://127.0.0.1:5001`. If occupied, app may use `5002`.
 
----
+## Main Files
+- `web_app.py`: legacy entrypoint.
+- `app/`: Flask app factory, routes, services, state.
+- `templates/index.html`: single dashboard page.
+- `static/js/`: ES modules. Entry: `app.js`.
+- `static/css/style.css`: themes, layout, chat drawer.
+- `news_scraper/`: scraping, DB, sync clients.
+- `data/youtube_news.db`: tracked local SQLite DB.
+- `configs/schemas/`: DB/provider schemas.
+- `agent_context/`: agent onboarding docs.
+- `agent_proposals/`: archived proposals. Do not auto-implement.
 
-## 🔮 Roadmap (заплановано)
+## Architecture
+- Flask app with Blueprints under `app/routes/`.
+- Local SQLite is primary storage.
+- Neon PostgreSQL is cloud sync/DR.
+- Dashboard is server-rendered HTML plus JS modules.
+- AI chat streams through backend agent endpoints.
+- Provider rotation lives in `app/services/cloud_rotation.py`.
 
-### v0.6.0
-- [ ] Розбити `web_app.py` (1,494 рядки) на `app/routes/` модулі
-- [ ] Розбити `app.js` (108 KB) на JS-модулі
-- [ ] Права бічна панель у UI — чат з AI агентом
+## Common Commands
+```bash
+venv_auto/bin/python -m compileall app news_scraper
+venv_auto/bin/python web_app.py
+```
+Use narrower compile/test scopes when possible.
 
-### v0.7.0
-- [ ] `admin_agent` (Gemini Pro) — аналіз, рекомендації, звіти
-- [ ] `user_agent` (легша модель) — відповіді на прості запити
-- [ ] Prompt engineering для малих моделей
+## Key API
+- `GET /`
+- `GET /api/stats`
+- `GET /api/channels`
+- `GET /api/charts`
+- `GET /api/videos`
+- `POST /api/videos/{id}/scrape_details`
+- `POST /api/action/update`
+- `POST /api/action/update_views`
+- `POST /api/action/add_channel`
+- `GET /api/action/status`
+- `GET /api/agent/models`
+- `POST /api/agent/chat/stream`
+- `POST /api/chat/feedback`
+- `POST /api/chat/report-quota`
+- `POST /api/proposals/submit`
 
-### v1.0.0
-- [ ] Fine-tuning локальної моделі на даних каналів
-- [ ] Production deployment (gunicorn + nginx)
+## DB
+SQLite path: `data/youtube_news.db`.
 
----
+Core tables:
+- `channels`
+- `videos`
 
-## ⚠️ Відомі обмеження / gotchas
+Important video fields:
+- `video_id`
+- `channel_id`
+- `title`
+- `published_at`
+- `view_count`
+- `like_count`
+- `comment_count`
+- `full_description`
+- `views_update` as JSON text
 
-1. **Python 3.9** — yt-dlp показує deprecation warnings, але ще працює
-2. **403 Forbidden при завантаженні відео** — використовуємо `player_client: ['android', 'ios']`
-3. **`bg_state` — не thread-safe** при множинних запитах (single-user MVP, достатньо)
-4. **`/api/charts`** — важкий endpoint (10+ SQL-запитів). Кешування не реалізовано.
-5. **`views_update`** — зберігається як JSON TEXT в SQLite (не окрема таблиця)
+## Env
+Never print values.
+- `YOUTUBE_API_KEY`
+- `DATABASE_URL`
+- `GEMINI_API_KEY`
+- `OPENAI_API_KEY`
+- `OPENROUTER_API_KEY`
+- `OLLAMA_API_KEY`
+- `KAGGLE_USERNAME`
+- `KAGGLE_KEY`
+
+## Known Risks
+- `web_app.py` can bootstrap dependencies; avoid unnecessary restarts.
+- `/api/charts` is heavy.
+- `views_update` is JSON text, not normalized.
+- Some UI state is stored in browser `localStorage`.
+- Browser runtime may be unavailable in Codex; report static-only UI checks.
+- Large temp uploads under `.tmp.*` can overheat indexing/processes. Keep ignored.
+- Local LLMs are forbidden: no `OLLAMA_HOST`, no `localhost:11434`, no local Ollama model IDs.
+
+## Current UI Rules
+- Top filter/stat area should stay sticky.
+- Chart text that users copy should exist in DOM, not canvas only.
+- Top 100/list items should keep full title on hover and reuse existing detail modal.
+- AI chat open/close controls are separate from summarize action.

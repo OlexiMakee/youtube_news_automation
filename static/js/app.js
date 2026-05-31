@@ -38,6 +38,11 @@ import {
     setAddChannelLimitPreset, 
     submitAddChannel,
     toggleChatDrawer,
+    openChatDrawer,
+    closeChatDrawer,
+    summarizeCurrentScreen,
+    exportChatMarkdown,
+    clearChatHistory,
     handleSendChatMessage,
     selectSingleChannel,
     changeChatProvider,
@@ -71,6 +76,7 @@ import {
     injectCommand, 
     toggleDropdown 
 } from './terminal.js';
+import { initDashboardWorkspace } from './widgets.js';
 
 // Bind all functions to window to satisfy HTML inline event handlers
 window.changeLanguage = changeLanguage;
@@ -111,6 +117,11 @@ window.setAddChannelPeriodPreset = setAddChannelPeriodPreset;
 window.setAddChannelLimitPreset = setAddChannelLimitPreset;
 window.submitAddChannel = submitAddChannel;
 window.toggleChatDrawer = toggleChatDrawer;
+window.openChatDrawer = openChatDrawer;
+window.closeChatDrawer = closeChatDrawer;
+window.summarizeCurrentScreen = summarizeCurrentScreen;
+window.exportChatMarkdown = exportChatMarkdown;
+window.clearChatHistory = clearChatHistory;
 window.handleSendChatMessage = handleSendChatMessage;
 window.selectSingleChannel = selectSingleChannel;
 window.changeChatProvider = changeChatProvider;
@@ -141,17 +152,35 @@ window.sendTerminalResize = sendTerminalResize;
 window.injectCommand = injectCommand;
 window.toggleDropdown = toggleDropdown;
 
+function syncTopBarHeight() {
+    const topBar = document.querySelector(".top-bar");
+    if (!topBar) return;
+
+    const updateHeight = () => {
+        document.documentElement.style.setProperty("--top-bar-height", `${topBar.offsetHeight}px`);
+    };
+
+    updateHeight();
+    window.addEventListener("resize", updateHeight);
+    if (window.ResizeObserver) {
+        const observer = new ResizeObserver(updateHeight);
+        observer.observe(topBar);
+        window.topBarResizeObserver = observer;
+    }
+}
+
 // Initial Startup
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+    syncTopBarHeight();
+
     // Apply saved configurations
     document.getElementById("lang-selector").value = state.currentLang;
     document.getElementById("theme-selector").value = state.currentTheme;
     changeTheme(state.currentTheme);
     changeLanguage(state.currentLang);
     
-    // Sidebar is always collapsed by default — user must manually expand
-    document.body.classList.add("sidebar-collapsed");
-    localStorage.removeItem("sidebar_collapsed");
+    // Restore sidebar visibility; default is open because the widget library now lives there.
+    document.body.classList.toggle("sidebar-collapsed", localStorage.getItem("sidebar_collapsed") === "1");
     
     // Build chart buttons/dropdown from CHART_DEFS
     initChartUI();
@@ -169,7 +198,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     
     // Switch to initial tab content
-    switchSection("analytics-tab", document.getElementById("menu-item-analytics").querySelector("a"));
+    switchSection("analytics-tab", document.getElementById("menu-item-analytics")?.querySelector("a"));
     
     // Set default date range to 6 months
     const now = new Date();
@@ -186,7 +215,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Load initial data
     loadStats();
-    loadChannels();   // will trigger loadChannelStatsHeader, loadChartsData, and loadVideos
+    await loadChannels();   // will trigger loadChannelStatsHeader, loadChartsData, and loadVideos
+    initDashboardWorkspace();
     
     // Start polling status
     checkProcessStatus();

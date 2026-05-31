@@ -45,7 +45,7 @@ export const state = {
     
     // AI Chat config
     agentRole: "admin",
-    agentProvider: "gemini"
+    agentProvider: localStorage.getItem("ui_chat_provider") || "gemini"
 };
 
 export const DEFAULT_COLORS = ["#008abb", "#10b981", "#f59e0b", "#8b5cf6", "#ec4899", "#3b82f6", "#ef4444", "#14b8a6", "#f97316"];

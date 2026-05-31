@@ -118,8 +118,8 @@ export const translations = {
         btn_apply: "Застосувати",
 
         // AI Chat
-        btn_summarize: "✨ Підсумувати",
-        chat_title: "Підсумок"
+        btn_summarize: "Assistant",
+        chat_title: "Assistant"
     },
     en: {
         menu_dashboard: "Data & Analytics",
@@ -239,7 +239,7 @@ export const translations = {
         btn_apply: "Apply",
 
         // AI Chat
-        btn_summarize: "✨ Summarize",
-        chat_title: "Summary"
+        btn_summarize: "Assistant",
+        chat_title: "Assistant"
     }
 };

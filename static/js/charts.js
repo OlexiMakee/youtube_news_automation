@@ -30,9 +30,13 @@ export const CHART_DEFS = [
     { id: 'views_distribution', group: 'other', icon: '🍩', labelKey: 'chart_views_distribution' }
 ];
 
-export function initChartUI() {
-    const container = document.getElementById('chart-controls-container');
+export function initChartUI(options = {}) {
+    const container = options.container || document.getElementById('chart-controls-container');
     if (!container) return;
+
+    const chartState = options.chartState || state;
+    const onSelect = options.onSelect || selectChart;
+    const idPrefix = options.idPrefix || 'chart-btn';
     
     container.innerHTML = '';
     
@@ -71,7 +75,7 @@ export function initChartUI() {
             : def.id;
             
         if (typeof label === 'string') {
-            label = label.replace("100", state.chartLimit);
+                label = label.replace("100", chartState.chartLimit);
         }
             
         let elementToAdd = null;
@@ -82,10 +86,10 @@ export function initChartUI() {
             
             const leftBtn = document.createElement('button');
             leftBtn.className = 'split-btn left';
-            leftBtn.id = `chart-btn-${def.id}`;
+            leftBtn.id = `${idPrefix}-${def.id}`;
             leftBtn.setAttribute('data-chart-id', def.id);
-            if (state.activeChartType === def.id) leftBtn.classList.add('active');
-            leftBtn.onclick = () => selectChart(def.id);
+            if (chartState.activeChartType === def.id) leftBtn.classList.add('active');
+            leftBtn.onclick = () => onSelect(def.id);
             leftBtn.innerHTML = `${def.icon || ''} ${label}`;
             groupDiv.appendChild(leftBtn);
             processedIds.add(def.id);
@@ -97,15 +101,15 @@ export function initChartUI() {
                     : rightDef.id;
                     
                 if (typeof rightLabel === 'string') {
-                    rightLabel = rightLabel.replace("100", state.chartLimit);
+                    rightLabel = rightLabel.replace("100", chartState.chartLimit);
                 }
                     
                 const rightBtn = document.createElement('button');
                 rightBtn.className = 'split-btn right';
-                rightBtn.id = `chart-btn-${rightDef.id}`;
+                rightBtn.id = `${idPrefix}-${rightDef.id}`;
                 rightBtn.setAttribute('data-chart-id', rightDef.id);
-                if (state.activeChartType === rightDef.id) rightBtn.classList.add('active');
-                rightBtn.onclick = () => selectChart(rightDef.id);
+                if (chartState.activeChartType === rightDef.id) rightBtn.classList.add('active');
+                rightBtn.onclick = () => onSelect(rightDef.id);
                 rightBtn.innerHTML = `${rightDef.icon || ''} ${rightLabel}`;
                 groupDiv.appendChild(rightBtn);
                 processedIds.add(rightDef.id);
@@ -119,10 +123,10 @@ export function initChartUI() {
             const btn = document.createElement('button');
             btn.className = 'split-btn';
             btn.style.borderRadius = '4px';
-            btn.id = `chart-btn-${def.id}`;
+            btn.id = `${idPrefix}-${def.id}`;
             btn.setAttribute('data-chart-id', def.id);
-            if (state.activeChartType === def.id) btn.classList.add('active');
-            btn.onclick = () => selectChart(def.id);
+            if (chartState.activeChartType === def.id) btn.classList.add('active');
+            btn.onclick = () => onSelect(def.id);
             btn.innerHTML = `${def.icon || ''} ${label}`;
             groupDiv.appendChild(btn);
             
@@ -154,7 +158,9 @@ export function selectChart(chartType) {
     if (!chartType) return;
     state.activeChartType = chartType;
     
-    document.querySelectorAll('.split-btn, .promo-tab-btn').forEach(el => el.classList.remove('active'));
+    const legacyCard = document.getElementById('card-visualizations-container');
+    const scope = legacyCard || document;
+    scope.querySelectorAll('.split-btn, .promo-tab-btn').forEach(el => el.classList.remove('active'));
     
     const activeEl = document.getElementById(`chart-btn-${chartType}`);
     if (activeEl) activeEl.classList.add('active');
@@ -181,9 +187,10 @@ export function truncateChartTitle(title, maxLength = 90) {
     return safeTitle.length > maxLength ? `${safeTitle.substring(0, maxLength - 1)}...` : safeTitle;
 }
 
-export function renderActiveChart(dashboardCard) {
-    const chartType = state.activeChartType;
-    if (!state.chartRawData || !chartType) return;
+export function renderActiveChart(dashboardCard, chartState = state) {
+    const chartType = chartState.activeChartType;
+    const chartRawData = chartState.chartRawData;
+    if (!chartRawData || !chartType) return;
     
     const card = dashboardCard || document.getElementById('card-visualizations-container');
     const d3Root = card ? card.querySelector('.d3-chart-root') : document.getElementById('d3-chart-root');
@@ -191,9 +198,9 @@ export function renderActiveChart(dashboardCard) {
     const container = card ? card.querySelector('.chart-container') : document.querySelector('.chart-container');
     
     // Destroy previous Chart.js instance
-    if (state.activeChartInstance) {
-        state.activeChartInstance.destroy();
-        state.activeChartInstance = null;
+    if (chartState.activeChartInstance) {
+        chartState.activeChartInstance.destroy();
+        chartState.activeChartInstance = null;
     }
     hideD3Tooltip();
     
@@ -201,7 +208,7 @@ export function renderActiveChart(dashboardCard) {
     const btnContainer = card ? card.querySelector('.card-header') : document;
     if (btnContainer) {
         btnContainer.querySelectorAll('.split-btn').forEach(el => {
-            el.classList.toggle('active', el.id === `chart-btn-${chartType}`);
+            el.classList.toggle('active', el.getAttribute('data-chart-id') === chartType);
         });
     }
     
@@ -220,7 +227,7 @@ export function renderActiveChart(dashboardCard) {
             }
         }
         
-        renderD3Chart(chartType, d3Root);
+        renderD3Chart(chartType, d3Root, chartState);
         return;
     }
     
@@ -248,14 +255,14 @@ export function renderActiveChart(dashboardCard) {
             
             // Calculate how many items to display
             let itemCount = 30;
-            if (chartType === "best_promo_words" && state.chartRawData.best_promo_words) itemCount = state.chartRawData.best_promo_words.length;
-            else if (chartType === "worst_promo_words" && state.chartRawData.worst_promo_words) itemCount = state.chartRawData.worst_promo_words.length;
-            else if (chartType === "best_promo_tags" && state.chartRawData.best_promo_tags) itemCount = state.chartRawData.best_promo_tags.length;
-            else if (chartType === "worst_promo_tags" && state.chartRawData.worst_promo_tags) itemCount = state.chartRawData.worst_promo_tags.length;
-            else if (chartType === "best_promo_title_words" && state.chartRawData.best_promo_title_words) itemCount = state.chartRawData.best_promo_title_words.length;
-            else if (chartType === "worst_promo_title_words" && state.chartRawData.worst_promo_title_words) itemCount = state.chartRawData.worst_promo_title_words.length;
-            else if (chartType === "best_promo_thumb_words" && state.chartRawData.best_promo_thumb_words) itemCount = state.chartRawData.best_promo_thumb_words.length;
-            else if (chartType === "worst_promo_thumb_words" && state.chartRawData.worst_promo_thumb_words) itemCount = state.chartRawData.worst_promo_thumb_words.length;
+            if (chartType === "best_promo_words" && chartRawData.best_promo_words) itemCount = chartRawData.best_promo_words.length;
+            else if (chartType === "worst_promo_words" && chartRawData.worst_promo_words) itemCount = chartRawData.worst_promo_words.length;
+            else if (chartType === "best_promo_tags" && chartRawData.best_promo_tags) itemCount = chartRawData.best_promo_tags.length;
+            else if (chartType === "worst_promo_tags" && chartRawData.worst_promo_tags) itemCount = chartRawData.worst_promo_tags.length;
+            else if (chartType === "best_promo_title_words" && chartRawData.best_promo_title_words) itemCount = chartRawData.best_promo_title_words.length;
+            else if (chartType === "worst_promo_title_words" && chartRawData.worst_promo_title_words) itemCount = chartRawData.worst_promo_title_words.length;
+            else if (chartType === "best_promo_thumb_words" && chartRawData.best_promo_thumb_words) itemCount = chartRawData.best_promo_thumb_words.length;
+            else if (chartType === "worst_promo_thumb_words" && chartRawData.worst_promo_thumb_words) itemCount = chartRawData.worst_promo_thumb_words.length;
             
             // 18px per bar + 60px header/footer
             const canvasH = Math.max(300, itemCount * 18 + 60);
@@ -296,8 +303,8 @@ export function renderActiveChart(dashboardCard) {
     let chartConfig = {};
     
     if (chartType === "by_month") {
-        const labels = state.chartRawData.by_month.map(d => d.month);
-        const values = state.chartRawData.by_month.map(d => d.video_count);
+        const labels = chartRawData.by_month.map(d => d.month);
+        const values = chartRawData.by_month.map(d => d.video_count);
         
         chartConfig = {
             type: "line",
@@ -328,8 +335,8 @@ export function renderActiveChart(dashboardCard) {
         };
         
     } else if (chartType === "top_hashtags") {
-        const labels = state.chartRawData.top_hashtags.map(d => d.tag);
-        const values = state.chartRawData.top_hashtags.map(d => d.count);
+        const labels = chartRawData.top_hashtags.map(d => d.tag);
+        const values = chartRawData.top_hashtags.map(d => d.count);
         
         chartConfig = {
             type: "bar",
@@ -352,7 +359,7 @@ export function renderActiveChart(dashboardCard) {
                         callbacks: {
                             label: function(context) {
                                 const idx = context.dataIndex;
-                                const item = state.chartRawData.top_hashtags[idx];
+                                const item = chartRawData.top_hashtags[idx];
                                 const avgViews = item.video_count > 0 ? Math.round(item.count / item.video_count) : 0;
                                 return [
                                     (state.currentLang === "ua" ? "Перегляди: " : "Views: ") + item.count.toLocaleString(),
@@ -370,8 +377,8 @@ export function renderActiveChart(dashboardCard) {
             }
         };
     } else if (chartType === "top_description_words") {
-        const labels = state.chartRawData.top_words.map(d => d.word);
-        const values = state.chartRawData.top_words.map(d => d.count);
+        const labels = chartRawData.top_words.map(d => d.word);
+        const values = chartRawData.top_words.map(d => d.count);
         
         chartConfig = {
             type: "bar",
@@ -394,7 +401,7 @@ export function renderActiveChart(dashboardCard) {
                         callbacks: {
                             label: function(context) {
                                 const idx = context.dataIndex;
-                                const item = state.chartRawData.top_words[idx];
+                                const item = chartRawData.top_words[idx];
                                 const avgViews = item.video_count > 0 ? Math.round(item.count / item.video_count) : 0;
                                 return [
                                     (state.currentLang === "ua" ? "Перегляди: " : "Views: ") + item.count.toLocaleString(),
@@ -421,9 +428,9 @@ export function renderActiveChart(dashboardCard) {
             "Friday": state.currentLang === "ua" ? "П'ятниця" : "Friday",
             "Saturday": state.currentLang === "ua" ? "Субота" : "Saturday"
         };
-        const labels = state.chartRawData.best_day_to_post.map(d => labelsMap[d.day_of_week] || d.day_of_week);
-        const counts = state.chartRawData.best_day_to_post.map(d => d.video_count);
-        const views = state.chartRawData.best_day_to_post.map(d => d.total_views);
+        const labels = chartRawData.best_day_to_post.map(d => labelsMap[d.day_of_week] || d.day_of_week);
+        const counts = chartRawData.best_day_to_post.map(d => d.video_count);
+        const views = chartRawData.best_day_to_post.map(d => d.total_views);
         
         chartConfig = {
             type: "bar",
@@ -471,7 +478,7 @@ export function renderActiveChart(dashboardCard) {
             }
         };
     } else if (chartType === "duration_vs_views") {
-        const scatterData = state.chartRawData.duration_vs_views.map(d => ({
+        const scatterData = chartRawData.duration_vs_views.map(d => ({
             x: d.duration,
             y: d.view_count,
             title: d.title,
@@ -484,8 +491,8 @@ export function renderActiveChart(dashboardCard) {
                 datasets: [{
                     label: state.currentLang === "ua" ? "Відео" : "Videos",
                     data: scatterData,
-                    backgroundColor: state.chartRawData.duration_vs_views.map(d => state.channelColors[d.channel_id] || "rgba(56, 189, 248, 0.6)"),
-                    borderColor: state.chartRawData.duration_vs_views.map(d => state.channelColors[d.channel_id] || "#38bdf8"),
+                    backgroundColor: chartRawData.duration_vs_views.map(d => (chartState.channelColors || state.channelColors)[d.channel_id] || "rgba(56, 189, 248, 0.6)"),
+                    borderColor: chartRawData.duration_vs_views.map(d => (chartState.channelColors || state.channelColors)[d.channel_id] || "#38bdf8"),
                     pointRadius: 5
                 }]
             },
@@ -527,8 +534,8 @@ export function renderActiveChart(dashboardCard) {
             "High (50k-100k)": state.currentLang === "ua" ? "Високі (50к-100к)" : "High (50k-100k)",
             "Very High (> 100k)": state.currentLang === "ua" ? "Дуже високі (> 100к)" : "Very High (> 100k)"
         };
-        const labels = state.chartRawData.views_distribution.map(d => labelsMap[d.category] || d.category);
-        const values = state.chartRawData.views_distribution.map(d => d.video_count);
+        const labels = chartRawData.views_distribution.map(d => labelsMap[d.category] || d.category);
+        const values = chartRawData.views_distribution.map(d => d.video_count);
         
         chartConfig = {
             type: "doughnut",
@@ -554,7 +561,7 @@ export function renderActiveChart(dashboardCard) {
     }
     
     
-    state.activeChartInstance = new Chart(ctx, chartConfig);
+    chartState.activeChartInstance = new Chart(ctx, chartConfig);
 }
 
 export function renderModalViewsChart(history) {

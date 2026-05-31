@@ -1,4 +1,5 @@
 import os
+import sys
 from flask import Flask
 
 
@@ -32,6 +33,9 @@ def create_app():
 
 def _init_telemetry_and_rotation(root_dir):
     """Initialize telemetry daemon and cloud rotation engine (v1.1.0)."""
+    if os.environ.get("NEWS_RESEARCH_DISABLE_BACKGROUND_DAEMONS") == "1" or any("unittest" in arg for arg in sys.argv):
+        return
+
     try:
         db_path = os.path.join(root_dir, "data", "youtube_news.db")
         

@@ -32,10 +32,14 @@ All database and LLM configuration schemas **must** conform to the strict data m
 → **Full Config:** [configs/schemas/llm_providers.json](configs/schemas/llm_providers.json)
 
 **Provider Chain (Priority Order):**
-1. Gemini Free API (60 req/min, auto-efficiency scoring)
-2. OpenRouter Free (20 req/min, fallback)
-3. Ollama Hub (unlimited, local-first)
-4. OpenAI Commercial (requires paid key, max efficiency)
+1. `gemini` — Gemini Free API (60 req/min, auto-efficiency scoring)
+2. `openrouter` — OpenRouter Free only (`openrouter/free` or `:free` model variants)
+3. `ollama` — Ollama Cloud API only (`https://ollama.com/api`, requires `OLLAMA_API_KEY`)
+4. `openai` — OpenAI Commercial (requires paid key, max efficiency)
+
+**ID Contract:** Provider IDs must match `static/js/ui.js`, `templates/index.html`, and `AgentService._get_provider_config()`.
+
+**No Local LLM Contract:** Local Ollama endpoints (`localhost:11434`, `OLLAMA_HOST`) and local model IDs are intentionally unsupported in this project.
 
 **Efficiency Calculation:** `Likes / (Likes + Dislikes)` per model. Route next query to highest-scoring available provider.
 
@@ -58,9 +62,11 @@ All database and LLM configuration schemas **must** conform to the strict data m
 
 ## Integration Checklist
 
-- [ ] DB schema v2 migrated (Phase 2)
-- [ ] LLM rotation chain wired in `app/services/agent.py` (Phase 3)
-- [ ] localStorage state manager in `static/js/ui.js` (Phase 4)
-- [ ] Telemetry daemon `app/services/telemetry.py` collecting metrics (Phase 2)
+- [x] DB schema v2 migrated locally (Phase 2)
+- [x] LLM rotation chain wired in `app/services/agent.py` for quota/429 fallback (Phase 3)
+- [x] Provider chain schema normalized for rotation engine (Phase 3)
+- [x] localStorage state manager in `static/js/ui.js` (Phase 4)
+- [x] Telemetry daemon `app/services/telemetry.py` starts and writes to `system_metrics` (Phase 2)
 - [ ] RBAC decorators applied to Flask routes (Phase 2)
-- [ ] Efficiency feedback loop wired to `POST /api/chat/feedback` (Phase 3)
+- [x] Efficiency feedback loop wired to `POST /api/chat/feedback` (Phase 3 backend)
+- [x] Manual quota reporting wired to `POST /api/chat/report-quota` (Phase 3 backend)

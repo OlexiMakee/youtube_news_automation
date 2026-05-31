@@ -5,6 +5,10 @@ from collections import defaultdict
 from news_scraper.db_client import DatabaseClient
 
 
+class QuotaExhaustedError(Exception):
+    """Raised when a provider response indicates quota/rate-limit exhaustion."""
+
+
 class AgentService:
 
     # ─────────────────────────────────────────────
@@ -23,16 +27,34 @@ class AgentService:
             {"id": "o1-mini", "name": "OpenAI o1-mini"}
         ],
         "ollama": [
-            {"id": "gemma2:2b", "name": "Gemma 2 2B (Легка)"},
-            {"id": "phi3", "name": "Phi-3 (Легка)"},
-            {"id": "llama3", "name": "Llama 3 (Основна)"},
-            {"id": "mistral", "name": "Mistral 7B"}
+            {"id": "gpt-oss:120b", "name": "GPT-OSS 120B (Ollama Cloud)"}
         ],
         "openrouter": [
-            {"id": "meta-llama/llama-3.3-8b-instruct:free", "name": "Llama 3.3 8B (Безкоштовна)"},
+            {"id": "openrouter/free", "name": "OpenRouter Free Router"},
+            {"id": "meta-llama/llama-3.3-8b-instruct:free", "name": "Llama 3.3 8B Free"},
             {"id": "google/gemini-2.5-flash:free", "name": "Gemini 2.5 Flash Free"}
         ]
     }
+
+    @staticmethod
+    def _normalize_openrouter_model(model_id):
+        """Allow only OpenRouter zero-cost routes."""
+        if not model_id:
+            return "openrouter/free"
+        if model_id == "openrouter/free" or model_id.endswith(":free"):
+            return model_id
+        return "openrouter/free"
+
+    @staticmethod
+    def _normalize_ollama_cloud_model(model_id):
+        """Reject local Ollama model names; direct cloud models do not use -cloud suffix."""
+        if not model_id:
+            return "gpt-oss:120b"
+        if model_id.endswith("-cloud"):
+            model_id = model_id[:-len("-cloud")]
+        if model_id.startswith("gpt-oss:"):
+            return model_id
+        return "gpt-oss:120b"
 
     @classmethod
     def _get_provider_config(cls, provider, model_override=None):
@@ -51,14 +73,13 @@ class AgentService:
             
         elif provider == "openrouter":
             api_key = os.environ.get("OPENROUTER_API_KEY")
-            model = model_override or "meta-llama/llama-3.3-8b-instruct:free"
+            model = cls._normalize_openrouter_model(model_override)
             return api_key, "https://openrouter.ai/api/v1", model
             
         elif provider == "ollama":
-            api_key = os.environ.get("OLLAMA_API_KEY") or "ollama"
-            base_url = os.environ.get("OLLAMA_HOST") or "http://localhost:11434/v1"
-            model = model_override or "gemma2:2b"
-            return api_key, base_url, model
+            api_key = os.environ.get("OLLAMA_API_KEY")
+            model = cls._normalize_ollama_cloud_model(model_override)
+            return api_key, "https://ollama.com/api", model
             
         return None, None, None
 
@@ -69,32 +90,43 @@ class AgentService:
     @classmethod
     def list_models(cls, provider="gemini"):
         """Fetches available models from the provider, or returns defaults."""
+        if provider in {"gemini", "openrouter"}:
+            # Gemini/OpenRouter remote catalogs are either unnecessary or large.
+            # Keep the UI bounded and predictable; curated defaults are enough.
+            return cls.DEFAULT_MODELS.get(provider, [])
+
         api_key, base_url, _ = cls._get_provider_config(provider)
         if not api_key:
             return cls.DEFAULT_MODELS.get(provider, [])
-            
-        headers = {}
-        if api_key != "ollama":
-            headers["Authorization"] = f"Bearer {api_key}"
+
+        headers = {"Authorization": f"Bearer {api_key}"}
             
         try:
-            if provider == "gemini":
-                # For Gemini, directly return structured defaults to avoid listing delays
-                return cls.DEFAULT_MODELS["gemini"]
-                
+            models_url = f"{base_url}/models"
+            if provider == "ollama":
+                models_url = f"{base_url}/tags"
+
             res = requests.get(
-                f"{base_url}/models",
+                models_url,
                 headers=headers,
                 timeout=5
             )
             if res.status_code == 200:
                 data = res.json()
-                models = data.get("data", [])
-                result = [
-                    {"id": m["id"], "name": m.get("name", m["id"])}
-                    for m in models
-                    if isinstance(m.get("id"), str)
-                ]
+                if provider == "ollama":
+                    models = data.get("models", [])
+                    result = [
+                        {"id": m["name"], "name": m.get("name", m["name"])}
+                        for m in models
+                        if isinstance(m.get("name"), str)
+                    ][:50]
+                else:
+                    models = data.get("data", [])
+                    result = [
+                        {"id": m["id"], "name": m.get("name", m["id"])}
+                        for m in models
+                        if isinstance(m.get("id"), str)
+                    ][:50]
                 return result if result else cls.DEFAULT_MODELS.get(provider, [])
             else:
                 return cls.DEFAULT_MODELS.get(provider, [])
@@ -290,24 +322,12 @@ class AgentService:
     # ─────────────────────────────────────────────
 
     @classmethod
-    def stream_chat_response(cls, user_message, db_context, provider="gemini", model_id=None, role="admin", history=None):
-        """
-        Generator that yields SSE-formatted chunks.
-        """
-        api_key, base_url, model = cls._get_provider_config(provider, model_override=model_id)
-
-        if not api_key:
-            offline_text = cls.get_offline_response(db_context)
-            yield f"data: {json.dumps({'text': offline_text})}\n\n"
-            cls._log_chat(role, provider, model or "offline", user_message, offline_text)
-            yield "data: [DONE]\n\n"
-            return
-
-        # Load system prompt and instructions
+    def _build_system_prompt(cls, db_context, role="admin"):
+        """Build the system prompt shared by all provider attempts."""
         current_dir = os.path.dirname(os.path.abspath(__file__))
         prompt_path = os.path.join(current_dir, "system_prompt.txt")
-        
-        # Load instruction based on role
+        chief_editor_path = os.path.join(current_dir, "chief_editor_core.md")
+
         if role == "user":
             instructions_path = os.path.join(current_dir, "system_instructions_user.txt")
         else:
@@ -331,142 +351,312 @@ class AgentService:
                 instructions = f.read().strip()
 
         system_prompt = base_prompt
+        if os.path.exists(chief_editor_path):
+            with open(chief_editor_path, "r", encoding="utf-8") as f:
+                chief_editor_core = f.read().strip()
+            if chief_editor_core:
+                system_prompt += f"\n\n=== CHIEF EDITOR CORE ===\n{chief_editor_core}"
+
         if instructions:
             system_prompt += f"\n\n=== СИСТЕМНІ ВИМОГИ ===\n{instructions}"
-        
-        # Only inject the dashboard summary if the role is admin
+
         if role == "admin":
             system_prompt += f"\n\n=== ПОТОЧНИЙ СТАН ДАШБОРДУ ===\n{db_context}"
 
-        full_answer = ""
+        return system_prompt
+
+    @classmethod
+    def _get_rotation_attempts(cls, requested_provider, requested_model_id=None):
+        """Return provider/model attempts: requested provider first, then free rotation chain."""
+        attempts = []
+
+        def add(provider_id, model_id=None):
+            if not provider_id:
+                return
+            if provider_id not in {p for p, _ in attempts}:
+                attempts.append((provider_id, model_id))
+
+        add(requested_provider, requested_model_id)
+
         try:
-            if provider == "gemini":
-                url = f"{base_url}/models/{model}:streamGenerateContent?alt=sse&key={api_key}"
-                
-                contents = []
-                if history:
-                    for msg in history:
-                        role_str = "user" if msg.get("role") == "user" else "model"
-                        contents.append({
-                            "role": role_str,
-                            "parts": [{"text": msg.get("content", "")}]
-                        })
-                contents.append({
-                    "role": "user",
-                    "parts": [{"text": user_message}]
-                })
-                
-                payload = {
-                    "contents": contents,
-                    "systemInstruction": {
-                        "parts": [{"text": system_prompt}]
-                    }
-                }
-                
-                with requests.post(
-                    url,
-                    json=payload,
-                    headers={"Content-Type": "application/json"},
-                    stream=True,
-                    timeout=60
-                ) as resp:
-                    if resp.status_code != 200:
-                        err = resp.text[:300]
-                        yield f"data: {json.dumps({'error': f'Gemini API error {resp.status_code}: {err}'})}\n\n"
-                        yield "data: [DONE]\n\n"
-                        return
+            from app.services.cloud_rotation import get_rotation_engine
+            engine = get_rotation_engine()
+            if engine:
+                skip_paid = requested_provider != "openai"
+                for provider in engine.get_available_providers(skip_paid=skip_paid):
+                    add(provider.id, provider.default_model)
+        except Exception:
+            pass
 
-                    for line in resp.iter_lines():
-                        if not line:
-                            continue
-                        decoded = line.decode("utf-8") if isinstance(line, bytes) else line
-                        if not decoded.startswith("data:"):
-                            continue
-                        chunk_str = decoded[len("data:"):].strip()
-                        try:
-                            chunk = json.loads(chunk_str)
-                            candidates = chunk.get("candidates", [])
-                            if candidates:
-                                text = candidates[0].get("content", {}).get("parts", [{}])[0].get("text", "")
-                                if text:
-                                    full_answer += text
-                                    yield f"data: {json.dumps({'text': text})}\n\n"
-                        except Exception:
-                            pass
-            else:
-                url = f"{base_url}/chat/completions"
-                
-                messages = [{"role": "system", "content": system_prompt}]
-                if history:
-                    for msg in history:
-                        role_str = "user" if msg.get("role") == "user" else "assistant"
-                        messages.append({
-                            "role": role_str,
-                            "content": msg.get("content", "")
-                        })
-                messages.append({"role": "user", "content": user_message})
-                
-                payload = {
-                    "model": model,
-                    "stream": True,
-                    "messages": messages
-                }
-                headers = {
-                    "Content-Type": "application/json",
-                }
-                if provider != "ollama":
-                    headers["Authorization"] = f"Bearer {api_key}"
+        for provider_id in ("gemini", "openrouter", "ollama"):
+            add(provider_id, None)
+        if requested_provider == "openai":
+            add("openai", requested_model_id)
 
-                with requests.post(
-                    url,
-                    json=payload,
-                    headers=headers,
-                    stream=True,
-                    timeout=60
-                ) as resp:
-                    if resp.status_code != 200:
-                        err = resp.text[:300]
-                        yield f"data: {json.dumps({'error': f'API error {resp.status_code}: {err}'})}\n\n"
-                        yield "data: [DONE]\n\n"
-                        return
+        return attempts
 
-                    for line in resp.iter_lines():
-                        if not line:
-                            continue
-                        decoded = line.decode("utf-8") if isinstance(line, bytes) else line
-                        if not decoded.startswith("data:"):
-                            continue
-                        chunk_str = decoded[len("data:"):].strip()
-                        if chunk_str == "[DONE]":
-                            break
-                        try:
-                            chunk = json.loads(chunk_str)
-                            delta = chunk.get("choices", [{}])[0].get("delta", {})
-                            text = delta.get("content", "")
+    @classmethod
+    def _is_quota_error(cls, response_text):
+        """Return True if text is a provider quota/rate-limit failure."""
+        if not response_text:
+            return False
+        try:
+            from app.services.cloud_rotation import get_rotation_engine
+            engine = get_rotation_engine()
+            if engine and engine.check_quota_exhaustion(response_text):
+                return True
+        except Exception:
+            pass
+        lowered = response_text.lower()
+        return any(term in lowered for term in ("quota", "rate limit", "429", "too many requests", "exceeded"))
+
+    @classmethod
+    def _stream_provider_text(cls, provider, api_key, base_url, model, user_message, system_prompt, history=None):
+        """Yield plain text chunks from one configured provider attempt."""
+        if provider == "gemini":
+            url = f"{base_url}/models/{model}:streamGenerateContent?alt=sse&key={api_key}"
+
+            contents = []
+            if history:
+                for msg in history:
+                    role_str = "user" if msg.get("role") == "user" else "model"
+                    contents.append({
+                        "role": role_str,
+                        "parts": [{"text": msg.get("content", "")}]
+                    })
+            contents.append({
+                "role": "user",
+                "parts": [{"text": user_message}]
+            })
+
+            payload = {
+                "contents": contents,
+                "systemInstruction": {
+                    "parts": [{"text": system_prompt}]
+                }
+            }
+
+            with requests.post(
+                url,
+                json=payload,
+                headers={"Content-Type": "application/json"},
+                stream=True,
+                timeout=60
+            ) as resp:
+                if resp.status_code != 200:
+                    err = resp.text[:500]
+                    if resp.status_code == 429 or cls._is_quota_error(err):
+                        raise QuotaExhaustedError(f"{provider} quota exhausted: {err[:180]}")
+                    raise RuntimeError(f"Gemini API error {resp.status_code}: {err[:300]}")
+
+                for line in resp.iter_lines():
+                    if not line:
+                        continue
+                    decoded = line.decode("utf-8") if isinstance(line, bytes) else line
+                    if not decoded.startswith("data:"):
+                        continue
+                    chunk_str = decoded[len("data:"):].strip()
+                    try:
+                        chunk = json.loads(chunk_str)
+                        if chunk.get("error"):
+                            err = json.dumps(chunk["error"], ensure_ascii=False)
+                            if cls._is_quota_error(err):
+                                raise QuotaExhaustedError(f"{provider} quota exhausted: {err[:180]}")
+                            raise RuntimeError(f"Gemini stream error: {err[:300]}")
+                        candidates = chunk.get("candidates", [])
+                        if candidates:
+                            text = candidates[0].get("content", {}).get("parts", [{}])[0].get("text", "")
                             if text:
-                                full_answer += text
-                                yield f"data: {json.dumps({'text': text})}\n\n"
-                        except Exception:
-                            pass
-                            
-            cls._log_chat(role, provider, model, user_message, full_answer)
-            yield "data: [DONE]\n\n"
+                                yield text
+                    except QuotaExhaustedError:
+                        raise
+                    except RuntimeError:
+                        raise
+                    except Exception:
+                        pass
+            return
 
-        except requests.exceptions.ConnectionError as ce:
-            err_msg = str(ce)
-            if "localhost" in err_msg or "127.0.0.1" in err_msg or "11434" in err_msg:
-                user_friendly = (
-                    "Помилка з'єднання з локальним Ollama. Переконайтеся, що додаток Ollama запущено "
-                    "на вашому комп'ютері (порт 11434), або виберіть іншого провайдера (наприклад, Gemini)."
-                )
-            else:
-                user_friendly = f"Помилка підключення: {ce}"
-            yield f"data: {json.dumps({'error': user_friendly})}\n\n"
+        if provider == "ollama":
+            url = f"{base_url}/chat"
+
+            messages = [{"role": "system", "content": system_prompt}]
+            if history:
+                for msg in history:
+                    role_str = "user" if msg.get("role") == "user" else "assistant"
+                    messages.append({
+                        "role": role_str,
+                        "content": msg.get("content", "")
+                    })
+            messages.append({"role": "user", "content": user_message})
+
+            payload = {
+                "model": cls._normalize_ollama_cloud_model(model),
+                "stream": True,
+                "messages": messages
+            }
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            }
+
+            with requests.post(
+                url,
+                json=payload,
+                headers=headers,
+                stream=True,
+                timeout=60
+            ) as resp:
+                if resp.status_code != 200:
+                    err = resp.text[:500]
+                    if resp.status_code == 429 or cls._is_quota_error(err):
+                        raise QuotaExhaustedError(f"{provider} quota exhausted: {err[:180]}")
+                    raise RuntimeError(f"Ollama Cloud API error {resp.status_code}: {err[:300]}")
+
+                for line in resp.iter_lines():
+                    if not line:
+                        continue
+                    decoded = line.decode("utf-8") if isinstance(line, bytes) else line
+                    try:
+                        chunk = json.loads(decoded)
+                        if chunk.get("error"):
+                            err = str(chunk["error"])
+                            if cls._is_quota_error(err):
+                                raise QuotaExhaustedError(f"{provider} quota exhausted: {err[:180]}")
+                            raise RuntimeError(f"Ollama Cloud stream error: {err[:300]}")
+                        message = chunk.get("message") or {}
+                        text = message.get("content", "")
+                        if text:
+                            yield text
+                        if chunk.get("done"):
+                            break
+                    except QuotaExhaustedError:
+                        raise
+                    except RuntimeError:
+                        raise
+                    except Exception:
+                        pass
+            return
+
+        url = f"{base_url}/chat/completions"
+
+        messages = [{"role": "system", "content": system_prompt}]
+        if history:
+            for msg in history:
+                role_str = "user" if msg.get("role") == "user" else "assistant"
+                messages.append({
+                    "role": role_str,
+                    "content": msg.get("content", "")
+                })
+        messages.append({"role": "user", "content": user_message})
+
+        payload = {
+            "model": model,
+            "stream": True,
+            "messages": messages
+        }
+        headers = {
+            "Content-Type": "application/json",
+        }
+        headers["Authorization"] = f"Bearer {api_key}"
+
+        with requests.post(
+            url,
+            json=payload,
+            headers=headers,
+            stream=True,
+            timeout=60
+        ) as resp:
+            if resp.status_code != 200:
+                err = resp.text[:500]
+                if resp.status_code == 429 or cls._is_quota_error(err):
+                    raise QuotaExhaustedError(f"{provider} quota exhausted: {err[:180]}")
+                raise RuntimeError(f"API error {resp.status_code}: {err[:300]}")
+
+            for line in resp.iter_lines():
+                if not line:
+                    continue
+                decoded = line.decode("utf-8") if isinstance(line, bytes) else line
+                if not decoded.startswith("data:"):
+                    continue
+                chunk_str = decoded[len("data:"):].strip()
+                if chunk_str == "[DONE]":
+                    break
+                try:
+                    chunk = json.loads(chunk_str)
+                    if chunk.get("error"):
+                        err = json.dumps(chunk["error"], ensure_ascii=False)
+                        if cls._is_quota_error(err):
+                            raise QuotaExhaustedError(f"{provider} quota exhausted: {err[:180]}")
+                        raise RuntimeError(f"Stream error: {err[:300]}")
+                    delta = chunk.get("choices", [{}])[0].get("delta", {})
+                    text = delta.get("content", "")
+                    if text:
+                        yield text
+                except QuotaExhaustedError:
+                    raise
+                except RuntimeError:
+                    raise
+                except Exception:
+                    pass
+
+    @classmethod
+    def stream_chat_response(cls, user_message, db_context, provider="gemini", model_id=None, role="admin", history=None):
+        """
+        Generator that yields SSE-formatted chunks.
+        """
+        system_prompt = cls._build_system_prompt(db_context, role=role)
+        attempts = cls._get_rotation_attempts(provider, model_id)
+        attempted_with_credentials = False
+        last_error = None
+
+        for attempt_provider, attempt_model_id in attempts:
+            api_key, base_url, model = cls._get_provider_config(attempt_provider, model_override=attempt_model_id)
+            if not api_key or not base_url:
+                last_error = f"{attempt_provider}: missing API configuration"
+                continue
+
+            attempted_with_credentials = True
+            full_answer = ""
+            try:
+                yield f"data: {json.dumps({'provider': attempt_provider, 'model': model})}\n\n"
+                for text in cls._stream_provider_text(
+                    attempt_provider,
+                    api_key,
+                    base_url,
+                    model,
+                    user_message,
+                    system_prompt,
+                    history=history
+                ):
+                    full_answer += text
+                    yield f"data: {json.dumps({'text': text})}\n\n"
+
+                cls._log_chat(role, attempt_provider, model, user_message, full_answer)
+                yield "data: [DONE]\n\n"
+                return
+
+            except QuotaExhaustedError as qe:
+                last_error = str(qe)
+                print(f"[AgentService] quota rotation: {last_error}")
+                continue
+            except requests.exceptions.ConnectionError as ce:
+                last_error = f"{attempt_provider}: connection error: {ce}"
+                print(f"[AgentService] provider connection failed, rotating: {last_error}")
+                continue
+            except Exception as e:
+                last_error = f"{attempt_provider}: {e}"
+                print(f"[AgentService] provider failed, rotating: {last_error}")
+                continue
+
+        if not attempted_with_credentials:
+            offline_text = cls.get_offline_response(db_context)
+            yield f"data: {json.dumps({'text': offline_text})}\n\n"
+            cls._log_chat(role, provider, "offline", user_message, offline_text)
             yield "data: [DONE]\n\n"
-        except Exception as e:
-            print(f"[AgentService] stream failed: {e}")
-            yield f"data: {json.dumps({'error': f'Помилка: {str(e)}'})}\n\n"
-            yield "data: [DONE]\n\n"
+            return
+
+        yield f"data: {json.dumps({'error': f'Усі провайдери недоступні. Остання помилка: {last_error}'})}\n\n"
+        yield "data: [DONE]\n\n"
 
     @classmethod
     def _log_chat(cls, role, provider, model, user_message, assistant_answer):

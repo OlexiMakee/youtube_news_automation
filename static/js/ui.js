@@ -66,12 +66,13 @@ export function changeTheme(theme) {
 // SECTION TOGGLER (For real tab switching)
 export function switchSection(tabId, element) {
     state.currentSection = tabId;
-    document.querySelectorAll(".sidebar-menu-item").forEach(item => {
+    document.querySelectorAll(".sidebar-menu-item, .top-section-tab").forEach(item => {
         item.classList.remove("active");
     });
     
     if (element) {
-        element.parentElement.classList.add("active");
+        const tab = element.closest(".sidebar-menu-item, .top-section-tab") || element;
+        tab.classList.add("active");
     } else {
         // Fallback search menu item
         const targetMenuId = tabId === "analytics-tab" ? "menu-item-analytics" : "menu-item-terminal";
@@ -371,6 +372,7 @@ export function resetFilters() {
     if (bottomSelect) bottomSelect.value = 50;
     
     applyFilters();
+    window.dashboardWorkspace?.refreshAll();
 }
 
 // QUICK DATE RANGE SETTER
@@ -417,6 +419,7 @@ export function setDateRange(preset) {
         loadChartsData(selectedIds.join(','));
         loadChannelStatsHeader();
     }
+    window.dashboardWorkspace?.refreshAll();
 }
 
 export function toggleColumnsSelector() {
@@ -1041,7 +1044,7 @@ export async function submitAddChannel(event) {
     closeAddChannelModal();
     
     // Switch to Terminal tab so user can see logs
-    switchSection("terminal-tab", document.getElementById("menu-item-terminal").querySelector("a"));
+    switchSection("terminal-tab", document.getElementById("menu-item-terminal")?.querySelector("a"));
     
     try {
         const res = await fetch("/api/action/add_channel", {
@@ -1150,9 +1153,39 @@ function _getSelectedModel() {
     return sel ? sel.value : "";
 }
 
+function _setModelSelectorValue(modelId) {
+    const sel = document.getElementById("chat-model-select");
+    if (!sel) return;
+
+    const value = modelId || "";
+    if (value && !Array.from(sel.options).some(opt => opt.value === value)) {
+        const opt = document.createElement("option");
+        opt.value = value;
+        opt.textContent = value;
+        sel.appendChild(opt);
+    }
+    sel.value = value;
+    localStorage.setItem(`${CHAT_STORAGE_MODEL_PREFIX}${state.agentProvider}`, value);
+}
+
+async function _syncActiveModelFromStream(provider, modelId) {
+    if (!provider) return;
+
+    if (state.agentProvider !== provider) {
+        state.agentProvider = provider;
+        localStorage.setItem(CHAT_STORAGE_PROVIDER, provider);
+        const providerSel = document.getElementById("chat-provider-select");
+        if (providerSel) providerSel.value = provider;
+        await _loadModels();
+    }
+    _setModelSelectorValue(modelId);
+}
+
 export async function changeChatProvider(provider) {
     state.agentProvider = provider;
+    localStorage.setItem(CHAT_STORAGE_PROVIDER, provider);
     await _loadModels();
+    window.chatUIManager?.updateContextMeter();
 }
 
 export function switchAgentRole(role) {
@@ -1176,33 +1209,55 @@ export function switchAgentRole(role) {
             adminBtn.style.color = "var(--text-muted)";
         }
     }
+    window.chatUIManager?.updateContextMeter();
 }
 
 /** Loads model list from backend and populates the selector */
 async function _loadModels() {
     const sel = document.getElementById("chat-model-select");
     if (!sel) return;
+    const providerSel = document.getElementById("chat-provider-select");
+    if (providerSel && providerSel.value !== state.agentProvider) {
+        providerSel.value = state.agentProvider;
+    }
+    if (sel.dataset.persistBound !== "true") {
+        sel.dataset.persistBound = "true";
+        sel.addEventListener("change", () => {
+            localStorage.setItem(`${CHAT_STORAGE_MODEL_PREFIX}${state.agentProvider}`, sel.value || "");
+        });
+    }
     try {
+        sel.disabled = true;
         const res  = await fetch(`/api/agent/models?provider=${state.agentProvider}`);
         const data = await res.json();
-        const models = data.models || [];
+        const models = (data.models || []).slice(0, 50);
         sel.innerHTML = "";
         if (models.length === 0) {
             sel.innerHTML = '<option value="">Авто (за замовчуванням)</option>';
         } else {
+            const fragment = document.createDocumentFragment();
             const def = document.createElement("option");
             def.value = ""; def.textContent = "Авто (за замовчуванням)";
-            sel.appendChild(def);
+            fragment.appendChild(def);
             models.forEach(m => {
                 const opt = document.createElement("option");
                 opt.value = m.id;
-                opt.textContent = m.id;
-                sel.appendChild(opt);
+                opt.textContent = m.name || m.id;
+                fragment.appendChild(opt);
             });
+            sel.appendChild(fragment);
+        }
+        const storedModel = localStorage.getItem(`${CHAT_STORAGE_MODEL_PREFIX}${state.agentProvider}`) || "";
+        if (storedModel && Array.from(sel.options).some(opt => opt.value === storedModel)) {
+            sel.value = storedModel;
+        } else {
+            sel.value = "";
         }
     } catch (e) {
         sel.innerHTML = '<option value="">Авто (за замовчуванням)</option>';
         console.warn("[chat] loadModels error:", e);
+    } finally {
+        sel.disabled = false;
     }
 }
 
@@ -1233,6 +1288,161 @@ function _getChatHistory() {
         }
     });
     return history;
+}
+
+const CHAT_CONTEXT_MAX_TOKENS = 24000;
+const CHAT_STAGED_FILES = [];
+let chatContextWarningShown = false;
+
+function _estimateTokens(text) {
+    return Math.ceil((text || "").length * 1.2);
+}
+
+function _getStagedFilesRaw() {
+    if (CHAT_STAGED_FILES.length === 0) return "";
+    return CHAT_STAGED_FILES.map(file => {
+        return `--- Attached text file: ${file.name} (${file.tokens} estimated tokens) ---\n${file.content}`;
+    }).join("\n\n");
+}
+
+function _renderStagedFileChips() {
+    const tray = document.getElementById("chat-file-chips");
+    if (!tray) return;
+    tray.innerHTML = "";
+    tray.hidden = CHAT_STAGED_FILES.length === 0;
+
+    CHAT_STAGED_FILES.forEach((file, index) => {
+        const chip = document.createElement("button");
+        chip.type = "button";
+        chip.className = "chat-file-chip";
+        chip.title = file.name;
+        chip.innerHTML = `<i class="fa-solid fa-file-lines"></i><span></span><small></small><i class="fa-solid fa-xmark"></i>`;
+        chip.querySelector("span").textContent = file.name;
+        chip.querySelector("small").textContent = `${file.tokens.toLocaleString()} tok`;
+        chip.addEventListener("click", () => {
+            CHAT_STAGED_FILES.splice(index, 1);
+            _renderStagedFileChips();
+            window.chatUIManager?.updateContextMeter();
+        });
+        tray.appendChild(chip);
+    });
+}
+
+function _clearStagedFiles() {
+    CHAT_STAGED_FILES.splice(0, CHAT_STAGED_FILES.length);
+    _renderStagedFileChips();
+}
+
+function _appendUserBubble(containerEl, message, stagedFiles = []) {
+    if (!containerEl) return null;
+    const bubble = document.createElement("div");
+    bubble.className = "chat-bubble user";
+
+    const stagedRaw = stagedFiles.length ? _getStagedFilesRaw() : "";
+    bubble.dataset.raw = [message, stagedRaw].filter(Boolean).join("\n\n");
+
+    const messageText = document.createElement("div");
+    messageText.textContent = message || "[attached files]";
+    bubble.appendChild(messageText);
+
+    if (stagedFiles.length) {
+        const fileList = document.createElement("div");
+        fileList.className = "chat-bubble-files";
+        stagedFiles.forEach(file => {
+            const fileChip = document.createElement("span");
+            fileChip.className = "chat-bubble-file";
+            fileChip.textContent = `${file.name} · ${file.tokens.toLocaleString()} tok`;
+            fileList.appendChild(fileChip);
+        });
+        bubble.appendChild(fileList);
+    }
+
+    containerEl.appendChild(bubble);
+    return bubble;
+}
+
+export function exportChatMarkdown() {
+    const history = _getChatHistory();
+    if (history.length === 0) return;
+
+    const createdAt = new Date().toISOString();
+    const roleLabels = {
+        user: "User",
+        assistant: "Assistant"
+    };
+    const body = history.map((item, index) => {
+        const label = roleLabels[item.role] || item.role;
+        return `## ${index + 1}. ${label}\n\n${item.content.trim()}`;
+    }).join("\n\n---\n\n");
+    const markdown = `# Chat Session\n\nExported: ${createdAt}\n\n${body}\n`;
+
+    const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `chat-session-${createdAt.replace(/[:.]/g, "-")}.md`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+}
+
+export async function clearChatHistory() {
+    const containerEl = document.getElementById("chat-messages");
+    const inputEl = document.getElementById("chat-input");
+    const hasMessages = _getChatHistory().length > 0;
+    const hasStagedFiles = CHAT_STAGED_FILES.length > 0;
+    const hasInput = Boolean(inputEl && inputEl.value.trim());
+    if (!hasMessages && !hasStagedFiles && !hasInput) return;
+
+    const shouldClear = window.confirm("Очистити історію чату?");
+    if (!shouldClear) return;
+
+    if (containerEl) {
+        containerEl.innerHTML = "";
+    }
+    if (inputEl) {
+        inputEl.value = "";
+        inputEl.disabled = false;
+        inputEl.placeholder = "Напишіть повідомлення...";
+    }
+    _clearStagedFiles();
+    chatContextWarningShown = false;
+    localStorage.removeItem(CHAT_STORAGE_HISTORY);
+    window.chatUIManager?.updateContextMeter();
+
+    try {
+        await fetch("/api/chat/clear-context", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ scope: "active_session" })
+        });
+    } catch (err) {
+        console.warn("[chat] clear-context endpoint unavailable:", err);
+    }
+}
+
+function _renderChatMarkdown(targetEl, rawText) {
+    if (!targetEl) return;
+    if (window.marked) {
+        targetEl.innerHTML = window.marked.parse ? window.marked.parse(rawText) : window.marked(rawText);
+    } else {
+        targetEl.innerText = rawText;
+    }
+}
+
+function _appendChatBubble(containerEl, role, content) {
+    if (!containerEl || !content) return null;
+    const bubble = document.createElement("div");
+    bubble.className = role === "user" ? "chat-bubble user" : "chat-bubble bot";
+    bubble.dataset.raw = content;
+    if (role === "user") {
+        bubble.innerText = content;
+    } else {
+        _renderChatMarkdown(bubble, content);
+    }
+    containerEl.appendChild(bubble);
+    return bubble;
 }
 
 /** Streams a response from /api/agent/chat/stream, appending tokens to botDiv */
@@ -1291,12 +1501,9 @@ async function _streamBotMessage(message, containerEl, contextOverride = null, h
                 const payload = line.slice(5).trim();
                 if (payload === "[DONE]") {
                     botDiv.classList.remove("streaming");
-                    if (window.marked) {
-                        botDiv.innerHTML = window.marked.parse ? window.marked.parse(accumulatedText) : window.marked(accumulatedText);
-                    } else {
-                        botDiv.innerText = accumulatedText;
-                    }
+                    _renderChatMarkdown(botDiv, accumulatedText);
                     botDiv.dataset.raw = accumulatedText;
+                    window.chatUIManager?.saveHistory();
                     return;
                 }
                 try {
@@ -1305,17 +1512,17 @@ async function _streamBotMessage(message, containerEl, contextOverride = null, h
                         hasError = true;
                         botDiv.classList.add("error");
                         botDiv.innerText = `Помилка: ${obj.error}`;
+                        botDiv.dataset.raw = botDiv.innerText;
                         botDiv.classList.remove("streaming");
                         return;
+                    }
+                    if (obj.provider || obj.model) {
+                        void _syncActiveModelFromStream(obj.provider, obj.model);
                     }
                     if (obj.text) {
                         accumulatedText += obj.text;
                         botDiv.dataset.raw = accumulatedText;
-                        if (window.marked) {
-                            botDiv.innerHTML = window.marked.parse ? window.marked.parse(accumulatedText) : window.marked(accumulatedText);
-                        } else {
-                            botDiv.innerText = accumulatedText;
-                        }
+                        _renderChatMarkdown(botDiv, accumulatedText);
                         containerEl.scrollTop = containerEl.scrollHeight;
                     }
                 } catch (_) { /* skip malformed */ }
@@ -1325,68 +1532,61 @@ async function _streamBotMessage(message, containerEl, contextOverride = null, h
         if (!hasError) {
             botDiv.classList.add("error");
             botDiv.innerText = `Помилка з'єднання: ${err.message}`;
+            botDiv.dataset.raw = botDiv.innerText;
         }
     } finally {
         botDiv.classList.remove("streaming");
+        window.chatUIManager?.saveHistory();
     }
 }
 
-export function toggleChatDrawer(forceClose = false) {
+function _setChatDrawerOpenState(isOpen) {
     const drawer = document.getElementById("chat-drawer");
     if (!drawer) return;
 
-    const isCurrentlyOpen = drawer.classList.contains("open");
+    drawer.classList.toggle("open", isOpen);
+    if (window.innerWidth > 768) {
+        document.body.classList.toggle("chat-drawer-open", isOpen);
+    } else {
+        document.body.classList.remove("chat-drawer-open");
+    }
+    localStorage.setItem("ui_drawer_open", isOpen ? "true" : "false");
+    const openBtn = document.getElementById("chat-open-btn");
+    if (openBtn) {
+        openBtn.hidden = isOpen;
+    }
+    window.chatUIManager?.syncOpenState(isOpen);
+}
 
-    if (isCurrentlyOpen && !forceClose) {
-        // Chat is open, and we clicked the global "Summarize" button again -> request another summary from the current screen!
-        _requestAddScreenSummary();
+export function openChatDrawer() {
+    _setChatDrawerOpenState(true);
+    _loadModels();
+}
+
+export function closeChatDrawer() {
+    _setChatDrawerOpenState(false);
+}
+
+export function toggleChatDrawer(forceClose = false) {
+    if (forceClose) {
+        closeChatDrawer();
         return;
     }
-
-    let newOpenState = !isCurrentlyOpen;
-    if (forceClose) {
-        newOpenState = false;
-    }
-
-    if (newOpenState) {
-        drawer.classList.add("open");
+    const drawer = document.getElementById("chat-drawer");
+    if (!drawer) return;
+    if (drawer.classList.contains("open")) {
+        closeChatDrawer();
     } else {
-        drawer.classList.remove("open");
-    }
-
-    if (window.innerWidth > 768) {
-        document.body.classList.toggle("chat-drawer-open", newOpenState);
-    }
-
-    if (newOpenState) {
-        _loadModels();
-        _requestAutoSummary();
+        openChatDrawer();
     }
 }
 
-async function _requestAutoSummary() {
-    const containerEl = document.getElementById("chat-messages");
-    if (!containerEl) return;
-    containerEl.innerHTML = "";
-
-    // Show typing indicator while context builds
-    const typingDiv = document.createElement("div");
-    typingDiv.className = "chat-bubble bot typing";
-    typingDiv.innerHTML = `<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span>`;
-    containerEl.appendChild(typingDiv);
-    containerEl.scrollTop = containerEl.scrollHeight;
-
-    // Brief delay so model selector starts loading first
-    await new Promise(r => setTimeout(r, 400));
-    if (typingDiv.parentNode) typingDiv.parentNode.removeChild(typingDiv);
-
-    const screenText = _scrapeCurrentScreenText();
-    await _streamBotMessage(
-        "Зроби висновки",
-        containerEl,
-        screenText,
-        []
-    );
+export async function summarizeCurrentScreen() {
+    const drawer = document.getElementById("chat-drawer");
+    if (drawer && !drawer.classList.contains("open")) {
+        openChatDrawer();
+    }
+    await _requestAddScreenSummary();
 }
 
 export async function handleSendChatMessage(event) {
@@ -1397,23 +1597,28 @@ export async function handleSendChatMessage(event) {
     if (!inputEl || !containerEl) return;
 
     const message = inputEl.value.trim();
-    if (!message) return;
+    const stagedSnapshot = CHAT_STAGED_FILES.map(file => ({ ...file }));
+    if (!message && stagedSnapshot.length === 0) return;
     inputEl.value = "";
+    inputEl.disabled = false;
+    inputEl.placeholder = "Напишіть повідомлення...";
+    _clearStagedFiles();
 
     // Collect history before appending new user bubble
     const history = _getChatHistory();
 
-    // User bubble
-    const userDiv = document.createElement("div");
-    userDiv.className = "chat-bubble user";
-    userDiv.innerText = message;
-    userDiv.dataset.raw = message;
-    containerEl.appendChild(userDiv);
+    const attachmentRaw = stagedSnapshot.map(file => {
+        return `--- Attached text file: ${file.name} (${file.tokens} estimated tokens) ---\n${file.content}`;
+    }).join("\n\n");
+    const outboundMessage = [message, attachmentRaw].filter(Boolean).join("\n\n");
+
+    _appendUserBubble(containerEl, message, stagedSnapshot);
     containerEl.scrollTop = containerEl.scrollHeight;
+    window.chatUIManager?.saveHistory();
 
     // Stream bot reply with context of current screen
     const screenText = _scrapeCurrentScreenText();
-    await _streamBotMessage(message, containerEl, screenText, history);
+    await _streamBotMessage(outboundMessage, containerEl, screenText, history);
 }
 
 
@@ -1564,16 +1769,6 @@ async function _requestAddScreenSummary() {
     // Collect history before appending new user bubble
     const history = _getChatHistory();
 
-    const userText = state.currentLang === "ua" ? "Зроби висновки з поточного екрану" : "Make conclusions from the current screen";
-
-    // User bubble
-    const userDiv = document.createElement("div");
-    userDiv.className = "chat-bubble user";
-    userDiv.innerText = userText;
-    userDiv.dataset.raw = userText;
-    containerEl.appendChild(userDiv);
-    containerEl.scrollTop = containerEl.scrollHeight;
-
     // Stream bot reply with context of current screen
     const screenText = _scrapeCurrentScreenText();
     await _streamBotMessage(
@@ -1594,7 +1789,16 @@ function _scrapeCurrentScreenText() {
     if (state.currentSection === "terminal-tab") {
         return _scrapeTerminalAndTableText();
     }
-    return _scrapeActiveChartText();
+    return _scrapeDashboardWidgetsText();
+}
+
+function _scrapeDashboardWidgetsText() {
+    const sections = [_scrapeActiveChartText()];
+    const widgetSummaries = window.dashboardWorkspace?.serializeForSummary?.() || [];
+    widgetSummaries.forEach(summary => {
+        if (summary && summary.trim()) sections.push(summary);
+    });
+    return sections.filter(Boolean).join("\n\n---\n\n");
 }
 
 function _scrapeVideoModalText() {
@@ -1669,12 +1873,68 @@ function _scrapeTableText() {
     return text;
 }
 
+const CHAT_MIN_WIDTH = 380;
+const CHAT_STORAGE_WIDTH = "ui_chat_width";
+
+function _getChatMaxWidth() {
+    return Math.max(CHAT_MIN_WIDTH, Math.floor(window.innerWidth / 2));
+}
+
+function _clampChatWidth(width) {
+    const numericWidth = Number.parseInt(width, 10);
+    if (Number.isNaN(numericWidth)) return CHAT_MIN_WIDTH;
+    return Math.min(Math.max(numericWidth, CHAT_MIN_WIDTH), _getChatMaxWidth());
+}
+
+function _applyChatWidth(width, persist = false) {
+    const nextWidth = _clampChatWidth(width);
+    document.documentElement.style.setProperty("--chat-width", `${nextWidth}px`);
+    if (persist) {
+        localStorage.setItem(CHAT_STORAGE_WIDTH, String(nextWidth));
+    }
+    return nextWidth;
+}
+
 export function initChatResizer() {
     const resizer = document.getElementById("chat-resizer");
     const drawer = document.getElementById("chat-drawer");
     if (!resizer || !drawer) return;
+    if (resizer.dataset.chatResizerBound === "true") return;
+    resizer.dataset.chatResizerBound = "true";
+
+    const storedWidth = localStorage.getItem(CHAT_STORAGE_WIDTH);
+    if (storedWidth) {
+        _applyChatWidth(storedWidth);
+    }
 
     let isResizing = false;
+    let pendingFrame = null;
+    let latestPointerX = window.innerWidth - _clampChatWidth(storedWidth || CHAT_MIN_WIDTH);
+
+    const scheduleWidthUpdate = (clientX) => {
+        latestPointerX = clientX;
+        if (pendingFrame !== null) return;
+        pendingFrame = requestAnimationFrame(() => {
+            pendingFrame = null;
+            _applyChatWidth(window.innerWidth - latestPointerX);
+            window.chatUIManager?.updateContextMeter();
+        });
+    };
+
+    const finishResize = () => {
+        if (!isResizing) return;
+        isResizing = false;
+        if (pendingFrame !== null) {
+            cancelAnimationFrame(pendingFrame);
+            pendingFrame = null;
+            _applyChatWidth(window.innerWidth - latestPointerX);
+        }
+        _applyChatWidth(getComputedStyle(document.documentElement).getPropertyValue("--chat-width"), true);
+        resizer.classList.remove("active");
+        document.body.classList.remove("dragging-chat");
+        window.dispatchEvent(new Event('resize'));
+        window.chatUIManager?.updateContextMeter();
+    };
 
     // Mouse events
     resizer.addEventListener("mousedown", function(e) {
@@ -1686,30 +1946,10 @@ export function initChatResizer() {
 
     window.addEventListener("mousemove", function(e) {
         if (!isResizing) return;
-
-        requestAnimationFrame(() => {
-            let newWidth = window.innerWidth - e.clientX;
-            const minWidth = 380;
-            const maxWidth = Math.floor(window.innerWidth / 2);
-
-            if (newWidth < minWidth) {
-                newWidth = minWidth;
-            } else if (newWidth > maxWidth) {
-                newWidth = maxWidth;
-            }
-
-            document.documentElement.style.setProperty("--chat-width", newWidth + "px");
-        });
+        scheduleWidthUpdate(e.clientX);
     });
 
-    window.addEventListener("mouseup", function() {
-        if (isResizing) {
-            isResizing = false;
-            resizer.classList.remove("active");
-            document.body.classList.remove("dragging-chat");
-            window.dispatchEvent(new Event('resize'));
-        }
-    });
+    window.addEventListener("mouseup", finishResize);
 
     // Touch events
     resizer.addEventListener("touchstart", function(e) {
@@ -1721,24 +1961,524 @@ export function initChatResizer() {
     window.addEventListener("touchmove", function(e) {
         if (!isResizing) return;
         if (e.touches.length === 0) return;
+        e.preventDefault();
+        scheduleWidthUpdate(e.touches[0].clientX);
+    }, { passive: false });
 
-        requestAnimationFrame(() => {
-            let newWidth = window.innerWidth - e.touches[0].clientX;
-            const minWidth = 380;
-            const maxWidth = Math.floor(window.innerWidth / 2);
-            if (newWidth < minWidth) newWidth = minWidth;
-            if (newWidth > maxWidth) newWidth = maxWidth;
-            document.documentElement.style.setProperty("--chat-width", newWidth + "px");
-        });
-    });
+    window.addEventListener("touchend", finishResize);
+    window.addEventListener("touchcancel", finishResize);
 
-    window.addEventListener("touchend", function() {
-        if (isResizing) {
-            isResizing = false;
-            resizer.classList.remove("active");
-            document.body.classList.remove("dragging-chat");
-            window.dispatchEvent(new Event('resize'));
-        }
+    window.addEventListener("resize", () => {
+        _applyChatWidth(getComputedStyle(document.documentElement).getPropertyValue("--chat-width"), true);
     });
 }
 
+const CHAT_UI_SCHEMA_VERSION = "1.1.0";
+const CHAT_STORAGE_OPEN = "ui_drawer_open";
+const CHAT_STORAGE_SCHEMA = "ui_schema_version";
+const CHAT_STORAGE_HISTORY = "ui_chat_history";
+const CHAT_STORAGE_PROVIDER = "ui_chat_provider";
+const CHAT_STORAGE_MODEL_PREFIX = "ui_chat_model_";
+const CHAT_MANAGED_STORAGE_KEYS = [
+    CHAT_STORAGE_WIDTH,
+    CHAT_STORAGE_OPEN,
+    CHAT_STORAGE_HISTORY,
+    CHAT_STORAGE_PROVIDER
+];
+
+function _getElementPath(el) {
+    if (!el || el === document.body) return "body";
+    const parts = [];
+    let node = el;
+    while (node && node.nodeType === 1 && node !== document.body && parts.length < 6) {
+        let part = node.tagName.toLowerCase();
+        if (node.id) {
+            part += `#${node.id}`;
+            parts.unshift(part);
+            break;
+        }
+        const className = Array.from(node.classList || []).slice(0, 2).join(".");
+        if (className) {
+            part += `.${className}`;
+        }
+        const parent = node.parentElement;
+        if (parent) {
+            const siblings = Array.from(parent.children).filter(child => child.tagName === node.tagName);
+            if (siblings.length > 1) {
+                part += `:nth-of-type(${siblings.indexOf(node) + 1})`;
+            }
+        }
+        parts.unshift(part);
+        node = parent;
+    }
+    return parts.join(" > ") || "body";
+}
+
+function _getCodeSourceFromElement(el) {
+    const traced = el?.closest?.("[data-code-src]");
+    if (traced) return traced.dataset.codeSrc || "";
+    return document.body?.dataset?.template || "templates/index.html";
+}
+
+export class ChatUIManager {
+    constructor() {
+        this.drawer = document.getElementById("chat-drawer");
+        this.messages = document.getElementById("chat-messages");
+        this.input = document.getElementById("chat-input");
+        this.modelBar = document.getElementById("chat-model-bar");
+        this.contextBar = null;
+        this.contextToast = null;
+        this.fileTray = null;
+        this.dropOverlay = null;
+        this.contextMenu = null;
+        this.feedbackModal = null;
+        this.messageObserver = null;
+    }
+
+    init() {
+        if (!this.drawer) return;
+        if (this.drawer.dataset.chatUiManagerBound === "true") return;
+        this.drawer.dataset.chatUiManagerBound = "true";
+
+        this._ensureStorageSchema();
+        this._ensureContextMeter();
+        this._ensureContextToast();
+        this._ensureFileChipTray();
+        this._ensureDropOverlay();
+        this._ensureContextFeedbackUI();
+        this._restoreHistory();
+        this._restoreWidth();
+        this._restoreOpenState();
+        _loadModels();
+        this._bindEvents();
+        this.updateContextMeter();
+        initChatResizer();
+    }
+
+    syncOpenState(isOpen) {
+        if (!this.drawer) return;
+        this.drawer.classList.toggle("open", isOpen);
+        if (window.innerWidth > 768) {
+            document.body.classList.toggle("chat-drawer-open", isOpen);
+        } else {
+            document.body.classList.remove("chat-drawer-open");
+        }
+        localStorage.setItem(CHAT_STORAGE_OPEN, isOpen ? "true" : "false");
+        this._syncToggleIcons(isOpen);
+        this.updateContextMeter();
+    }
+
+    saveHistory() {
+        if (!this.messages) return;
+        const history = _getChatHistory().slice(-80);
+        localStorage.setItem(CHAT_STORAGE_HISTORY, JSON.stringify(history));
+        this.updateContextMeter();
+    }
+
+    updateContextMeter() {
+        if (!this.contextBar) return;
+
+        let contextText = "";
+        try {
+            contextText = _scrapeCurrentScreenText();
+        } catch (err) {
+            contextText = "";
+        }
+
+        const historyText = _getChatHistory()
+            .map(item => item.content)
+            .join("\n");
+        const inputText = this.input ? this.input.value : "";
+        const stagedText = _getStagedFilesRaw();
+        const estimatedTokens = _estimateTokens(contextText + historyText + inputText + stagedText);
+        const rawPercent = (estimatedTokens / CHAT_CONTEXT_MAX_TOKENS) * 100;
+        const saturation = Math.min(100, Math.round(rawPercent));
+
+        let color = "#2ecc71";
+        let heightPx = 1 + Math.min(3, Math.max(0, rawPercent) / 100 * 3);
+        let critical = false;
+        if (rawPercent > 100) {
+            color = "#c0392b";
+            heightPx = 6;
+            critical = true;
+        } else if (saturation > 75) {
+            color = "#e74c3c";
+            critical = true;
+        } else if (saturation > 40) {
+            color = "#f1c40f";
+        }
+        const height = `${Math.round(heightPx * 10) / 10}px`;
+
+        if (this.input) {
+            this.input.disabled = false;
+            if (rawPercent > 95) {
+                this.input.placeholder = "Напишіть повідомлення...";
+                this._showContextToast(estimatedTokens, rawPercent);
+            } else {
+                this.input.placeholder = "Напишіть повідомлення...";
+                chatContextWarningShown = false;
+                this._hideContextToast();
+            }
+        }
+
+        this.contextBar.parentElement.style.height = height;
+        this.contextBar.style.width = `${saturation}%`;
+        this.contextBar.style.background = color;
+        this.contextBar.style.height = height;
+        this.contextBar.classList.toggle("chat-context-critical", critical);
+        this.contextBar.parentElement.title = `Context load: ${saturation}% (${estimatedTokens.toLocaleString()} estimated tokens)`;
+    }
+
+    _ensureStorageSchema() {
+        const storedVersion = localStorage.getItem(CHAT_STORAGE_SCHEMA);
+        if (storedVersion && storedVersion !== CHAT_UI_SCHEMA_VERSION) {
+            CHAT_MANAGED_STORAGE_KEYS.forEach(key => localStorage.removeItem(key));
+            Object.keys(localStorage)
+                .filter(key => key.startsWith(CHAT_STORAGE_MODEL_PREFIX))
+                .forEach(key => localStorage.removeItem(key));
+        }
+        localStorage.setItem(CHAT_STORAGE_SCHEMA, CHAT_UI_SCHEMA_VERSION);
+    }
+
+    _ensureContextMeter() {
+        if (document.getElementById("chat-context-meter")) {
+            this.contextBar = document.getElementById("chat-context-bar");
+            return;
+        }
+        if (!this.modelBar) return;
+
+        const meter = document.createElement("div");
+        meter.className = "chat-context-meter";
+        meter.id = "chat-context-meter";
+
+        const bar = document.createElement("div");
+        bar.id = "chat-context-bar";
+        meter.appendChild(bar);
+
+        this.modelBar.insertAdjacentElement("afterend", meter);
+        this.contextBar = bar;
+    }
+
+    _ensureContextToast() {
+        if (document.getElementById("chat-context-toast")) {
+            this.contextToast = document.getElementById("chat-context-toast");
+            return;
+        }
+        const meter = document.getElementById("chat-context-meter");
+        if (!meter) return;
+
+        const toast = document.createElement("div");
+        toast.className = "chat-context-toast";
+        toast.id = "chat-context-toast";
+        toast.hidden = true;
+        meter.appendChild(toast);
+        this.contextToast = toast;
+    }
+
+    _ensureFileChipTray() {
+        if (!this.input || document.getElementById("chat-file-chips")) return;
+        const tray = document.createElement("div");
+        tray.className = "chat-file-chips";
+        tray.id = "chat-file-chips";
+        tray.hidden = true;
+        this.input.insertAdjacentElement("beforebegin", tray);
+        this.fileTray = tray;
+    }
+
+    _ensureDropOverlay() {
+        if (!this.drawer || document.getElementById("chat-drop-overlay")) return;
+        const overlay = document.createElement("div");
+        overlay.className = "chat-drop-overlay";
+        overlay.id = "chat-drop-overlay";
+        overlay.innerHTML = `<div><i class="fa-solid fa-file-arrow-up"></i><span>Drop text file</span></div>`;
+        this.drawer.appendChild(overlay);
+        this.dropOverlay = overlay;
+    }
+
+    _ensureContextFeedbackUI() {
+        if (document.getElementById("context-feedback-menu")) return;
+
+        const menu = document.createElement("div");
+        menu.className = "context-feedback-menu";
+        menu.id = "context-feedback-menu";
+        menu.hidden = true;
+        menu.innerHTML = `
+            <button type="button" data-feedback-type="bug"><i class="fa-solid fa-bug"></i><span>Bug</span></button>
+            <button type="button" data-feedback-type="feature"><i class="fa-solid fa-lightbulb"></i><span>Feature</span></button>
+        `;
+
+        const modal = document.createElement("div");
+        modal.className = "context-feedback-modal";
+        modal.id = "context-feedback-modal";
+        modal.hidden = true;
+        modal.innerHTML = `
+            <div class="context-feedback-dialog">
+                <div class="context-feedback-head">
+                    <strong>Context feedback</strong>
+                    <button type="button" data-feedback-close title="Close"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div class="context-feedback-meta" id="context-feedback-meta"></div>
+                <div class="context-feedback-types">
+                    <label><input type="radio" name="context-feedback-type" value="bug"> Bug</label>
+                    <label><input type="radio" name="context-feedback-type" value="feature"> Feature</label>
+                </div>
+                <textarea id="context-feedback-desc" rows="4" placeholder="What should change?"></textarea>
+                <button type="button" id="context-feedback-send" disabled>Send</button>
+            </div>
+        `;
+
+        document.body.appendChild(menu);
+        document.body.appendChild(modal);
+        this.contextMenu = menu;
+        this.feedbackModal = modal;
+    }
+
+    _restoreWidth() {
+        const storedWidth = localStorage.getItem(CHAT_STORAGE_WIDTH);
+        if (storedWidth) {
+            _applyChatWidth(storedWidth, true);
+        }
+    }
+
+    _restoreOpenState() {
+        const shouldOpen = localStorage.getItem(CHAT_STORAGE_OPEN) === "true";
+        this.syncOpenState(shouldOpen);
+    }
+
+    _restoreHistory() {
+        if (!this.messages || this.messages.children.length > 0) return;
+        let history = [];
+        try {
+            history = JSON.parse(localStorage.getItem(CHAT_STORAGE_HISTORY) || "[]");
+        } catch (err) {
+            history = [];
+        }
+        if (!Array.isArray(history)) return;
+
+        history.forEach(item => {
+            if (!item || !item.role || !item.content) return;
+            _appendChatBubble(this.messages, item.role, item.content);
+        });
+        this.messages.scrollTop = this.messages.scrollHeight;
+    }
+
+    _syncToggleIcons(isOpen) {
+        const openBtn = document.getElementById("chat-open-btn");
+        const toggleBtn = document.getElementById("chat-toggle-btn");
+        const toggleIcon = document.getElementById("chat-toggle-icon");
+        const collapseBtn = document.getElementById("chat-collapse-btn");
+        if (openBtn) {
+            openBtn.hidden = isOpen;
+            openBtn.title = isOpen ? "Чат відкрито" : "Розгорнути чат";
+        }
+        if (toggleBtn) {
+            toggleBtn.title = "Додати поточний екран у чат";
+        }
+        if (toggleIcon) {
+            toggleIcon.className = "fa-solid fa-wand-magic-sparkles";
+        }
+        if (collapseBtn) {
+            collapseBtn.title = "Згорнути чат";
+        }
+    }
+
+    _bindEvents() {
+        window.addEventListener("resize", () => {
+            _applyChatWidth(getComputedStyle(document.documentElement).getPropertyValue("--chat-width"), true);
+            this.syncOpenState(this.drawer.classList.contains("open"));
+        });
+
+        if (this.input) {
+            this.input.addEventListener("input", () => this.updateContextMeter());
+        }
+
+        this._bindDragDrop();
+        this._bindContextFeedback();
+
+        if (this.messages && window.MutationObserver) {
+            this.messageObserver = new MutationObserver(() => this.updateContextMeter());
+            this.messageObserver.observe(this.messages, {
+                childList: true,
+                subtree: true,
+                characterData: true
+            });
+        }
+    }
+
+    _bindDragDrop() {
+        if (!this.drawer || this.drawer.dataset.chatDropBound === "true") return;
+        this.drawer.dataset.chatDropBound = "true";
+
+        const showOverlay = (event) => {
+            event.preventDefault();
+            if (this.dropOverlay) this.dropOverlay.style.display = "flex";
+        };
+        const hideOverlay = () => {
+            if (this.dropOverlay) this.dropOverlay.style.display = "none";
+        };
+
+        this.drawer.addEventListener("dragenter", showOverlay);
+        this.drawer.addEventListener("dragover", showOverlay);
+        this.drawer.addEventListener("dragleave", (event) => {
+            if (!this.drawer.contains(event.relatedTarget)) hideOverlay();
+        });
+        this.drawer.addEventListener("drop", (event) => {
+            event.preventDefault();
+            hideOverlay();
+            const files = Array.from(event.dataTransfer?.files || []);
+            files.forEach(file => {
+                const looksText = file.type.startsWith("text/") || /\.(txt|md|csv|json|log)$/i.test(file.name);
+                if (!looksText) return;
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const content = String(reader.result || "");
+                    CHAT_STAGED_FILES.push({
+                        name: file.name,
+                        content,
+                        tokens: _estimateTokens(content)
+                    });
+                    _renderStagedFileChips();
+                    this.updateContextMeter();
+                };
+                reader.readAsText(file);
+            });
+        });
+    }
+
+    _bindContextFeedback() {
+        if (document.body.dataset.contextFeedbackBound === "true") return;
+        document.body.dataset.contextFeedbackBound = "true";
+
+        const stateObj = {
+            el: "",
+            src: "",
+            type: ""
+        };
+
+        const closeMenu = () => {
+            if (this.contextMenu) this.contextMenu.hidden = true;
+        };
+        const closeModal = () => {
+            if (this.feedbackModal) this.feedbackModal.hidden = true;
+        };
+        const validate = () => {
+            const descEl = document.getElementById("context-feedback-desc");
+            const sendBtn = document.getElementById("context-feedback-send");
+            const checked = document.querySelector("input[name='context-feedback-type']:checked");
+            if (!sendBtn || !descEl) return;
+            sendBtn.disabled = !(descEl.value.trim().length > 0 && checked);
+        };
+        const openModal = (type) => {
+            stateObj.type = type || stateObj.type || "bug";
+            const metaEl = document.getElementById("context-feedback-meta");
+            const descEl = document.getElementById("context-feedback-desc");
+            const typeInput = document.querySelector(`input[name='context-feedback-type'][value='${stateObj.type}']`);
+            if (metaEl) metaEl.textContent = `${stateObj.el} · ${stateObj.src}`;
+            if (descEl) descEl.value = "";
+            if (typeInput) typeInput.checked = true;
+            if (this.feedbackModal) this.feedbackModal.hidden = false;
+            validate();
+        };
+
+        document.addEventListener("contextmenu", (event) => {
+            const tagName = event.target?.tagName?.toLowerCase();
+            if (["input", "textarea", "select", "option"].includes(tagName)) return;
+            stateObj.el = _getElementPath(event.target);
+            stateObj.src = _getCodeSourceFromElement(event.target);
+            if (!this.contextMenu) return;
+            this.contextMenu.hidden = false;
+            const menuWidth = this.contextMenu.offsetWidth || 132;
+            const menuHeight = this.contextMenu.offsetHeight || 80;
+            const left = Math.max(8, event.clientX - menuWidth - 12);
+            const top = Math.min(
+                Math.max(8, event.clientY),
+                Math.max(8, window.innerHeight - menuHeight - 8)
+            );
+            this.contextMenu.style.left = `${left}px`;
+            this.contextMenu.style.top = `${top}px`;
+        });
+
+        document.addEventListener("click", (event) => {
+            const typeBtn = event.target.closest?.("[data-feedback-type]");
+            if (typeBtn) {
+                closeMenu();
+                openModal(typeBtn.dataset.feedbackType);
+                return;
+            }
+            if (event.target.closest?.("[data-feedback-close]")) {
+                closeModal();
+                return;
+            }
+            if (event.target.id === "context-feedback-send") {
+                this._submitContextFeedback(stateObj).then(closeModal);
+                return;
+            }
+            if (this.contextMenu && !event.target.closest?.("#context-feedback-menu")) {
+                closeMenu();
+            }
+        });
+
+        document.addEventListener("input", (event) => {
+            if (event.target.id === "context-feedback-desc") validate();
+        });
+        document.addEventListener("change", (event) => {
+            if (event.target.name === "context-feedback-type") {
+                stateObj.type = event.target.value;
+                validate();
+            }
+        });
+        document.addEventListener("keydown", (event) => {
+            if (event.key === "Escape") {
+                closeMenu();
+                closeModal();
+            }
+        });
+    }
+
+    async _submitContextFeedback(stateObj) {
+        const descEl = document.getElementById("context-feedback-desc");
+        const checked = document.querySelector("input[name='context-feedback-type']:checked");
+        const desc = descEl ? descEl.value.trim() : "";
+        const type = checked ? checked.value : stateObj.type;
+        if (!desc || !type) return;
+
+        try {
+            await fetch("/api/proposals/submit", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    type,
+                    el: stateObj.el,
+                    src: stateObj.src,
+                    desc
+                })
+            });
+        } catch (err) {
+            console.warn("[feedback] proposal submit failed:", err);
+        }
+    }
+
+    _showContextToast(estimatedTokens, rawPercent) {
+        if (!this.contextToast) return;
+        const percentText = Math.round(rawPercent);
+        this.contextToast.textContent = `Context ${percentText}% (${estimatedTokens.toLocaleString()} tok). Remove files or clear history.`;
+        this.contextToast.hidden = false;
+        chatContextWarningShown = true;
+    }
+
+    _hideContextToast() {
+        if (this.contextToast) this.contextToast.hidden = true;
+    }
+}
+
+export function initChatUIManager() {
+    if (!window.chatUIManager) {
+        window.chatUIManager = new ChatUIManager();
+    }
+    window.chatUIManager.init();
+    return window.chatUIManager;
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    initChatUIManager();
+});

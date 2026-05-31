@@ -406,6 +406,7 @@ export async function checkProcessStatus() {
             if (selected.length > 0) {
                 loadChartsData(selected.join(','));
             }
+            window.dashboardWorkspace?.refreshAll();
         }
         
         // Update the last known status

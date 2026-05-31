@@ -5,7 +5,7 @@ YouTube News Automation
 Purpose: Manage free/paid LLM provider rotation with efficiency scoring and quota interception.
 
 Features:
-  - Provider chain: Gemini Free → OpenRouter Free → Ollama Local → OpenAI/Anthropic Paid
+  - Provider chain: Gemini Free → OpenRouter Free → Ollama Cloud → OpenAI/Anthropic Paid
   - Efficiency scoring: Likes / (Likes + Dislikes) per model
   - Quota interceptor: Match response streams against known error patterns
   - Premium pass-through: Bypass free rotation if paid keys configured
@@ -31,6 +31,7 @@ class Provider:
     efficiency_score: float = 0.0
     is_paid: bool = False
     env_key: Optional[str] = None
+    default_model: Optional[str] = None
 
 class CloudRotationEngine:
     """Manages provider rotation with efficiency scoring."""
@@ -56,15 +57,18 @@ class CloudRotationEngine:
             with open(self.schema_path) as f:
                 schema = json.load(f)
             
+            self.providers = []
             for prov_config in schema.get("cloud_rotation_chain", []):
                 provider = Provider(
                     id=prov_config["provider"],
-                    name=prov_config["provider"],
+                    name=prov_config.get("label", prov_config["provider"]),
                     endpoint=prov_config["endpoint"],
-                    auth_type=prov_config["auth"],
-                    rate_limit=prov_config["rate_limit"],
+                    auth_type=prov_config.get("auth", "api_key"),
+                    rate_limit=prov_config.get("rate_limit", "unspecified"),
+                    efficiency_score=float(prov_config.get("efficiency_score", 0.5)),
                     is_paid=prov_config.get("requires_paid_key", False),
-                    env_key=prov_config.get("env_key")
+                    env_key=prov_config.get("env_key"),
+                    default_model=prov_config.get("default_model")
                 )
                 self.providers.append(provider)
             
@@ -81,24 +85,32 @@ class CloudRotationEngine:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
             
-            # Get efficiency scores per model
+            if not self._table_exists(cursor, "agent_feedback_memory"):
+                for provider in self.providers:
+                    provider.efficiency_score = provider.efficiency_score or 0.5
+                conn.close()
+                return
+
+            # Provider routing needs provider-level scores. Model-specific
+            # feedback can be added later without changing this contract.
             cursor.execute(
                 """
-                SELECT model_id, 
+                SELECT provider_id,
                        SUM(CASE WHEN feedback_type='like' THEN 1 ELSE 0 END) as likes,
                        SUM(CASE WHEN feedback_type='dislike' THEN 1 ELSE 0 END) as dislikes
                 FROM agent_feedback_memory
-                GROUP BY model_id
+                WHERE provider_id IS NOT NULL AND provider_id != ''
+                GROUP BY provider_id
                 """
             )
             
             scores = {}
-            for model_id, likes, dislikes in cursor.fetchall():
+            for provider_id, likes, dislikes in cursor.fetchall():
                 total = (likes or 0) + (dislikes or 0)
                 if total > 0:
-                    scores[model_id] = (likes or 0) / total
+                    scores[provider_id] = (likes or 0) / total
                 else:
-                    scores[model_id] = 0.5  # Default neutral score
+                    scores[provider_id] = 0.5  # Default neutral score
             
             # Update provider scores
             for provider in self.providers:
@@ -106,14 +118,20 @@ class CloudRotationEngine:
             
             conn.close()
         
-        except Exception as e:
-            print(f"Error loading efficiency scores: {e}")
+        except sqlite3.Error:
+            for provider in self.providers:
+                provider.efficiency_score = provider.efficiency_score or 0.5
     
     def _load_quota_errors(self):
         """Load known quota error patterns from database."""
         try:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
+
+            if not self._table_exists(cursor, "leaked_quota_errors"):
+                self.quota_errors = []
+                conn.close()
+                return
             
             cursor.execute(
                 "SELECT error_string FROM leaked_quota_errors ORDER BY detected_at DESC LIMIT 50"
@@ -122,8 +140,7 @@ class CloudRotationEngine:
             self.quota_errors = [row[0] for row in cursor.fetchall()]
             conn.close()
         
-        except Exception as e:
-            print(f"Error loading quota errors: {e}")
+        except sqlite3.Error:
             self.quota_errors = []
     
     def get_next_available_provider(self, skip_paid: bool = True) -> Optional[Provider]:
@@ -136,11 +153,14 @@ class CloudRotationEngine:
         Returns:
             Provider with highest efficiency score (or None if none available)
         """
-        # Sort by efficiency score (descending)
+        candidates = self.get_available_providers(skip_paid=skip_paid)
+        return candidates[0] if candidates else None
+
+    def get_available_providers(self, skip_paid: bool = True) -> List[Provider]:
+        """Return providers sorted by efficiency score, highest first."""
         candidates = [p for p in self.providers if not (skip_paid and p.is_paid)]
         candidates.sort(key=lambda p: p.efficiency_score, reverse=True)
-        
-        return candidates[0] if candidates else None
+        return candidates
     
     def check_quota_exhaustion(self, response_text: str) -> bool:
         """
@@ -171,24 +191,54 @@ class CloudRotationEngine:
             return True
         
         return False
+
+    def report_quota_error(self, error_text: str, provider_id: Optional[str] = None) -> bool:
+        """Manually record a quota/error pattern reported by the user."""
+        if not error_text or not error_text.strip():
+            return False
+        self._record_quota_error(error_text, provider_id=provider_id)
+        return True
     
-    def _record_quota_error(self, error_text: str):
+    def _record_quota_error(self, error_text: str, provider_id: Optional[str] = None):
         """Log new quota error pattern to database."""
         try:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
+
+            if not self._table_exists(cursor, "leaked_quota_errors"):
+                conn.close()
+                return
             
             # Extract numeric values and clean error string
             cleaned = re.sub(r'\d{1,}', '[NUM]', error_text)[:200]
             
             cursor.execute(
                 """
-                INSERT INTO leaked_quota_errors (error_string, detected_at, intercepted_count)
-                VALUES (?, ?, 1)
-                ON CONFLICT(error_string) DO UPDATE SET intercepted_count = intercepted_count + 1
+                SELECT id, intercepted_count
+                FROM leaked_quota_errors
+                WHERE error_string = ? AND (provider_id = ? OR provider_id IS NULL)
+                LIMIT 1
                 """,
-                (cleaned, datetime.now().isoformat())
+                (cleaned, provider_id)
             )
+            existing = cursor.fetchone()
+            if existing:
+                cursor.execute(
+                    """
+                    UPDATE leaked_quota_errors
+                    SET detected_at = ?, intercepted_count = ?
+                    WHERE id = ?
+                    """,
+                    (datetime.now().isoformat(), (existing[1] or 0) + 1, existing[0])
+                )
+            else:
+                cursor.execute(
+                    """
+                    INSERT INTO leaked_quota_errors (error_string, provider_id, detected_at, intercepted_count)
+                    VALUES (?, ?, ?, 1)
+                    """,
+                    (cleaned, provider_id, datetime.now().isoformat())
+                )
             
             conn.commit()
             conn.close()
@@ -215,6 +265,10 @@ class CloudRotationEngine:
         try:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
+
+            if not self._table_exists(cursor, "agent_feedback_memory"):
+                conn.close()
+                return False
             
             cursor.execute(
                 """
@@ -230,9 +284,11 @@ class CloudRotationEngine:
             
             # Reload efficiency scores
             self._reload_efficiency_scores()
+            return True
         
         except Exception as e:
             print(f"Error recording feedback: {e}")
+            return False
     
     def get_provider_by_id(self, provider_id: str) -> Optional[Provider]:
         """Get provider by ID."""
@@ -250,10 +306,21 @@ class CloudRotationEngine:
                 "id": provider.id,
                 "name": provider.name,
                 "efficiency": round(provider.efficiency_score, 2),
-                "is_paid": provider.is_paid
+                "is_paid": provider.is_paid,
+                "rate_limit": provider.rate_limit,
+                "default_model": provider.default_model
             })
         
         return summary
+
+    @staticmethod
+    def _table_exists(cursor, table_name: str) -> bool:
+        """Return True when a SQLite table exists in the active connection."""
+        cursor.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",
+            (table_name,)
+        )
+        return cursor.fetchone() is not None
 
 
 # Singleton instance (managed by Flask app)

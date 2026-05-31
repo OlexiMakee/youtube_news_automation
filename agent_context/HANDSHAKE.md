@@ -12,6 +12,7 @@
 - [x] Stabilized first-read handoff path for cross-agent onboarding.
 - [x] Implemented `scripts/compact_memory.py` and generated `agent_context/memory_snapshot.json`.
 - [x] Added token-backed RBAC helpers; chat admin role is now derived server-side.
+- [x] Added admin-only `GET /api/admin/health` with non-secret stdlib/SQLite metrics.
 
 ## Blocked / Pending
 - [ ] Keep live DB migrations blocked until explicit user confirmation.
@@ -25,5 +26,5 @@
   4. Refresh the compressed JSON memory snapshot for future Claude initialization if needed.
 
 ## Last Change
-- Files: `app/services/rbac.py`, `app/routes/actions.py`, `scratch/test_rbac_chat_role.py`, `.env.example`, `app/README.md`, `agent_context/memory_snapshot.json`, `agent_context/HANDSHAKE.md`.
-- Verification: compile, focused RBAC tests, Flask route smoke, full scratch unittest suite.
+- Files: `app/services/health.py`, `app/routes/actions.py`, `scratch/test_admin_health.py`, `app/routes/README.md`, `app/README.md`, `agent_context/memory_snapshot.json`, `agent_context/HANDSHAKE.md`.
+- Verification: compile, focused admin health tests, Flask route smoke, full scratch unittest suite.

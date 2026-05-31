@@ -1,13 +1,13 @@
 {
   "counts": {
-    "items": 70,
+    "items": 71,
     "layers": {
-      "domain-layer": 46,
+      "domain-layer": 47,
       "meta-layer": 24
     },
     "skipped": 2
   },
-  "generated_at": "2026-06-01T00:30:52",
+  "generated_at": "2026-06-01T00:35:44",
   "items": [
     {
       "meta": {
@@ -118,7 +118,7 @@
     },
     {
       "meta": {
-        "bytes": 1492,
+        "bytes": 1606,
         "file": "agent_context/HANDSHAKE.md",
         "headings": [
           "Agent Handshake",
@@ -129,7 +129,7 @@
           "Last Change"
         ],
         "layer": "meta-layer",
-        "sha256_16": "2c7d7a6e369b71ac"
+        "sha256_16": "77da0ae84a73dc3b"
       },
       "vector_text": "agent_context/HANDSHAKE.md Agent Handshake Current Session Status Completed Today Blocked / Pending Next Handover: Gemini Auditor Last Change <!-- HANDSHAKE_PROMPT: Read this first; obey AGENT_RULES.md tiers; continue the NEXT HANDOVER only; keep patches scoped; backend-test by default; UI click-through stays with user. --> # Agent Handshake ## Current Session Status - Active Agent: Codex - Budget Tier applied: `codex max limits` - Target: System workflow integration and meta-file update. ## Compl"
     },
@@ -160,12 +160,12 @@
     },
     {
       "meta": {
-        "bytes": 70134,
+        "bytes": 71978,
         "file": "agent_context/memory_snapshot.json",
         "layer": "meta-layer",
-        "sha256_16": "8f2c55c6163fa3b0"
+        "sha256_16": "9a66b80d32789f2e"
       },
-      "vector_text": "agent_context/memory_snapshot.json { \"counts\": { \"items\": 68, \"layers\": { \"domain-layer\": 45, \"meta-layer\": 23 }, \"skipped\": 2 }, \"generated_at\": \"2026-06-01T00:25:12\", \"items\": [ { \"meta\": { \"bytes\": 1884, \"file\": \"README.md\", \"headings\": [ \"YouTube News Automation\", \"Start\", \"Read Order\", \"Current Architecture\", \"Main Paths\", \"Locked Rules\" ], \"layer\": \"meta-layer\", \"sha256_16\": \"7c7c65ab55"
+      "vector_text": "agent_context/memory_snapshot.json { \"counts\": { \"items\": 70, \"layers\": { \"domain-layer\": 46, \"meta-layer\": 24 }, \"skipped\": 2 }, \"generated_at\": \"2026-06-01T00:30:52\", \"items\": [ { \"meta\": { \"bytes\": 1884, \"file\": \"README.md\", \"headings\": [ \"YouTube News Automation\", \"Start\", \"Read Order\", \"Current Architecture\", \"Main Paths\", \"Locked Rules\" ], \"layer\": \"meta-layer\", \"sha256_16\": \"7c7c65ab55"
     },
     {
       "meta": {
@@ -302,13 +302,13 @@
     },
     {
       "meta": {
-        "bytes": 772,
+        "bytes": 855,
         "file": "app/README.md",
         "headings": [
           "app/"
         ],
         "layer": "meta-layer",
-        "sha256_16": "da74cc6ab919a340"
+        "sha256_16": "a2168f9a86c47bf1"
       },
       "vector_text": "app/README.md app/ # app/ Flask application package. | Path | Purpose | |---|---| | `__init__.py` | `create_app()`, blueprint registration, optional telemetry/rotation startup | | `state.py` | Shared background task/process state | | `routes/` | Flask blueprints | | `services/agent.py` | AI assistant streaming and provider routing | | `services/cloud_rotation.py` | Provider sc"
     },
@@ -374,7 +374,7 @@
     },
     {
       "meta": {
-        "bytes": 25351,
+        "bytes": 25631,
         "classes": [],
         "dependencies": [
           "app",
@@ -405,25 +405,26 @@
           "start_update:189",
           "start_views_update:208",
           "get_action_status:222",
-          "cleanup_terminal:254",
-          "start_terminal:288",
-          "terminal_stream:332",
-          "trigger_server_shutdown:370",
-          "terminal_input:402",
-          "terminal_resize:422",
-          "agent_models:444",
-          "agent_chat:456",
-          "agent_chat_stream:503",
-          "list_agent_proposals:546",
-          "submit_agent_proposal:561",
-          "update_agent_proposal_status:597",
-          "chat_clear_context:633",
-          "chat_feedback:643",
-          "chat_report_quota:698",
-          "actions_shutdown:731",
-          "generate:339",
-          "perform_kill:383",
-          "generate:531"
+          "admin_health:246",
+          "cleanup_terminal:263",
+          "start_terminal:297",
+          "terminal_stream:341",
+          "trigger_server_shutdown:379",
+          "terminal_input:411",
+          "terminal_resize:431",
+          "agent_models:453",
+          "agent_chat:465",
+          "agent_chat_stream:512",
+          "list_agent_proposals:555",
+          "submit_agent_proposal:570",
+          "update_agent_proposal_status:606",
+          "chat_clear_context:642",
+          "chat_feedback:652",
+          "chat_report_quota:707",
+          "actions_shutdown:740",
+          "generate:348",
+          "perform_kill:392",
+          "generate:540"
         ],
         "layer": "domain-layer",
         "routes": [
@@ -433,6 +434,7 @@
           "/api/action/update ['POST']",
           "/api/action/update_views ['POST']",
           "/api/action/status ['GET']",
+          "/api/admin/health ['GET']",
           "/api/terminal/stream [GET]",
           "/api/terminal/input ['POST']",
           "/api/terminal/resize ['POST']",
@@ -447,9 +449,9 @@
           "/api/chat/report-quota ['POST']",
           "/api/action/shutdown ['POST']"
         ],
-        "sha256_16": "62b1f5d9f85c922f"
+        "sha256_16": "a59fe0bb32460369"
       },
-      "vector_text": "app/routes/actions.py _proposal_inbox_path:25 _read_proposal_rows:31 _write_proposal_rows:60 add_channel_route:71 start_scrape:120 start_sync:157 start_update:189 start_views_update:208 get_action_status:222 cleanup_terminal:254 start_terminal:288 terminal_stream:332 trigger_server_shutdown:370 terminal_input:402 terminal_resize:422 agent_models:444 agent_chat:456 agent_chat_stream:503 list_agent_proposals:546 submit_agent_proposal:561 update_agent_proposal_status:597 chat_clear_context:633 chat_feedback:643 chat_report_quota:698 actions_shutdown:731 generate:339 perform_kill:383 generate:531 import os import sys import json import subprocess import threading from datetime import datetime from flask import Blue"
+      "vector_text": "app/routes/actions.py _proposal_inbox_path:25 _read_proposal_rows:31 _write_proposal_rows:60 add_channel_route:71 start_scrape:120 start_sync:157 start_update:189 start_views_update:208 get_action_status:222 admin_health:246 cleanup_terminal:263 start_terminal:297 terminal_stream:341 trigger_server_shutdown:379 terminal_input:411 terminal_resize:431 agent_models:453 agent_chat:465 agent_chat_stream:512 list_agent_proposals:555 submit_agent_proposal:570 update_agent_proposal_status:606 chat_clear_context:642 chat_feedback:652 chat_report_quota:707 actions_shutdown:740 generate:348 perform_kill:392 generate:540 import os import sys import json import subprocess import threading from datetime import datetime from "
     },
     {
       "meta": {
@@ -465,15 +467,15 @@
     },
     {
       "meta": {
-        "bytes": 570,
+        "bytes": 558,
         "file": "app/routes/README.md",
         "headings": [
           "app/routes/"
         ],
         "layer": "meta-layer",
-        "sha256_16": "d1c5d3fb446dca0d"
+        "sha256_16": "c13db9b786ef6fc5"
       },
-      "vector_text": "app/routes/README.md app/routes/ # app/routes/ Flask blueprints. | File | Routes | |---|---| | `main.py` | `GET /` | | `stats.py` | `GET /api/stats`, `/api/channels`, `/api/channel/stats` | | `videos.py` | `GET /api/videos`, export, detail scrape, thumbnail OCR, formats, download | | `charts.py` | `GET /api/charts` with cache | | `actions.py` | background actions, terminal stream/input/resi"
+      "vector_text": "app/routes/README.md app/routes/ # app/routes/ Flask blueprints. | File | Routes | |---|---| | `main.py` | `GET /` | | `stats.py` | `GET /api/stats`, `/api/channels`, `/api/channel/stats` | | `videos.py` | `GET /api/videos`, export, detail scrape, thumbnail OCR, formats, download | | `charts.py` | `GET /api/charts` with cache | | `actions.py` | background actions, admin health, terminal str"
     },
     {
       "meta": {
@@ -566,6 +568,37 @@
         "sha256_16": "ba35ad732a753ae2"
       },
       "vector_text": "app/routes/videos.py get_videos:16 export_videos:146 scrape_video_details_route:204 ocr_thumbnails_batch_route:352 get_video_formats:405 download_video_route:449 process_batch:359 run_tokenization:325 import os import sys import time import json import csv from io import StringIO from datetime import datetime from flask import Blueprint, jsonify, request, send_file, make_response from news_scraper.db_client import DatabaseClient from app.state import get_sqlite_conn, root_dir videos_bp = Blueprint('videos', __name__) @videos_bp.route('/api/videos', method"
+    },
+    {
+      "meta": {
+        "bytes": 4575,
+        "classes": [],
+        "dependencies": [
+          "__future__",
+          "app",
+          "datetime",
+          "os",
+          "pathlib",
+          "platform",
+          "resource",
+          "shutil",
+          "sqlite3",
+          "typing"
+        ],
+        "file": "app/services/health.py",
+        "functions": [
+          "_safe_loadavg:28",
+          "_memory_summary:36",
+          "_table_exists:48",
+          "_table_counts:56",
+          "_db_summary:66",
+          "_provider_summary:93",
+          "build_admin_health:109"
+        ],
+        "layer": "domain-layer",
+        "sha256_16": "cbdb1ef4fcf2597c"
+      },
+      "vector_text": "app/services/health.py _safe_loadavg:28 _memory_summary:36 _table_exists:48 _table_counts:56 _db_summary:66 _provider_summary:93 build_admin_health:109 \"\"\"Non-secret admin health summary helpers.\"\"\" from __future__ import annotations import os import platform import resource import shutil import sqlite3 from datetime import datetime from pathlib import Path from typing import Any, Dict, Iterable COUNT_TABLES = ( \"channels\", \"videos\", \"video_phrases\", \"agent_chats\", \"users\", \"user_invites\", \"system_metrics\","
     },
     {
       "meta": {

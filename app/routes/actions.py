@@ -241,6 +241,15 @@ def get_action_status():
     })
 
 
+@actions_bp.route('/api/admin/health', methods=['GET'])
+@_admin_required
+def admin_health():
+    """Return non-secret host/app health metrics for the admin UI."""
+    from app.services.health import build_admin_health
+
+    return jsonify(build_admin_health(root_dir, bg_state))
+
+
 # ── Terminal PTY Console Endpoints ────────────────────────────────────
 
 # Terminal session status

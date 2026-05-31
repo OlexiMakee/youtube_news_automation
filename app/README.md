@@ -9,6 +9,7 @@ Flask application package.
 | `routes/` | Flask blueprints |
 | `services/agent.py` | AI assistant streaming and provider routing |
 | `services/cloud_rotation.py` | Provider scoring, quota/error tracking |
+| `services/health.py` | Non-secret admin health summary for `/api/admin/health` |
 | `services/rbac.py` | Token-backed request role helpers until full sessions exist |
 | `services/telemetry.py` | Optional system metrics daemon |
 | `services/chief_editor_core.md` | Editorial assistant behavior core |

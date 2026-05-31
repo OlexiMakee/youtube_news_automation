@@ -69,8 +69,11 @@ export function switchSection(tabId, element) {
     document.querySelectorAll(".sidebar-menu-item, .top-section-tab").forEach(item => {
         item.classList.remove("active");
     });
-    
-    if (element) {
+
+    const matchingTabs = document.querySelectorAll(`.top-section-tab[data-tab="${tabId}"]`);
+    if (matchingTabs.length) {
+        matchingTabs.forEach(tab => tab.classList.add("active"));
+    } else if (element) {
         const tab = element.closest(".sidebar-menu-item, .top-section-tab") || element;
         tab.classList.add("active");
     } else {
@@ -110,13 +113,8 @@ export function switchSection(tabId, element) {
 }
 
 export function toggleSidebar() {
-    if (window.innerWidth <= 768) {
-        const sidebar = document.getElementById("sidebar");
-        if (sidebar) sidebar.classList.toggle("open");
-    } else {
-        const isCollapsed = document.body.classList.toggle("sidebar-collapsed");
-        localStorage.setItem("sidebar_collapsed", isCollapsed ? "1" : "0");
-    }
+    const isCollapsed = document.body.classList.toggle("sidebar-collapsed");
+    localStorage.setItem("sidebar_collapsed", isCollapsed ? "1" : "0");
 }
 
 export function toggleChannelsDropdown(event) {

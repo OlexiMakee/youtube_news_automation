@@ -21,9 +21,23 @@
     <!-- SIDEBAR -->
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-brand">
-            <i class="fa-solid fa-square-poll-vertical"></i>
-            <span>News Scraper</span>
-            <span class="sidebar-brand-sub">v1.0.0</span>
+            <button class="sidebar-brand-toggle" onclick="toggleSidebar()" title="Згорнути меню">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+            <ul class="sidebar-section-tabs" aria-label="Workspace tabs">
+                <li class="top-section-tab active" data-tab="analytics-tab">
+                    <a href="#" onclick="switchSection('analytics-tab', this)">
+                        <i class="fa-solid fa-chart-line"></i>
+                        <span>Data</span>
+                    </a>
+                </li>
+                <li class="top-section-tab" data-tab="terminal-tab">
+                    <a href="#" onclick="switchSection('terminal-tab', this)">
+                        <i class="fa-solid fa-terminal"></i>
+                        <span>Terminal</span>
+                    </a>
+                </li>
+            </ul>
         </div>
         <div class="sidebar-widget-library">
             <div class="sidebar-section-title">Widgets</div>
@@ -70,13 +84,13 @@
                 </button>
 
                 <ul class="top-section-tabs" aria-label="Workspace tabs">
-                    <li class="top-section-tab active" id="menu-item-analytics">
+                    <li class="top-section-tab active" id="menu-item-analytics" data-tab="analytics-tab">
                         <a href="#" onclick="switchSection('analytics-tab', this)">
                             <i class="fa-solid fa-chart-line"></i>
                             <span data-i18n="menu_dashboard">Data</span>
                         </a>
                     </li>
-                    <li class="top-section-tab" id="menu-item-terminal">
+                    <li class="top-section-tab" id="menu-item-terminal" data-tab="terminal-tab">
                         <a href="#" onclick="switchSection('terminal-tab', this)">
                             <i class="fa-solid fa-terminal"></i>
                             <span data-i18n="menu_terminal">Terminal</span>

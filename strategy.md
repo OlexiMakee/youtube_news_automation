@@ -1,7 +1,7 @@
 Markdown  
 \# 🛡️ PROJECT STRATEGY & ARCHITECTURAL CONTRACT  
 **\*\*Проект:\*\*** YouTube News Automation    
-**\*\*Поточний стек MVP (v0.5.1-alpha):\*\*** Python 3.9+ / Flask / SQLite / Neon PostgreSQL / yt-dlp / Chart.js    
+**\*\*Поточний стек MVP (v0.95):\*\*** Python 3.9+ / Flask / SQLite / Neon PostgreSQL / yt-dlp / Chart.js    
 **\*\*Статус документа:\*\*** Головне джерело істини (Source of Truth) — обов'язкове для виконання всіма ШІ-агентами та користувачем.
 
 \> \#\#\# 🚨 \!\! АЛАРМ ПОПЕРЕДЖЕННЯ \!\!  

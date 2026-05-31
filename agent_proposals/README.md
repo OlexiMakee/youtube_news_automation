@@ -1,49 +1,20 @@
 # Agent Proposals
 
-Purpose: inbox for agent research and recommendations. Not an approved backlog.
+Purpose: raw proposal inbox. Not an approved backlog.
 
-Agents may:
-- Read project context and existing proposals.
-- Add or edit Markdown files in this directory.
-- Propose options, risks, alternatives, and acceptance criteria.
+## Current Policy
+- Prefer `admin_proposals.jsonl` for bug/feature capture.
+- Use a Markdown proposal only when the idea is too complex for one JSONL row.
+- Active roadmap and prioritization live in `../agent_context/GLOBAL_ROADMAP.md`.
+- Old proposal Markdown was consolidated on 2026-05-31 for token efficiency.
 
-Agents must not:
-- Edit project code/config/DB from this directory task alone.
-- Run destructive commands.
-- Add dependencies.
-- Implement proposals without explicit user approval.
+## Rules
+- Do not implement proposals without explicit approval.
+- Do not add dependencies, migrations, tunnels, or OTA behavior from a proposal alone.
+- Do not trust client-submitted roles or secrets.
+- Keep new proposal text concise and link it from `INDEX.md` if a Markdown file is truly needed.
 
-Before adding a proposal, read:
-- `../agent_context/CONTEXT.md`
-- `../agent_context/development_log.md`
-- `INDEX.md`
-
-Filename:
-```text
-YYYY-MM-DD_agent_short-topic.md
+## JSONL Shape
+```json
+{"id":0,"ts":0,"role":"admin","type":"feature","priority":"important","el":"roadmap","src":"agent_context/GLOBAL_ROADMAP.md","desc":"Short actionable text."}
 ```
-
-Template:
-```markdown
-# Recommendation: Short Title
-
-Date: YYYY-MM-DD
-Author: agent/model
-
-## Summary
-One paragraph.
-
-## Proposal
-Concrete change.
-
-## Risks
-Main risks.
-
-## Alternatives
-A1/A2 options if relevant.
-
-## Acceptance
-How to verify.
-```
-
-Keep proposals concise English.

@@ -18,6 +18,15 @@ import {
 } from './charts.js';
 import { initTerminal } from './terminal.js';
 
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
 // LANGUAGE MANAGER
 export function changeLanguage(lang) {
     state.currentLang = lang;
@@ -108,13 +117,121 @@ export function switchSection(tabId, element) {
     
     // Close sidebar on mobile
     if (window.innerWidth <= 768) {
-        document.getElementById("sidebar").classList.remove("open");
+        setSidebarCollapsed(true);
     }
 }
 
-export function toggleSidebar() {
-    const isCollapsed = document.body.classList.toggle("sidebar-collapsed");
+function setSidebarCollapsed(isCollapsed) {
+    document.body.classList.toggle("sidebar-collapsed", isCollapsed);
     localStorage.setItem("sidebar_collapsed", isCollapsed ? "1" : "0");
+    document.querySelectorAll(".sidebar-brand-toggle, .top-bar-menu-toggle").forEach(btn => {
+        btn.setAttribute("aria-expanded", isCollapsed ? "false" : "true");
+        btn.title = isCollapsed ? "Розгорнути меню" : "Згорнути меню";
+    });
+}
+
+export function toggleSidebar(forceCollapsed = null) {
+    const isCollapsed = forceCollapsed === null
+        ? !document.body.classList.contains("sidebar-collapsed")
+        : Boolean(forceCollapsed);
+    setSidebarCollapsed(isCollapsed);
+}
+
+export function closeSidebar() {
+    setSidebarCollapsed(true);
+}
+
+function _renderProposalActions(row) {
+    const id = escapeHtml(row.id);
+    const status = row.status || "active";
+    if (status !== "active") {
+        return `<button type="button" data-proposal-id="${id}" data-proposal-status="active">Reactivate</button>`;
+    }
+    return `
+        <button type="button" data-proposal-id="${id}" data-proposal-status="done">Done</button>
+        <button type="button" data-proposal-id="${id}" data-proposal-status="deferred">Defer</button>
+        <button type="button" data-proposal-id="${id}" data-proposal-status="rejected">Reject</button>
+    `;
+}
+
+function _renderProposalInbox(rows, status) {
+    const list = document.getElementById("proposal-inbox-list");
+    const count = document.getElementById("proposal-inbox-count");
+    if (!list || !count) return;
+
+    const label = status === "all" ? "total" : status;
+    count.textContent = `${rows.length} ${label}`;
+    if (!rows.length) {
+        list.innerHTML = `<div class="sidebar-proposal-empty">No ${escapeHtml(label)} proposals</div>`;
+        return;
+    }
+
+    list.innerHTML = rows.map(row => {
+        const type = escapeHtml(row.type || "feature");
+        const priority = row.priority ? `<span class="proposal-priority">${escapeHtml(row.priority)}</span>` : "";
+        return `
+            <article class="sidebar-proposal" data-proposal-row="${escapeHtml(row.id)}">
+                <div class="sidebar-proposal-meta">
+                    <span>${type}</span>
+                    <span>${escapeHtml(row.status || "active")}</span>
+                    ${priority}
+                </div>
+                <div class="sidebar-proposal-desc" title="${escapeHtml(row.desc || "")}">${escapeHtml(row.desc || "")}</div>
+                <div class="sidebar-proposal-src">${escapeHtml(row.src || row.el || "")}</div>
+                <div class="sidebar-proposal-actions">${_renderProposalActions(row)}</div>
+            </article>
+        `;
+    }).join("");
+}
+
+export async function loadProposalInbox(status = null) {
+    const filter = document.getElementById("proposal-status-filter");
+    const selectedStatus = status || filter?.value || "active";
+    if (filter && filter.value !== selectedStatus) filter.value = selectedStatus;
+
+    try {
+        const res = await fetch(`/api/proposals?status=${encodeURIComponent(selectedStatus)}`);
+        const data = await res.json();
+        if (!res.ok || data.error) {
+            throw new Error(data.error || `HTTP ${res.status}`);
+        }
+        _renderProposalInbox(data.proposals || [], selectedStatus);
+    } catch (err) {
+        const list = document.getElementById("proposal-inbox-list");
+        const count = document.getElementById("proposal-inbox-count");
+        if (count) count.textContent = "Inbox error";
+        if (list) list.innerHTML = `<div class="sidebar-proposal-empty">${escapeHtml(err.message)}</div>`;
+    }
+}
+
+export async function updateProposalStatus(id, status) {
+    if (!id || !status) return;
+    try {
+        const res = await fetch("/api/proposals/status", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id, status, note: "Updated from sidebar inbox" })
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) {
+            throw new Error(data.error || `HTTP ${res.status}`);
+        }
+        await loadProposalInbox();
+    } catch (err) {
+        console.warn("[proposals] status update failed:", err);
+    }
+}
+
+export function initProposalInbox() {
+    const list = document.getElementById("proposal-inbox-list");
+    if (!list || list.dataset.bound === "true") return;
+    list.dataset.bound = "true";
+    list.addEventListener("click", (event) => {
+        const btn = event.target.closest?.("[data-proposal-id][data-proposal-status]");
+        if (!btn) return;
+        updateProposalStatus(btn.dataset.proposalId, btn.dataset.proposalStatus);
+    });
+    loadProposalInbox();
 }
 
 export function toggleChannelsDropdown(event) {

@@ -122,6 +122,18 @@ body {
     transition: transform 0.3s ease, background-color 0.3s, border-color 0.3s, box-shadow 0.3s ease;
 }
 
+body.sidebar-collapsed .sidebar {
+    transform: translateX(-260px);
+}
+
+.sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 10009;
+    display: none;
+    background: rgba(15, 23, 42, 0.18);
+}
+
 .sidebar-brand {
     padding: 12px;
     display: flex;
@@ -173,7 +185,7 @@ body {
 .sidebar-widget-library {
     padding: 16px 12px;
     border-bottom: 1px solid var(--border-color);
-    flex: 1 1 auto;
+    flex: 0 0 auto;
     overflow-y: auto;
 }
 
@@ -217,11 +229,131 @@ body {
     text-align: center;
 }
 
+.sidebar-proposals {
+    border-bottom: 1px solid var(--border-color);
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 0;
+    flex: 1 1 auto;
+}
+
+.sidebar-proposals-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.sidebar-proposals-count {
+    padding: 0 4px;
+    color: var(--text-muted);
+    font-size: 11px;
+}
+
+.sidebar-icon-btn {
+    width: 30px;
+    height: 30px;
+    display: inline-grid;
+    place-items: center;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--card-bg);
+    color: var(--text-muted);
+    cursor: pointer;
+}
+
+.sidebar-icon-btn:hover {
+    color: var(--accent-color);
+    border-color: var(--accent-color);
+}
+
+.sidebar-proposals-filter {
+    width: 100%;
+}
+
+.sidebar-proposals-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+    min-height: 0;
+}
+
+.sidebar-proposal,
+.sidebar-proposal-empty {
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--card-bg);
+    padding: 8px;
+    font-size: 11px;
+}
+
+.sidebar-proposal-empty {
+    color: var(--text-muted);
+    text-align: center;
+}
+
+.sidebar-proposal-meta,
+.sidebar-proposal-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    align-items: center;
+}
+
+.sidebar-proposal-meta span,
+.proposal-priority {
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    padding: 1px 6px;
+    color: var(--text-muted);
+}
+
+.proposal-priority {
+    color: var(--warning-color);
+}
+
+.sidebar-proposal-desc {
+    margin: 6px 0;
+    color: var(--text-color);
+    line-height: 1.35;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.sidebar-proposal-src {
+    color: var(--text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-bottom: 6px;
+}
+
+.sidebar-proposal-actions button {
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--bg-color);
+    color: var(--text-color);
+    cursor: pointer;
+    padding: 3px 6px;
+    font-size: 10px;
+}
+
+.sidebar-proposal-actions button:hover {
+    border-color: var(--accent-color);
+    color: var(--accent-color);
+}
+
 /* CONTAINER AND CONTENT AREA */
 
 .main-content {
     margin-left: 0;
     flex-grow: 1;
+    width: 100%;
     display: flex;
     flex-direction: column;
     height: 100vh;
@@ -229,7 +361,7 @@ body {
     overflow-x: hidden;
     min-width: 0;          /* Critical: allows flex child to shrink below content size */
     max-width: 100vw;
-    transition: margin-left 0.3s ease, margin-right 0.3s ease, max-width 0.3s ease;
+    transition: margin-right 0.3s ease, max-width 0.3s ease;
 }
 
 .top-bar {
@@ -970,10 +1102,6 @@ body {
 }
 
 @media (min-width: 769px) {
-    body.sidebar-collapsed .sidebar {
-        transform: translateX(-260px);
-    }
-    
     /* Right sidebar (chat drawer) open layout mirroring */
     body.chat-drawer-open .main-content {
         margin-right: var(--chat-width);
@@ -1985,6 +2113,9 @@ body {
     }
     body.sidebar-collapsed .sidebar {
         transform: translateX(-260px);
+    }
+    body:not(.sidebar-collapsed) .sidebar-backdrop {
+        display: block;
     }
     .main-content {
         margin-left: 0;

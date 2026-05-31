@@ -48,6 +48,28 @@
                 </button>
             </div>
         </div>
+
+        <div class="sidebar-proposals" data-code-src="templates/index.html:sidebar-proposals">
+            <div class="sidebar-proposals-head">
+                <div>
+                    <div class="sidebar-section-title">Inbox</div>
+                    <div class="sidebar-proposals-count" id="proposal-inbox-count">0 active</div>
+                </div>
+                <button class="sidebar-icon-btn" type="button" onclick="loadProposalInbox()" title="Refresh proposals">
+                    <i class="fa-solid fa-rotate"></i>
+                </button>
+            </div>
+            <select class="sidebar-select sidebar-proposals-filter" id="proposal-status-filter" onchange="loadProposalInbox(this.value)">
+                <option value="active">Active</option>
+                <option value="all">All</option>
+                <option value="done">Done</option>
+                <option value="deferred">Deferred</option>
+                <option value="rejected">Rejected</option>
+            </select>
+            <div class="sidebar-proposals-list" id="proposal-inbox-list">
+                <div class="sidebar-proposal-empty">No active proposals</div>
+            </div>
+        </div>
         
         <!-- Sidebar Settings (Theme & Language) -->
         <div class="sidebar-settings">
@@ -73,6 +95,7 @@
             <p>&copy; 2026 YouTube News Automation</p>
         </div>
     </aside>
+    <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="closeSidebar()" aria-hidden="true"></div>
 
     <!-- MAIN CONTENT AREA -->
     <div class="main-content">

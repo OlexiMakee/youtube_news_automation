@@ -1,5 +1,6 @@
 import os
 import sys
+import json
 import unittest
 from unittest.mock import patch
 
@@ -31,8 +32,14 @@ class TestProviderFallback(unittest.TestCase):
             chunks = list(AgentService.stream_chat_response("hello", "ctx", provider="gemini"))
 
         joined = "".join(chunks)
-        self.assertIn('"provider": "gemini"', joined)
-        self.assertIn('"provider": "openrouter"', joined)
+        payloads = [
+            json.loads(chunk[len("data: "):])
+            for chunk in chunks
+            if chunk.startswith("data: {")
+        ]
+        metadata = [payload for payload in payloads if "provider" in payload or "model" in payload]
+        self.assertEqual(metadata[0], {"provider": "gemini", "model": "gemini-2.5-flash"})
+        self.assertEqual(metadata[1], {"provider": "openrouter", "model": "openrouter/free"})
         self.assertIn("fallback ok", joined)
         self.assertIn("[DONE]", joined)
 

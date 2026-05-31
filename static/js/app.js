@@ -4,6 +4,7 @@ import {
     changeTheme, 
     switchSection, 
     toggleSidebar, 
+    closeSidebar,
     toggleChannelsDropdown, 
     onChannelCheckboxChange, 
     onChannelColorChange, 
@@ -47,7 +48,10 @@ import {
     selectSingleChannel,
     changeChatProvider,
     switchAgentRole,
-    initChatResizer
+    initChatResizer,
+    loadProposalInbox,
+    updateProposalStatus,
+    initProposalInbox
 } from './ui.js';
 import { 
     loadStats, 
@@ -83,6 +87,7 @@ window.changeLanguage = changeLanguage;
 window.changeTheme = changeTheme;
 window.switchSection = switchSection;
 window.toggleSidebar = toggleSidebar;
+window.closeSidebar = closeSidebar;
 window.toggleChannelsDropdown = toggleChannelsDropdown;
 window.onChannelCheckboxChange = onChannelCheckboxChange;
 window.onChannelColorChange = onChannelColorChange;
@@ -127,6 +132,9 @@ window.selectSingleChannel = selectSingleChannel;
 window.changeChatProvider = changeChatProvider;
 window.switchAgentRole = switchAgentRole;
 window.initChatResizer = initChatResizer;
+window.loadProposalInbox = loadProposalInbox;
+window.updateProposalStatus = updateProposalStatus;
+window.initProposalInbox = initProposalInbox;
 
 window.loadStats = loadStats;
 window.loadChannelStatsHeader = loadChannelStatsHeader;
@@ -179,8 +187,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     changeTheme(state.currentTheme);
     changeLanguage(state.currentLang);
     
-    // Restore sidebar visibility; default is open because the widget library now lives there.
-    document.body.classList.toggle("sidebar-collapsed", localStorage.getItem("sidebar_collapsed") === "1");
+    // Restore sidebar overlay visibility. Default collapsed so the workspace never shifts or starts covered.
+    document.body.classList.toggle("sidebar-collapsed", localStorage.getItem("sidebar_collapsed") !== "0");
     
     // Build chart buttons/dropdown from CHART_DEFS
     initChartUI();
@@ -224,6 +232,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     
     // Initialize chat resizer
     initChatResizer();
+    initProposalInbox();
 
     // Register chat input key listener
     const chatInput = document.getElementById("chat-input");

@@ -28,6 +28,13 @@ bg_state = {
 }
 
 
+def background_daemons_disabled():
+    """Return True when tests/import checks must not start background work."""
+    return os.environ.get("NEWS_RESEARCH_DISABLE_BACKGROUND_DAEMONS") == "1" or any(
+        "unittest" in arg or "pytest" in arg for arg in sys.argv
+    ) or "pytest" in sys.modules
+
+
 def get_sqlite_conn():
     """Helper to get a connection to the local SQLite database."""
     db_client = DatabaseClient()
@@ -64,6 +71,9 @@ def check_active_tasks():
 def trigger_background_update(cooldown_seconds=30):
     """Launches update_db.py in the background if idle and cooldown has passed."""
     global bg_state
+    if background_daemons_disabled():
+        return False
+
     check_active_tasks()
     
     if bg_state["active_task"] != "idle":
@@ -151,6 +161,9 @@ def bg_sync_worker():
 def trigger_background_views_update(period, cooldown_seconds=2):
     """Launches update_views.py in the background if idle."""
     global bg_state
+    if background_daemons_disabled():
+        return False
+
     check_active_tasks()
     
     if bg_state["active_task"] != "idle":

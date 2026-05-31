@@ -33,7 +33,9 @@ def create_app():
 
 def _init_telemetry_and_rotation(root_dir):
     """Initialize telemetry daemon and cloud rotation engine (v1.1.0)."""
-    if os.environ.get("NEWS_RESEARCH_DISABLE_BACKGROUND_DAEMONS") == "1" or any("unittest" in arg for arg in sys.argv):
+    if os.environ.get("NEWS_RESEARCH_DISABLE_BACKGROUND_DAEMONS") == "1" or any(
+        "unittest" in arg or "pytest" in arg for arg in sys.argv
+    ) or "pytest" in sys.modules:
         return
 
     try:

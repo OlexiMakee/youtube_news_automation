@@ -34,6 +34,7 @@ Default URL: `http://127.0.0.1:5001`. If occupied, app may use `5002`.
 ## Common Commands
 ```bash
 venv_auto/bin/python -m compileall app news_scraper
+python scripts/migrate_db.py
 venv_auto/bin/python web_app.py
 ```
 Use narrower compile/test scopes when possible.
@@ -53,7 +54,9 @@ Use narrower compile/test scopes when possible.
 - `POST /api/agent/chat/stream`
 - `POST /api/chat/feedback`
 - `POST /api/chat/report-quota`
+- `GET /api/proposals`
 - `POST /api/proposals/submit`
+- `POST /api/proposals/status`
 
 ## DB
 SQLite path: `data/youtube_news.db`.
@@ -92,6 +95,7 @@ Never print values.
 - Browser runtime may be unavailable in Codex; report static-only UI checks.
 - Large temp uploads under `.tmp.*` can overheat indexing/processes. Keep ignored.
 - Local LLMs are forbidden: no `OLLAMA_HOST`, no `localhost:11434`, no local Ollama model IDs.
+- DB migrations must go through `scripts/migrate_db.py`; default dry-run, explicit `--apply`, backup first.
 
 ## Current UI Rules
 - Top filter/stat area should stay sticky.

@@ -1,34 +1,13 @@
-# 🌐 templates/ — Flask HTML Templates
+# templates/
 
-Jinja2 HTML-шаблони для Flask.
+`index.html` is the single dashboard shell. Business logic belongs in `static/js/` modules.
 
-## Файли
+Key areas:
+- sidebar and widget palette
+- sticky top bar with Data/Terminal tabs and filters
+- dashboard widget workspace
+- video details modal
+- AI Assistant drawer
+- add-channel modal
 
-| Файл | Що це |
-|---|---|
-| `index.html` | Єдина HTML-сторінка всього дашборду (SPA) |
-
-## Структура index.html
-
-`index.html` — Single Page Application. Весь динамічний контент рендериться через `app.js`.
-
-**Секції HTML:**
-- `<head>` — підключення CSS, fonts (Google Fonts), Chart.js CDN
-- `.sidebar` — бокова навігація (логотип, меню, footer)
-- `.top-bar` — закріплений рядок фільтрів (канали, дати, швидкі кнопки)
-- `.stats-grid` — KPI-картки (загальна статистика)
-- `.workspace` — двопанельний простір (графіки + таблиця)
-- `#video-modal` — модальне вікно деталей відео
-- `<script src="/static/js/app.js">` — підключення фронтенду
-
-## Коли сюди заходити
-
-- Додати нову секцію/компонент в HTML-розмітку
-- Змінити структуру sidebar або top-bar
-- Підключити нову JS-бібліотеку через CDN
-- Змінити `<meta>` або title
-
-## Що НЕ робити тут
-
-- Не писати бізнес-логіку в `<script>` теги — все в `static/js/app.js`
-- Не дублювати стилі inline — все в `static/css/style.css`
+Prefer local vendor assets already wired in the template. Do not add CDN dependencies without approval.

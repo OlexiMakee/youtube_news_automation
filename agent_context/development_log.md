@@ -40,6 +40,7 @@ Format: short English bullets only. Keep durable facts.
 - Locked LLM providers to no local models: Ollama Cloud only and OpenRouter free routes only.
 - Added contextual feedback proposal endpoint and chat drag/drop context health controls.
 - Added 10-second sync prompts in `scrape_multi.py`: Kaggle defaults to skip, Postgres defaults to sync.
+- Consolidated roadmap/proposal docs into `agent_context/GLOBAL_ROADMAP.md` and pruned worked-off proposal Markdown for token efficiency.
 
 ## Locked Decisions
 - Local SQLite remains primary.
@@ -50,7 +51,4 @@ Format: short English bullets only. Keep durable facts.
 - Keep agent docs concise English.
 
 ## Open Work
-- Analytics CLI implementation.
-- Provider fallback tests.
-- Browser-based UI verification when runtime works.
-- DB schema v2 integration if SaaS work resumes.
+- See `agent_context/GLOBAL_ROADMAP.md`.

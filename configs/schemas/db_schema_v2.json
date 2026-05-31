@@ -1,1 +1,145 @@
-{"version":"2.0","tables":{"users":{"fields":{"id":"INTEGER PRIMARY KEY","email":"TEXT UNIQUE NOT NULL","role":"TEXT DEFAULT 'user'","created_at":"TIMESTAMP DEFAULT CURRENT_TIMESTAMP","workspace_id":"INTEGER"},"indexes":["email","role","workspace_id"]},"user_invites":{"fields":{"id":"TEXT PRIMARY KEY","email":"TEXT NOT NULL","token":"TEXT UNIQUE","expires_at":"TIMESTAMP","workspace_position":"TEXT"},"indexes":["email","token","expires_at"]},"system_metrics":{"fields":{"id":"INTEGER PRIMARY KEY","timestamp":"TIMESTAMP DEFAULT CURRENT_TIMESTAMP","cpu_percent":"REAL","ram_mb_used":"REAL","disk_io_mb":"REAL","http_sessions_active":"INTEGER"},"indexes":["timestamp"]},"agent_feedback_memory":{"fields":{"id":"INTEGER PRIMARY KEY","prompt_text":"TEXT NOT NULL","response_text":"TEXT NOT NULL","model_id":"TEXT","provider_id":"TEXT","feedback_type":"TEXT","latency_ms":"INTEGER","created_at":"TIMESTAMP DEFAULT CURRENT_TIMESTAMP"},"indexes":["model_id","provider_id","created_at"]},"leaked_quota_errors":{"fields":{"id":"INTEGER PRIMARY KEY","error_string":"TEXT","provider_id":"TEXT","detected_at":"TIMESTAMP DEFAULT CURRENT_TIMESTAMP","intercepted_count":"INTEGER DEFAULT 0"},"indexes":["provider_id","detected_at"]}},"constraints":{"foreign_keys":{"user_invites":"users.id","system_metrics":"None"}}}
+{
+  "version": "2.0",
+  "status": "current-plus-planned",
+  "migration_policy": {
+    "runner": "scripts/migrate_db.py",
+    "migrations_dir": "migrations/",
+    "schema_table": "schema_migrations",
+    "schema_table_fields": {
+      "version": "TEXT PRIMARY KEY",
+      "applied_at": "TEXT NOT NULL",
+      "checksum": "TEXT NOT NULL"
+    },
+    "production_rule": "use --apply explicitly; default is dry-run"
+  },
+  "current_sqlite_tables": {
+    "channels": {
+      "primary_key": "channel_id",
+      "fields": {
+        "channel_id": "TEXT PRIMARY KEY",
+        "channel_name": "TEXT NOT NULL",
+        "channel_handle": "TEXT",
+        "created_at": "TEXT DEFAULT (datetime('now', 'localtime'))",
+        "synced": "INTEGER DEFAULT 0",
+        "avatar_url": "TEXT",
+        "banner_url": "TEXT",
+        "subscribers": "INTEGER",
+        "video_count": "INTEGER",
+        "view_count": "INTEGER",
+        "description": "TEXT"
+      }
+    },
+    "videos": {
+      "primary_key": "video_id",
+      "fields": {
+        "video_id": "TEXT PRIMARY KEY",
+        "channel_id": "TEXT NOT NULL",
+        "title": "TEXT NOT NULL",
+        "description": "TEXT",
+        "published_at": "TEXT",
+        "duration": "INTEGER",
+        "view_count": "INTEGER",
+        "like_count": "INTEGER",
+        "comment_count": "INTEGER",
+        "tags": "TEXT",
+        "scraped_at": "TEXT DEFAULT (datetime('now', 'localtime'))",
+        "updated_at": "TEXT DEFAULT (datetime('now', 'localtime'))",
+        "raw_data": "TEXT",
+        "synced": "INTEGER DEFAULT 0",
+        "full_description": "TEXT",
+        "views_update": "TEXT",
+        "thumbnail_text": "TEXT",
+        "top_comments": "TEXT"
+      },
+      "foreign_keys": {
+        "channel_id": "channels.channel_id"
+      }
+    },
+    "video_phrases": {
+      "primary_key": "video_id, phrase, source",
+      "fields": {
+        "video_id": "TEXT NOT NULL",
+        "phrase": "TEXT NOT NULL",
+        "ngram_type": "INTEGER NOT NULL",
+        "source": "TEXT NOT NULL"
+      }
+    },
+    "agent_chats": {
+      "fields": {
+        "id": "INTEGER PRIMARY KEY AUTOINCREMENT",
+        "role": "TEXT",
+        "provider": "TEXT",
+        "model": "TEXT",
+        "user_message": "TEXT",
+        "assistant_answer": "TEXT",
+        "created_at": "TEXT DEFAULT (datetime('now', 'localtime'))"
+      }
+    },
+    "users": {
+      "fields": {
+        "id": "INTEGER PRIMARY KEY AUTOINCREMENT",
+        "email": "TEXT UNIQUE NOT NULL",
+        "role": "TEXT NOT NULL",
+        "tag": "TEXT",
+        "google_id": "TEXT",
+        "avatar_url": "TEXT",
+        "created_at": "TEXT DEFAULT (datetime('now', 'localtime'))"
+      }
+    },
+    "user_invites": {
+      "fields": {
+        "id": "INTEGER PRIMARY KEY AUTOINCREMENT",
+        "token": "TEXT UNIQUE NOT NULL",
+        "email": "TEXT UNIQUE NOT NULL",
+        "role": "TEXT NOT NULL DEFAULT 'user'",
+        "tag": "TEXT",
+        "created_at": "TEXT DEFAULT (datetime('now', 'localtime'))",
+        "used_at": "TEXT DEFAULT NULL"
+      }
+    },
+    "system_metrics": {
+      "fields": {
+        "id": "INTEGER PRIMARY KEY",
+        "timestamp": "TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+        "cpu_percent": "REAL",
+        "ram_mb_used": "REAL",
+        "disk_io_mb": "REAL",
+        "http_sessions_active": "INTEGER"
+      }
+    },
+    "agent_feedback_memory": {
+      "fields": {
+        "id": "INTEGER PRIMARY KEY",
+        "prompt_text": "TEXT NOT NULL",
+        "response_text": "TEXT NOT NULL",
+        "model_id": "TEXT",
+        "provider_id": "TEXT",
+        "feedback_type": "TEXT",
+        "latency_ms": "INTEGER",
+        "created_at": "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+      }
+    },
+    "leaked_quota_errors": {
+      "fields": {
+        "id": "INTEGER PRIMARY KEY",
+        "error_string": "TEXT",
+        "provider_id": "TEXT",
+        "detected_at": "TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+        "intercepted_count": "INTEGER DEFAULT 0"
+      }
+    }
+  },
+  "planned_tables": {
+    "schema_migrations": "versioned migration records created by scripts/migrate_db.py",
+    "dashboard_widgets": "DB-backed widget layout/state after localStorage fallback remains stable",
+    "chat_rooms": "team/group chat after server-side RBAC exists",
+    "chat_room_members": "room membership after users/session model is enforced",
+    "chat_messages": "team messages and AI responses after room model exists",
+    "telemetry_logs": "sanitized bug/feature/perf telemetry after privacy rules are enforced"
+  },
+  "hard_blocks": [
+    "Do not create team chat tables before RBAC/session enforcement.",
+    "Do not apply migrations directly from this JSON file.",
+    "Do not add Tauri, tunnel, or OTA schema in the same patch as RBAC."
+  ]
+}

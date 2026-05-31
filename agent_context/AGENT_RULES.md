@@ -23,6 +23,48 @@ Ask first:
 - Large refactors or architecture changes.
 - Long-running, network-heavy, or paid external operations.
 
+## Token-Budget And Step Tiers
+Agents must adjust response density, edit scope, and autonomy to explicit session triggers.
+
+Claude tiers:
+- `claude max limits` or `claude giant steps`: architecture autonomy; update roadmap, generate complex schemas, design cross-module logic.
+- `claude medium limits`: pointer mode only; no code generation; write exact file/line paths and short design notes into `HANDSHAKE.md`.
+- `claude tiny steps`: gatekeeper mode; binary verification, rule violations, ultra-short fixes only.
+
+Codex tiers:
+- `codex max limits`: feature generator; write complete production-ready modules, components, and endpoints from active handshake specs.
+- `codex medium limits`: single-function patches; change one functional unit per turn and wait for user smoke-test confirmation.
+- `codex low limits` or `codex tiny steps`: diff-only mode; do not rewrite whole files; output minimal safe diffs or raw line replacements.
+
+Gemini tiers:
+- `gemini max limits`: global repo auditor; ingest full repository, map dependencies, emit macro memory snapshots.
+- `gemini medium limits`: domain isolator; audit one directory or blueprint without parsing adjacent modules.
+- `gemini tiny steps`: context compactor; convert logs/errors into token-efficient JSON summaries.
+
+Copilot tier:
+- `copilot tiny steps`: autocomplete steering only; max 5 inline lines via localized comment prompts.
+
+## Memory And RAG Indexing
+Use 3-layer metadata gating before vector similarity:
+- `meta-layer`: global rules, schema definitions, active maps; checked by all tiers.
+- `domain-layer`: feature modules, endpoints, logic blocks; skipped during tiny steps.
+- `telemetry-layer`: logs, stack traces, expired features; Gemini Auditor only.
+
+Do not store raw code chunks in vector memory by default. Prefer structural pointers:
+```json
+{
+  "vector_text": "route/function keywords and behavior summary",
+  "meta": {
+    "layer": "domain-layer",
+    "file": "app/routes/videos.py",
+    "lines": "45-110",
+    "signature": "def update_views(video_id):",
+    "dependencies": ["DatabaseClient", "sqlite3.WAL"],
+    "payload_preview": "REST/API payload summary"
+  }
+}
+```
+
 ## Testing
 - After backend edits: run relevant compile/smoke/API tests.
 - After frontend edits: leave click-through verification to the user unless browser automation is explicitly requested or required to confirm the change.
@@ -43,9 +85,10 @@ Ask first:
 ## Navigation
 Read in order:
 1. `AGENTS.md`
-2. `agent_context/AGENT_RULES.md`
-3. `agent_context/CONTEXT.md`
-4. Task-specific files only
+2. `agent_context/HANDSHAKE.md`
+3. `agent_context/AGENT_RULES.md`
+4. `agent_context/CONTEXT.md`
+5. Task-specific files only
 
 Avoid full reads of large files unless needed:
 - `web_app.py`

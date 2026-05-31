@@ -250,6 +250,37 @@ def admin_health():
     return jsonify(build_admin_health(root_dir, bg_state))
 
 
+@actions_bp.route('/api/widgets/registry', methods=['GET'])
+def widgets_registry():
+    """Return supported dashboard widget types."""
+    from app.services.widgets import widget_registry
+
+    return jsonify(widget_registry())
+
+
+@actions_bp.route('/api/widgets/state', methods=['GET'])
+@_admin_required
+def widgets_state_get():
+    """Return persisted dashboard widget layout/state."""
+    from app.services.widgets import load_widget_state
+
+    return jsonify(load_widget_state(root_dir))
+
+
+@actions_bp.route('/api/widgets/state', methods=['PUT'])
+@_admin_required
+def widgets_state_put():
+    """Persist dashboard widget layout/state."""
+    from app.services.widgets import save_widget_state
+
+    data = request.json or {}
+    try:
+        state = save_widget_state(root_dir, data.get("widgets", []))
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
+    return jsonify({"ok": True, **state})
+
+
 # ── Terminal PTY Console Endpoints ────────────────────────────────────
 
 # Terminal session status

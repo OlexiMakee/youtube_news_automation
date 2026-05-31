@@ -1,13 +1,13 @@
 {
   "counts": {
-    "items": 71,
+    "items": 72,
     "layers": {
-      "domain-layer": 47,
+      "domain-layer": 48,
       "meta-layer": 24
     },
     "skipped": 2
   },
-  "generated_at": "2026-06-01T00:35:44",
+  "generated_at": "2026-06-01T00:39:57",
   "items": [
     {
       "meta": {
@@ -118,7 +118,7 @@
     },
     {
       "meta": {
-        "bytes": 1606,
+        "bytes": 1708,
         "file": "agent_context/HANDSHAKE.md",
         "headings": [
           "Agent Handshake",
@@ -129,7 +129,7 @@
           "Last Change"
         ],
         "layer": "meta-layer",
-        "sha256_16": "77da0ae84a73dc3b"
+        "sha256_16": "0227c567f69bf23f"
       },
       "vector_text": "agent_context/HANDSHAKE.md Agent Handshake Current Session Status Completed Today Blocked / Pending Next Handover: Gemini Auditor Last Change <!-- HANDSHAKE_PROMPT: Read this first; obey AGENT_RULES.md tiers; continue the NEXT HANDOVER only; keep patches scoped; backend-test by default; UI click-through stays with user. --> # Agent Handshake ## Current Session Status - Active Agent: Codex - Budget Tier applied: `codex max limits` - Target: System workflow integration and meta-file update. ## Compl"
     },
@@ -160,12 +160,12 @@
     },
     {
       "meta": {
-        "bytes": 71978,
+        "bytes": 73296,
         "file": "agent_context/memory_snapshot.json",
         "layer": "meta-layer",
-        "sha256_16": "9a66b80d32789f2e"
+        "sha256_16": "1263ecd7a10d9381"
       },
-      "vector_text": "agent_context/memory_snapshot.json { \"counts\": { \"items\": 70, \"layers\": { \"domain-layer\": 46, \"meta-layer\": 24 }, \"skipped\": 2 }, \"generated_at\": \"2026-06-01T00:30:52\", \"items\": [ { \"meta\": { \"bytes\": 1884, \"file\": \"README.md\", \"headings\": [ \"YouTube News Automation\", \"Start\", \"Read Order\", \"Current Architecture\", \"Main Paths\", \"Locked Rules\" ], \"layer\": \"meta-layer\", \"sha256_16\": \"7c7c65ab55"
+      "vector_text": "agent_context/memory_snapshot.json { \"counts\": { \"items\": 71, \"layers\": { \"domain-layer\": 47, \"meta-layer\": 24 }, \"skipped\": 2 }, \"generated_at\": \"2026-06-01T00:35:44\", \"items\": [ { \"meta\": { \"bytes\": 1884, \"file\": \"README.md\", \"headings\": [ \"YouTube News Automation\", \"Start\", \"Read Order\", \"Current Architecture\", \"Main Paths\", \"Locked Rules\" ], \"layer\": \"meta-layer\", \"sha256_16\": \"7c7c65ab55"
     },
     {
       "meta": {
@@ -302,13 +302,13 @@
     },
     {
       "meta": {
-        "bytes": 855,
+        "bytes": 955,
         "file": "app/README.md",
         "headings": [
           "app/"
         ],
         "layer": "meta-layer",
-        "sha256_16": "a2168f9a86c47bf1"
+        "sha256_16": "6476f4fdba7eb081"
       },
       "vector_text": "app/README.md app/ # app/ Flask application package. | Path | Purpose | |---|---| | `__init__.py` | `create_app()`, blueprint registration, optional telemetry/rotation startup | | `state.py` | Shared background task/process state | | `routes/` | Flask blueprints | | `services/agent.py` | AI assistant streaming and provider routing | | `services/cloud_rotation.py` | Provider sc"
     },
@@ -374,7 +374,7 @@
     },
     {
       "meta": {
-        "bytes": 25631,
+        "bytes": 26558,
         "classes": [],
         "dependencies": [
           "app",
@@ -406,25 +406,26 @@
           "start_views_update:208",
           "get_action_status:222",
           "admin_health:246",
-          "cleanup_terminal:263",
-          "start_terminal:297",
-          "terminal_stream:341",
-          "trigger_server_shutdown:379",
-          "terminal_input:411",
-          "terminal_resize:431",
-          "agent_models:453",
-          "agent_chat:465",
-          "agent_chat_stream:512",
-          "list_agent_proposals:555",
-          "submit_agent_proposal:570",
-          "update_agent_proposal_status:606",
-          "chat_clear_context:642",
-          "chat_feedback:652",
-          "chat_report_quota:707",
-          "actions_shutdown:740",
-          "generate:348",
-          "perform_kill:392",
-          "generate:540"
+          "widgets_registry:254",
+          "widgets_state_get:263",
+          "widgets_state_put:272",
+          "cleanup_terminal:294",
+          "start_terminal:328",
+          "terminal_stream:372",
+          "trigger_server_shutdown:410",
+          "terminal_input:442",
+          "terminal_resize:462",
+          "agent_models:484",
+          "agent_chat:496",
+          "agent_chat_stream:543",
+          "list_agent_proposals:586",
+          "submit_agent_proposal:601",
+          "update_agent_proposal_status:637",
+          "chat_clear_context:673",
+          "chat_feedback:683",
+          "chat_report_quota:738",
+          "actions_shutdown:771",
+          "generate:379"
         ],
         "layer": "domain-layer",
         "routes": [
@@ -435,6 +436,9 @@
           "/api/action/update_views ['POST']",
           "/api/action/status ['GET']",
           "/api/admin/health ['GET']",
+          "/api/widgets/registry ['GET']",
+          "/api/widgets/state ['GET']",
+          "/api/widgets/state ['PUT']",
           "/api/terminal/stream [GET]",
           "/api/terminal/input ['POST']",
           "/api/terminal/resize ['POST']",
@@ -449,9 +453,9 @@
           "/api/chat/report-quota ['POST']",
           "/api/action/shutdown ['POST']"
         ],
-        "sha256_16": "a59fe0bb32460369"
+        "sha256_16": "f5c7b9a06bf2baab"
       },
-      "vector_text": "app/routes/actions.py _proposal_inbox_path:25 _read_proposal_rows:31 _write_proposal_rows:60 add_channel_route:71 start_scrape:120 start_sync:157 start_update:189 start_views_update:208 get_action_status:222 admin_health:246 cleanup_terminal:263 start_terminal:297 terminal_stream:341 trigger_server_shutdown:379 terminal_input:411 terminal_resize:431 agent_models:453 agent_chat:465 agent_chat_stream:512 list_agent_proposals:555 submit_agent_proposal:570 update_agent_proposal_status:606 chat_clear_context:642 chat_feedback:652 chat_report_quota:707 actions_shutdown:740 generate:348 perform_kill:392 generate:540 import os import sys import json import subprocess import threading from datetime import datetime from "
+      "vector_text": "app/routes/actions.py _proposal_inbox_path:25 _read_proposal_rows:31 _write_proposal_rows:60 add_channel_route:71 start_scrape:120 start_sync:157 start_update:189 start_views_update:208 get_action_status:222 admin_health:246 widgets_registry:254 widgets_state_get:263 widgets_state_put:272 cleanup_terminal:294 start_terminal:328 terminal_stream:372 trigger_server_shutdown:410 terminal_input:442 terminal_resize:462 agent_models:484 agent_chat:496 agent_chat_stream:543 list_agent_proposals:586 submit_agent_proposal:601 update_agent_proposal_status:637 chat_clear_context:673 chat_feedback:683 chat_report_quota:738 actions_shutdown:771 generate:379 import os import sys import json import subprocess import threading "
     },
     {
       "meta": {
@@ -467,15 +471,15 @@
     },
     {
       "meta": {
-        "bytes": 558,
+        "bytes": 555,
         "file": "app/routes/README.md",
         "headings": [
           "app/routes/"
         ],
         "layer": "meta-layer",
-        "sha256_16": "c13db9b786ef6fc5"
+        "sha256_16": "7b3d69c7338b41d9"
       },
-      "vector_text": "app/routes/README.md app/routes/ # app/routes/ Flask blueprints. | File | Routes | |---|---| | `main.py` | `GET /` | | `stats.py` | `GET /api/stats`, `/api/channels`, `/api/channel/stats` | | `videos.py` | `GET /api/videos`, export, detail scrape, thumbnail OCR, formats, download | | `charts.py` | `GET /api/charts` with cache | | `actions.py` | background actions, admin health, terminal str"
+      "vector_text": "app/routes/README.md app/routes/ # app/routes/ Flask blueprints. | File | Routes | |---|---| | `main.py` | `GET /` | | `stats.py` | `GET /api/stats`, `/api/channels`, `/api/channel/stats` | | `videos.py` | `GET /api/videos`, export, detail scrape, thumbnail OCR, formats, download | | `charts.py` | `GET /api/charts` with cache | | `actions.py` | background actions, admin health, widget regis"
     },
     {
       "meta": {
@@ -669,6 +673,33 @@
         "sha256_16": "881cec2205e92939"
       },
       "vector_text": "app/services/telemetry.py start_telemetry:157 stop_telemetry:169 get_metrics_summary:178 __init__:44 run:61 _collect_metrics:79 _store_metrics:120 stop:147 TelemetryDaemon:41 #!/usr/bin/env python3 \"\"\" System Telemetry Daemon (v1.1.0) YouTube News Automation Purpose: Collect real-time system metrics (CPU, RAM, Disk IO, HTTP sessions) for cloud migration planning. Runs as lightweight background daemon thread. Safe for SQLite WAL mode (no write bottlenecks). Metrics Collected: - CPU usage (%) - RAM used (MB) - Disk IO (MB read/writ"
+    },
+    {
+      "meta": {
+        "bytes": 4168,
+        "classes": [],
+        "dependencies": [
+          "__future__",
+          "datetime",
+          "json",
+          "os",
+          "pathlib",
+          "typing"
+        ],
+        "file": "app/services/widgets.py",
+        "functions": [
+          "widget_state_path:46",
+          "widget_registry:50",
+          "sanitize_widget:57",
+          "sanitize_widgets:95",
+          "default_state:101",
+          "load_widget_state:109",
+          "save_widget_state:126"
+        ],
+        "layer": "domain-layer",
+        "sha256_16": "20f1b54d38acdd46"
+      },
+      "vector_text": "app/services/widgets.py widget_state_path:46 widget_registry:50 sanitize_widget:57 sanitize_widgets:95 default_state:101 load_widget_state:109 save_widget_state:126 \"\"\"Dashboard widget registry and state persistence. This is a file-backed bridge until the `dashboard_widgets` SQLite migration is explicitly applied. It never mutates the live DB. \"\"\" from __future__ import annotations import json import os from datetime import datetime from pathlib import Path from typing import Any, Dict, List WIDGET_STATE_VERSION = 1 WID"
     },
     {
       "meta": {
@@ -1408,7 +1439,7 @@
     },
     {
       "meta": {
-        "bytes": 23748,
+        "bytes": 24715,
         "classes": [
           "BaseWidget",
           "ChannelAnalyticsWidget",
@@ -1430,9 +1461,9 @@
           "initDashboardWorkspace"
         ],
         "layer": "domain-layer",
-        "sha256_16": "ae51b9b7673f8c85"
+        "sha256_16": "3fb5f2d1274fc741"
       },
-      "vector_text": "static/js/widgets.js escapeHtml readDateRange findUatvEnglishChannel defaultChannelIds chartLabel formatMetricLine initDashboardWorkspace BaseWidget ChannelAnalyticsWidget DashboardWorkspace import { state } from './state.js'; import { translations } from './translations.js'; import { CHART_DEFS, initChartUI, renderActiveChart } from './charts.js'; const STORAGE_KEY = 'dashboard_widgets_v1'; function escapeHtml(value) { return String(value ?? '') .replace(/&/g, '&amp;') .replace(/</g, '&lt;') .replace(/>/g, '&gt;') .replace(/\"/g, '&quot;') .repl"
+      "vector_text": "static/js/widgets.js escapeHtml readDateRange findUatvEnglishChannel defaultChannelIds chartLabel formatMetricLine initDashboardWorkspace BaseWidget ChannelAnalyticsWidget DashboardWorkspace import { state } from './state.js'; import { translations } from './translations.js'; import { CHART_DEFS, initChartUI, renderActiveChart } from './charts.js'; const STORAGE_KEY = 'dashboard_widgets_v1'; const WIDGETS_STATE_ENDPOINT = '/api/widgets/state'; function escapeHtml(value) { return String(value ?? '') .replace(/&/g, '&amp;') .replace(/</g, '&lt;')"
     },
     {
       "meta": {

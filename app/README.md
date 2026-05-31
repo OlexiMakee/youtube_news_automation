@@ -12,6 +12,7 @@ Flask application package.
 | `services/health.py` | Non-secret admin health summary for `/api/admin/health` |
 | `services/rbac.py` | Token-backed request role helpers until full sessions exist |
 | `services/telemetry.py` | Optional system metrics daemon |
+| `services/widgets.py` | File-backed widget registry/state bridge until DB migration is approved |
 | `services/chief_editor_core.md` | Editorial assistant behavior core |
 
 Use `NEWS_RESEARCH_DISABLE_BACKGROUND_DAEMONS=1` for tests/import checks.

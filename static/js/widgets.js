@@ -3,6 +3,7 @@ import { translations } from './translations.js';
 import { CHART_DEFS, initChartUI, renderActiveChart } from './charts.js';
 
 const STORAGE_KEY = 'dashboard_widgets_v1';
+const WIDGETS_STATE_ENDPOINT = '/api/widgets/state';
 
 function escapeHtml(value) {
     return String(value ?? '')
@@ -459,11 +460,11 @@ export class DashboardWorkspace {
         this.palette = document.querySelector('.widget-palette');
     }
 
-    init() {
+    async init() {
         if (!this.root) return;
         this.bindPalette();
         this.bindDropzone();
-        this.restore();
+        await this.restore();
     }
 
     bindPalette() {
@@ -530,16 +531,43 @@ export class DashboardWorkspace {
     save() {
         const data = Array.from(this.widgets.values()).map(widget => widget.toJSON());
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        void this.saveRemote(data);
     }
 
-    restore() {
-        let saved = [];
+    async saveRemote(data) {
         try {
-            saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            await fetch(WIDGETS_STATE_ENDPOINT, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ widgets: data })
+            });
         } catch (error) {
-            saved = [];
+            // LocalStorage remains the source of truth when server persistence is unavailable.
         }
+    }
 
+    async loadRemote() {
+        try {
+            const response = await fetch(WIDGETS_STATE_ENDPOINT);
+            if (!response.ok) return null;
+            const data = await response.json();
+            return Array.isArray(data.widgets) ? data.widgets : null;
+        } catch (error) {
+            return null;
+        }
+    }
+
+    readLocal() {
+        try {
+            return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+        } catch (error) {
+            return [];
+        }
+    }
+
+    async restore() {
+        let saved = await this.loadRemote();
+        if (!Array.isArray(saved) || !saved.length) saved = this.readLocal();
         saved
             .filter(item => item && item.type === 'channel-analytics')
             .forEach(item => this.addWidget(item.type, item));
@@ -548,7 +576,7 @@ export class DashboardWorkspace {
 
 export function initDashboardWorkspace() {
     const workspace = new DashboardWorkspace(document.getElementById('dashboard-workspace'));
-    workspace.init();
+    void workspace.init();
     window.dashboardWorkspace = workspace;
     return workspace;
 }

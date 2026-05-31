@@ -24,4 +24,28 @@ def create_app():
     app.register_blueprint(charts_bp)
     app.register_blueprint(actions_bp)
     
+    # Initialize v1.1.0 SaaS infrastructure (Phase 2)
+    _init_telemetry_and_rotation(root_dir)
+    
     return app
+
+
+def _init_telemetry_and_rotation(root_dir):
+    """Initialize telemetry daemon and cloud rotation engine (v1.1.0)."""
+    try:
+        db_path = os.path.join(root_dir, "data", "youtube_news.db")
+        
+        # Start telemetry daemon (collects system metrics)
+        from app.services.telemetry import start_telemetry
+        start_telemetry(db_path, interval=10)
+        
+        # Initialize cloud rotation engine (LLM provider switching)
+        from app.services.cloud_rotation import init_rotation_engine
+        init_rotation_engine(db_path)
+        
+        print("[App Init] ✅ Telemetry daemon started")
+        print("[App Init] ✅ Cloud rotation engine initialized")
+    
+    except Exception as e:
+        print(f"[App Init] ⚠️  SaaS infrastructure initialization warning: {e}")
+        # Non-blocking: if telemetry fails, app continues

@@ -1,22 +1,17 @@
-# 🌐 app/ — Modular Flask Application Package
+# app/
 
-Цей пакет містить модульний Flask веб-додаток, розділений на Blueprints та сервіси.
+Flask application package.
 
-## Структура
-
-| Файл / Директорія | Опис |
+| Path | Purpose |
 |---|---|
-| `__init__.py` | Фабрика додатку (`create_app`), конфігурація CORS, реєстрація Blueprints |
-| `state.py` | Спільний глобальний `bg_state` та менеджер фонових завдань (threads/processes) |
-| `routes/` | Директорія маршрутів/Blueprints додатку |
-| `services/` | Допоміжні бізнес-сервіси (наприклад, AI-агент) |
+| `__init__.py` | `create_app()`, blueprint registration, optional telemetry/rotation startup |
+| `state.py` | Shared background task/process state |
+| `routes/` | Flask blueprints |
+| `services/agent.py` | AI assistant streaming and provider routing |
+| `services/cloud_rotation.py` | Provider scoring, quota/error tracking |
+| `services/rbac.py` | Token-backed request role helpers until full sessions exist |
+| `services/telemetry.py` | Optional system metrics daemon |
+| `services/chief_editor_core.md` | Editorial assistant behavior core |
 
----
-
-## Де шукати що
-
-**Ініціалізація додатку:**
-→ [__init__.py](file:///Users/oleksii/Documents/News%20Research%20Automation/app/__init__.py)
-
-**Спільний in-memory стан фонових завдань:**
-→ [state.py](file:///Users/oleksii/Documents/News%20Research%20Automation/app/state.py)
+Use `NEWS_RESEARCH_DISABLE_BACKGROUND_DAEMONS=1` for tests/import checks.
+Set `NEWS_RESEARCH_ADMIN_TOKEN` before exposing the app beyond single-user local mode.

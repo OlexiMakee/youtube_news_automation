@@ -11,6 +11,7 @@
 - [x] Formalized 3-layer asymmetric vector RAG memory mapping rules.
 - [x] Stabilized first-read handoff path for cross-agent onboarding.
 - [x] Implemented `scripts/compact_memory.py` and generated `agent_context/memory_snapshot.json`.
+- [x] Added token-backed RBAC helpers; chat admin role is now derived server-side.
 
 ## Blocked / Pending
 - [ ] Keep live DB migrations blocked until explicit user confirmation.
@@ -24,5 +25,5 @@
   4. Refresh the compressed JSON memory snapshot for future Claude initialization if needed.
 
 ## Last Change
-- Files: `scripts/compact_memory.py`, `scratch/test_compact_memory.py`, `agent_context/memory_snapshot.json`, `scripts/README.md`, `agent_context/HANDSHAKE.md`, `.gitignore`.
-- Verification: compile, focused unit tests, dry-run snapshot, JSON validation.
+- Files: `app/services/rbac.py`, `app/routes/actions.py`, `scratch/test_rbac_chat_role.py`, `.env.example`, `app/README.md`, `agent_context/memory_snapshot.json`, `agent_context/HANDSHAKE.md`.
+- Verification: compile, focused RBAC tests, Flask route smoke, full scratch unittest suite.

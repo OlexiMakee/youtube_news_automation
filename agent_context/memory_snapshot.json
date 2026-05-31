@@ -1,13 +1,13 @@
 {
   "counts": {
-    "items": 68,
+    "items": 70,
     "layers": {
-      "domain-layer": 45,
-      "meta-layer": 23
+      "domain-layer": 46,
+      "meta-layer": 24
     },
     "skipped": 2
   },
-  "generated_at": "2026-06-01T00:25:12",
+  "generated_at": "2026-06-01T00:30:52",
   "items": [
     {
       "meta": {
@@ -118,7 +118,7 @@
     },
     {
       "meta": {
-        "bytes": 1286,
+        "bytes": 1492,
         "file": "agent_context/HANDSHAKE.md",
         "headings": [
           "Agent Handshake",
@@ -129,13 +129,13 @@
           "Last Change"
         ],
         "layer": "meta-layer",
-        "sha256_16": "19b9a45b3b331058"
+        "sha256_16": "2c7d7a6e369b71ac"
       },
       "vector_text": "agent_context/HANDSHAKE.md Agent Handshake Current Session Status Completed Today Blocked / Pending Next Handover: Gemini Auditor Last Change <!-- HANDSHAKE_PROMPT: Read this first; obey AGENT_RULES.md tiers; continue the NEXT HANDOVER only; keep patches scoped; backend-test by default; UI click-through stays with user. --> # Agent Handshake ## Current Session Status - Active Agent: Codex - Budget Tier applied: `codex max limits` - Target: System workflow integration and meta-file update. ## Compl"
     },
     {
       "meta": {
-        "bytes": 6113,
+        "bytes": 6175,
         "file": "agent_context/GLOBAL_ROADMAP.md",
         "headings": [
           "Global Roadmap",
@@ -154,9 +154,18 @@
           "Hard Blocks"
         ],
         "layer": "meta-layer",
-        "sha256_16": "4a6f3816cc74b141"
+        "sha256_16": "ad4043c5648b4792"
       },
       "vector_text": "agent_context/GLOBAL_ROADMAP.md Global Roadmap Confirmed Current State Closed Or Consolidated Items Active Bugs And Feature Queue A. Stabilization And Verification B. Current UI Corrections C. Assistant Quality And Token Control D. Data Layer And RBAC Foundation E. Widget Persistence And Extensible Interface F. Collaboration And Team Server G. Host Health, Remote Access, And Packaging Recommended Next Sprint Token Optimization Rules Hard Blocks # Global Roadmap Status: consolidated on 2026-05-31 from proposals, admin inbox, indexes, README files, and local schema inspection. Purpose: one compact source for current bugs, features, risks, and execution order. ## Confirmed Current State - App: local-first Flask da"
+    },
+    {
+      "meta": {
+        "bytes": 70134,
+        "file": "agent_context/memory_snapshot.json",
+        "layer": "meta-layer",
+        "sha256_16": "8f2c55c6163fa3b0"
+      },
+      "vector_text": "agent_context/memory_snapshot.json { \"counts\": { \"items\": 68, \"layers\": { \"domain-layer\": 45, \"meta-layer\": 23 }, \"skipped\": 2 }, \"generated_at\": \"2026-06-01T00:25:12\", \"items\": [ { \"meta\": { \"bytes\": 1884, \"file\": \"README.md\", \"headings\": [ \"YouTube News Automation\", \"Start\", \"Read Order\", \"Current Architecture\", \"Main Paths\", \"Locked Rules\" ], \"layer\": \"meta-layer\", \"sha256_16\": \"7c7c65ab55"
     },
     {
       "meta": {
@@ -174,7 +183,7 @@
     },
     {
       "meta": {
-        "bytes": 1886,
+        "bytes": 1884,
         "file": "agent_context/decisions/ADR-002_DB_MIGRATION_RUNNER.md",
         "headings": [
           "ADR-002: SQLite Migration Runner Before Schema v2 Expansion",
@@ -185,7 +194,7 @@
           "Acceptance"
         ],
         "layer": "meta-layer",
-        "sha256_16": "4dbefb03077b302a"
+        "sha256_16": "9662a1e0cb6c4aed"
       },
       "vector_text": "agent_context/decisions/ADR-002_DB_MIGRATION_RUNNER.md ADR-002: SQLite Migration Runner Before Schema v2 Expansion Context Decision Sequence Non-Goals Acceptance # ADR-002: SQLite Migration Runner Before Schema v2 Expansion Date: 2026-05-31 Status: accepted design, not implemented ## Context Current SQLite initialization mixes table creation and ad hoc migrations inside `news_scraper/db_client.py`. Roadmap items require new tables for RBAC, widgets, team chat, telemetry, and admin health. Applying those changes direc"
     },
@@ -293,13 +302,13 @@
     },
     {
       "meta": {
-        "bytes": 600,
+        "bytes": 772,
         "file": "app/README.md",
         "headings": [
           "app/"
         ],
         "layer": "meta-layer",
-        "sha256_16": "8cfc50c7682cf430"
+        "sha256_16": "da74cc6ab919a340"
       },
       "vector_text": "app/README.md app/ # app/ Flask application package. | Path | Purpose | |---|---| | `__init__.py` | `create_app()`, blueprint registration, optional telemetry/rotation startup | | `state.py` | Shared background task/process state | | `routes/` | Flask blueprints | | `services/agent.py` | AI assistant streaming and provider routing | | `services/cloud_rotation.py` | Provider sc"
     },
@@ -365,7 +374,7 @@
     },
     {
       "meta": {
-        "bytes": 25817,
+        "bytes": 25351,
         "classes": [],
         "dependencies": [
           "app",
@@ -373,7 +382,6 @@
           "datetime",
           "fcntl",
           "flask",
-          "functools",
           "json",
           "os",
           "pty",
@@ -388,36 +396,34 @@
         ],
         "file": "app/routes/actions.py",
         "functions": [
-          "_admin_token:25",
-          "_admin_required:29",
-          "_proposal_inbox_path:50",
-          "_read_proposal_rows:56",
-          "_write_proposal_rows:85",
-          "add_channel_route:95",
-          "start_scrape:143",
-          "start_sync:179",
-          "start_update:210",
-          "start_views_update:228",
-          "get_action_status:242",
-          "cleanup_terminal:274",
-          "start_terminal:308",
-          "terminal_stream:351",
-          "trigger_server_shutdown:389",
-          "terminal_input:420",
-          "terminal_resize:439",
-          "agent_models:461",
-          "agent_chat:473",
-          "agent_chat_stream:520",
-          "list_agent_proposals:563",
-          "submit_agent_proposal:578",
-          "update_agent_proposal_status:614",
-          "chat_clear_context:650",
-          "chat_feedback:659",
-          "chat_report_quota:713",
-          "actions_shutdown:746",
-          "wrapper:31",
-          "generate:358",
-          "perform_kill:402"
+          "_proposal_inbox_path:25",
+          "_read_proposal_rows:31",
+          "_write_proposal_rows:60",
+          "add_channel_route:71",
+          "start_scrape:120",
+          "start_sync:157",
+          "start_update:189",
+          "start_views_update:208",
+          "get_action_status:222",
+          "cleanup_terminal:254",
+          "start_terminal:288",
+          "terminal_stream:332",
+          "trigger_server_shutdown:370",
+          "terminal_input:402",
+          "terminal_resize:422",
+          "agent_models:444",
+          "agent_chat:456",
+          "agent_chat_stream:503",
+          "list_agent_proposals:546",
+          "submit_agent_proposal:561",
+          "update_agent_proposal_status:597",
+          "chat_clear_context:633",
+          "chat_feedback:643",
+          "chat_report_quota:698",
+          "actions_shutdown:731",
+          "generate:339",
+          "perform_kill:383",
+          "generate:531"
         ],
         "layer": "domain-layer",
         "routes": [
@@ -441,9 +447,9 @@
           "/api/chat/report-quota ['POST']",
           "/api/action/shutdown ['POST']"
         ],
-        "sha256_16": "8657f4d22c3d5389"
+        "sha256_16": "62b1f5d9f85c922f"
       },
-      "vector_text": "app/routes/actions.py _admin_[REDACTED] _admin_required:29 _proposal_inbox_path:50 _read_proposal_rows:56 _write_proposal_rows:85 add_channel_route:95 start_scrape:143 start_sync:179 start_update:210 start_views_update:228 get_action_status:242 cleanup_terminal:274 start_terminal:308 terminal_stream:351 trigger_server_shutdown:389 terminal_input:420 terminal_resize:439 agent_models:461 agent_chat:473 agent_chat_stream:520 list_agent_proposals:563 submit_agent_proposal:578 update_agent_proposal_status:614 chat_clear_context:650 chat_feedback:659 chat_report_quota:713 actions_shutdown:746 wrapper:31 generate:358 perform_kill:402 import os import sys import json import subprocess import threading from datetime imp"
+      "vector_text": "app/routes/actions.py _proposal_inbox_path:25 _read_proposal_rows:31 _write_proposal_rows:60 add_channel_route:71 start_scrape:120 start_sync:157 start_update:189 start_views_update:208 get_action_status:222 cleanup_terminal:254 start_terminal:288 terminal_stream:332 trigger_server_shutdown:370 terminal_input:402 terminal_resize:422 agent_models:444 agent_chat:456 agent_chat_stream:503 list_agent_proposals:546 submit_agent_proposal:561 update_agent_proposal_status:597 chat_clear_context:633 chat_feedback:643 chat_report_quota:698 actions_shutdown:731 generate:339 perform_kill:383 generate:531 import os import sys import json import subprocess import threading from datetime import datetime from flask import Blue"
     },
     {
       "meta": {
@@ -570,6 +576,33 @@
         "sha256_16": "8e3eb13b15a63a86"
       },
       "vector_text": "app/services/system_prompt.txt Ти — редакційний AI-аналітик YouTube News Automation Dashboard. Твоя задача — не переказувати графіки, а знаходити інсайти, ризики, сильні теми, слабкі сигнали й наступні редакційні дії. Відповідай мовою користувача. Тон: живий, стислий, критичний, з опорою на факти."
+    },
+    {
+      "meta": {
+        "bytes": 1816,
+        "classes": [],
+        "dependencies": [
+          "__future__",
+          "flask",
+          "functools",
+          "hmac",
+          "os",
+          "typing"
+        ],
+        "file": "app/services/rbac.py",
+        "functions": [
+          "configured_admin_token:20",
+          "extract_request_token:24",
+          "has_admin_access:37",
+          "current_request_role:46",
+          "assistant_role_for_request:50",
+          "require_admin:57",
+          "wrapper:59"
+        ],
+        "layer": "domain-layer",
+        "sha256_16": "6c632765de87e6e4"
+      },
+      "vector_text": "app/services/rbac.py configured_admin_[REDACTED] extract_request_[REDACTED] has_admin_access:37 current_request_role:46 assistant_role_for_request:50 require_admin:57 wrapper:59 \"\"\"Small request-level RBAC helpers. This is intentionally token-backed until full user sessions exist. It prevents client-submitted roles from becoming trusted server roles. \"\"\" from __future__ import annotations import hmac import os from functools import wraps from typing import Callable, Optional from flask import jsonify, request ADMIN_ROLES = {\"admin\","
     },
     {
       "meta": {
@@ -919,7 +952,7 @@
     },
     {
       "meta": {
-        "bytes": 851,
+        "bytes": 989,
         "file": "scripts/README.md",
         "headings": [
           "Scripts",
@@ -930,12 +963,13 @@
           "Preview pending SQLite migrations (dry-run default)",
           "Apply migrations only after backup/test review",
           "Refresh ultra-short next-agent handoff",
+          "Build compact layer-tagged memory snapshot (dry-run default)",
           "Pre-compute N-grams + TF-IDF weighted performance lift trends"
         ],
         "layer": "meta-layer",
-        "sha256_16": "00d54377eaf311be"
+        "sha256_16": "db8f5d90eefea072"
       },
-      "vector_text": "scripts/README.md Scripts Initialize a new database Export database to CSV/Excel Sync local SQLite → Neon PostgreSQL (interactive) Manual SQLite → Kaggle sync Preview pending SQLite migrations (dry-run default) Apply migrations only after backup/test review Refresh ultra-short next-agent handoff Pre-compute N-grams + TF-IDF weighted performance lift trends # Scripts Utility scripts for maintenance and data management. Run all scripts from the **project root** directory: ```bash # Initialize a new database python scripts/init_db.py # Export database to CSV/Excel python scripts/db_exporter.py # Sync local SQLite → Neon PostgreSQL (interactive) python scripts/sync_postgres_cli.py # Manual SQLite → Kaggle sync pyt"
+      "vector_text": "scripts/README.md Scripts Initialize a new database Export database to CSV/Excel Sync local SQLite → Neon PostgreSQL (interactive) Manual SQLite → Kaggle sync Preview pending SQLite migrations (dry-run default) Apply migrations only after backup/test review Refresh ultra-short next-agent handoff Build compact layer-tagged memory snapshot (dry-run default) Pre-compute N-grams + TF-IDF weighted performance lift trends # Scripts Utility scripts for maintenance and data management. Run all scripts from the **project root** directory: ```bash # Initialize a new database python scripts/init_db.py # Export database to CSV/Excel python scripts/db_exporter.py # Sync local SQLite → Neon PostgreSQL (interactive) python sc"
     },
     {
       "meta": {

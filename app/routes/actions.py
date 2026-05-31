@@ -5,7 +5,9 @@ import subprocess
 import threading
 from datetime import datetime
 from flask import Blueprint, jsonify, request, Response
+from app.services.rbac import assistant_role_for_request, require_admin as _admin_required
 from app.state import (
+    background_daemons_disabled,
     bg_state,
     check_active_tasks,
     trigger_background_update,
@@ -17,11 +19,60 @@ from app.state import (
 )
 
 actions_bp = Blueprint('actions', __name__)
+PROPOSAL_STATUSES = {"active", "done", "deferred", "rejected"}
+
+
+def _proposal_inbox_path():
+    proposals_dir = os.path.join(root_dir, "agent_proposals")
+    os.makedirs(proposals_dir, exist_ok=True)
+    return os.path.join(proposals_dir, "admin_proposals.jsonl")
+
+
+def _read_proposal_rows():
+    proposals_path = _proposal_inbox_path()
+    if not os.path.exists(proposals_path):
+        return []
+
+    rows = []
+    with open(proposals_path, "r", encoding="utf-8") as f:
+        for lineno, line in enumerate(f, start=1):
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                row = json.loads(line)
+            except json.JSONDecodeError:
+                row = {
+                    "id": f"invalid-{lineno}",
+                    "ts": None,
+                    "role": "system",
+                    "type": "bug",
+                    "status": "active",
+                    "el": "admin_proposals.jsonl",
+                    "src": "agent_proposals/admin_proposals.jsonl",
+                    "desc": f"Invalid JSONL row at line {lineno}"
+                }
+            row.setdefault("status", "active")
+            rows.append(row)
+    return rows
+
+
+def _write_proposal_rows(rows):
+    proposals_path = _proposal_inbox_path()
+    tmp_path = f"{proposals_path}.tmp"
+    with open(tmp_path, "w", encoding="utf-8") as f:
+        for row in rows:
+            f.write(json.dumps(row, ensure_ascii=False, separators=(",", ":")) + "\n")
+    os.replace(tmp_path, proposals_path)
 
 
 @actions_bp.route('/api/action/add_channel', methods=['POST'])
+@_admin_required
 def add_channel_route():
     global bg_state
+    if background_daemons_disabled():
+        return jsonify({"error": "Background daemons are disabled."}), 503
+
     check_active_tasks()
     
     if bg_state["active_task"] != "idle":
@@ -65,8 +116,12 @@ def add_channel_route():
 
 
 @actions_bp.route('/api/action/scrape', methods=['POST'])
+@_admin_required
 def start_scrape():
     global bg_state
+    if background_daemons_disabled():
+        return jsonify({"error": "Background daemons are disabled."}), 503
+
     check_active_tasks()
     
     if bg_state["active_task"] != "idle":
@@ -98,8 +153,12 @@ def start_scrape():
 
 
 @actions_bp.route('/api/action/sync', methods=['POST'])
+@_admin_required
 def start_sync():
     global bg_state
+    if background_daemons_disabled():
+        return jsonify({"error": "Background daemons are disabled."}), 503
+
     check_active_tasks()
     
     if bg_state["active_task"] != "idle":
@@ -126,8 +185,12 @@ def start_sync():
 
 
 @actions_bp.route('/api/action/update', methods=['POST'])
+@_admin_required
 def start_update():
     global bg_state
+    if background_daemons_disabled():
+        return jsonify({"error": "Background daemons are disabled."}), 503
+
     # Bypass default page refresh/cooldown (30s) but use 2s to avoid double-clicking
     success = trigger_background_update(cooldown_seconds=2)
     if success:
@@ -141,7 +204,11 @@ def start_update():
 
 
 @actions_bp.route('/api/action/update_views', methods=['POST'])
+@_admin_required
 def start_views_update():
+    if background_daemons_disabled():
+        return jsonify({"error": "Background daemons are disabled."}), 503
+
     period = request.json.get("period", "1m") if request.is_json else request.args.get("period", "1m")
     success = trigger_background_views_update(period)
     if success:
@@ -261,6 +328,7 @@ def start_terminal():
 
 
 @actions_bp.route('/api/terminal/stream')
+@_admin_required
 def terminal_stream():
     start_terminal()
     
@@ -330,6 +398,7 @@ def trigger_server_shutdown():
 
 
 @actions_bp.route('/api/terminal/input', methods=['POST'])
+@_admin_required
 def terminal_input():
     if not terminal_session["active"] or terminal_session["fd"] is None:
         return jsonify({"error": "Terminal session is not active."}), 400
@@ -349,6 +418,7 @@ def terminal_input():
 
 
 @actions_bp.route('/api/terminal/resize', methods=['POST'])
+@_admin_required
 def terminal_resize():
     if not terminal_session["active"] or terminal_session["fd"] is None:
         return jsonify({"error": "Terminal session is not active."}), 400
@@ -395,7 +465,7 @@ def agent_chat():
     end_date    = data.get("end_date", "")
     provider    = data.get("provider", "gemini")
     model_id    = data.get("model_id") or None
-    role        = data.get("role", "admin")
+    role        = assistant_role_for_request(data.get("role"), request)
     history     = data.get("history") or []
 
     try:
@@ -442,7 +512,7 @@ def agent_chat_stream():
     end_date    = data.get("end_date", "")
     provider    = data.get("provider", "gemini")
     model_id    = data.get("model_id") or None
-    role        = data.get("role", "admin")
+    role        = assistant_role_for_request(data.get("role"), request)
     history     = data.get("history") or []
 
     from app.services.agent import AgentService
@@ -471,7 +541,23 @@ def agent_chat_stream():
     )
 
 
+@actions_bp.route('/api/proposals', methods=['GET'])
+@_admin_required
+def list_agent_proposals():
+    """List admin proposal inbox rows. Default hides completed rows."""
+    status_filter = (request.args.get("status") or "active").strip().lower()
+    if status_filter != "all" and status_filter not in PROPOSAL_STATUSES:
+        return jsonify({"error": "status must be one of active, done, deferred, rejected, all."}), 400
+
+    rows = _read_proposal_rows()
+    if status_filter != "all":
+        rows = [row for row in rows if row.get("status", "active") == status_filter]
+
+    return jsonify({"ok": True, "count": len(rows), "proposals": rows})
+
+
 @actions_bp.route('/api/proposals/submit', methods=['POST'])
+@_admin_required
 def submit_agent_proposal():
     """Append contextual UI feedback to the admin proposals JSONL inbox."""
     data = request.json or {}
@@ -489,21 +575,58 @@ def submit_agent_proposal():
         "ts": now,
         "role": "admin",
         "type": proposal_type,
+        "status": "active",
+        "priority": (data.get("priority") or "").strip() or None,
         "el": (data.get("el") or "").strip(),
         "src": (data.get("src") or "").strip(),
         "desc": desc
     }
+    row = {key: value for key, value in row.items() if value is not None}
 
-    proposals_dir = os.path.join(root_dir, "agent_proposals")
-    os.makedirs(proposals_dir, exist_ok=True)
-    proposals_path = os.path.join(proposals_dir, "admin_proposals.jsonl")
     try:
-        with open(proposals_path, "a", encoding="utf-8") as f:
+        with open(_proposal_inbox_path(), "a", encoding="utf-8") as f:
             f.write(json.dumps(row, ensure_ascii=False, separators=(",", ":")) + "\n")
     except OSError as e:
         return jsonify({"error": f"Failed to write proposal: {e}"}), 500
 
     return jsonify({"ok": True, "proposal": row})
+
+
+@actions_bp.route('/api/proposals/status', methods=['POST'])
+@_admin_required
+def update_agent_proposal_status():
+    """Update a proposal row status so completed items stop resurfacing."""
+    data = request.json or {}
+    proposal_id = data.get("id")
+    status = (data.get("status") or "").strip().lower()
+    if proposal_id is None:
+        return jsonify({"error": "id is required."}), 400
+    if status not in PROPOSAL_STATUSES:
+        return jsonify({"error": "status must be one of active, done, deferred, rejected."}), 400
+
+    rows = _read_proposal_rows()
+    now = int(datetime.now().timestamp() * 1000)
+    found = False
+    for row in rows:
+        if str(row.get("id")) != str(proposal_id):
+            continue
+        row["status"] = status
+        row["status_updated_at"] = now
+        note = (data.get("note") or "").strip()
+        if note:
+            row["status_note"] = note
+        found = True
+        break
+
+    if not found:
+        return jsonify({"error": "proposal not found."}), 404
+
+    try:
+        _write_proposal_rows(rows)
+    except OSError as e:
+        return jsonify({"error": f"Failed to update proposal: {e}"}), 500
+
+    return jsonify({"ok": True, "id": proposal_id, "status": status})
 
 
 @actions_bp.route('/api/chat/clear-context', methods=['POST'])
@@ -516,6 +639,7 @@ def chat_clear_context():
 
 
 @actions_bp.route('/api/chat/feedback', methods=['POST'])
+@_admin_required
 def chat_feedback():
     """Record like/dislike feedback for provider efficiency scoring."""
     data = request.json or {}
@@ -570,6 +694,7 @@ def chat_feedback():
 
 
 @actions_bp.route('/api/chat/report-quota', methods=['POST'])
+@_admin_required
 def chat_report_quota():
     """Record a provider quota/rate-limit pattern for future interception."""
     data = request.json or {}
@@ -602,6 +727,7 @@ def chat_report_quota():
 
 
 @actions_bp.route('/api/action/shutdown', methods=['POST'])
+@_admin_required
 def actions_shutdown():
     trigger_server_shutdown()
     return jsonify({"message": "Server shutting down..."}), 200

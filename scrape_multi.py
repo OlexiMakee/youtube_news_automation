@@ -58,7 +58,9 @@ def load_channels():
         "https://www.youtube.com/@UATVDeutsch",
         "https://www.youtube.com/@UATVmagyarul",
         "https://www.youtube.com/@UATVArabic",
-        "@UATVFrançais"
+        "https://www.youtube.com/@UATVFrançais", 
+        "https://www.youtube.com/@FREEDOM_LIVE",
+        "https://www.youtube.com/@FREEDOM_TV"
     ]
 
 

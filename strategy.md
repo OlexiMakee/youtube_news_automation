@@ -1,83 +1,110 @@
-Markdown  
-\# 🛡️ PROJECT STRATEGY & ARCHITECTURAL CONTRACT  
-**\*\*Проект:\*\*** YouTube News Automation    
-**\*\*Поточний стек MVP (v0.95):\*\*** Python 3.9+ / Flask / SQLite / Neon PostgreSQL / yt-dlp / Chart.js    
-**\*\*Статус документа:\*\*** Головне джерело істини (Source of Truth) — обов'язкове для виконання всіма ШІ-агентами та користувачем.
+# Project Strategy — YouTube News Automation (v0.95)
 
-\> \#\#\# 🚨 \!\! АЛАРМ ПОПЕРЕДЖЕННЯ \!\!  
-\> Цей документ фіксує довгостроковий вектор розвитку проекту та правила взаємодії ШІ з кодовою базою. Зміна будь-якого пункту цього документа, архітектурних концепцій чи меж автономності агентів **\*\*СУВОРО ЗАБОРОНЕНА\*\*** без попереднього обґрунтування та явної текстової згоди головного розробника (Власника проекту). ШІ-агент, який ініціює зміни до цього файлу, зобов'язаний розпочати свою відповідь із тегу \`\!\! ALARM \!\!\` і зупинити генерацію коду до отримання схвалення.
+**Status:** Source of Truth | Language: EN | Format: Telegraphic Markdown | Last: 2026-05-31
 
-\---
+---
 
-\#\# 1\. Продуктова філософія та Позиціонування  
-1\. **\*\*Decision-First Analytics:\*\*** Проект проектується не як класична BI-система (Tableau, Power BI) для пасивного споглядання графіків. Мета системи — миттєва генерація готових аналітичних рішень та текстових брифів для новинної редакції.  
-2\. **\*\*Анти-Fatigue Direction:\*\*** Мінімізація інформаційного шуму. Краще вивести три метрики з високою семантичною глибиною та застереженнями (Caveats), ніж двадцять сирих графіків розсіювання.  
-3\. **\*\*Локальний пріоритет (Local-First):\*\*** Базовий запуск та аналітика 18k+ відео відбуваються на локальній машині користувача (macOS/Windows/Linux, SQLite). Хмарна інфраструктура (Neon Postgres, Kaggle, Google Drive) використовується виключно як фоновий шар синхронізації та катастрофостійкості (DR).
+## Product Philosophy
 
-\---
+1. **Decision-First Analytics:** Not passive BI (Tableau/Power BI). Generate actionable briefs + recommendations for editorial workflows.
+2. **Anti-Fatigue Design:** Minimize info noise. 3 metrics with caveat warnings > 20 raw scatter plots.
+3. **Local-First + Cloud Fallback:** SQLite (MacBook Pro M4, 18k+ videos) primary. Neon Postgres + Kaggle as DR/async backup.
 
-\#\# 2\. Гібридна модель автономності агентів (Human-in-the-Loop)
+---
 
-Для максимальної швидкості розробки без втрати контролю над архітектурою вводиться двоярусна модель автономності ШІ.
+## AI Agent Autonomy Model (Human-in-the-Loop)
 
-\#\#\# А. Повна технічна автономність «під капотом»  
-ШІ-агент має право самостійно, без попереднього запиту, писати код, оптимізувати алгоритми та впроваджувати логіку, якщо завдання є **\*\*низькорівневим та ізольованим\*\***:  
-\* Написання, оптимізація та покриття документацією CLI-скриптів аналітики в \`scripts/analytics/\`.  
-\* Оптимізація SQL-запитів, додавання індексів у SQLite, прискорення обробки тексту (Regex) через матеріалізовані таблиці сутностей.  
-\* Написання детермінованих математичних розрахунків (медіани, квартилі, квантилі, $Z$-scores для швидкості переглядів).  
-\* Створення автоматичних Smoke-тестів для перевірки Flask API ендпоінтів та міграцій.
+### A. Full Technical Autonomy (No Approval Needed)
+- Low-level CLI script writing + optimization
+- SQL query optimization, index additions
+- Deterministic math (median, quartile, Z-score)
+- Automatic smoke tests for Flask endpoints + migrations
 
-\#\#\# Б. Стратегічне та архітектурне погодження  
-Агент **\*\*зобов'язаний\*\*** зупинити роботу, розписати варіанти вирішення (Option A / Option B) та отримати згоду користувача, якщо завдання зачіпає:  
-\* Зміну схеми таблиць бази даних або логіки міграції між SQLite та Neon.  
-\* Модифікацію глобальних станів фонових процесів, систем блокування потоків (\`threading.Lock\`) чи безпеки віддаленого доступу.  
-\* Впровадження нових сторонніх бібліотек у \`requirements.txt\`.  
-\* Розбиття великих монолітів (як рефакторинг \`web\_app.py\` на Blueprints) — спочатку затверджується покроковий план handoff-передачі.
+**Boundary:** Non-architectural, isolated scope.
 
-\#\#\# В. Категоричний UI/UX консалтинг  
-Оскільки ШІ позбавлений фізичного та естетичного сприйняття інтерфейсів, людський досвід у UI/UX є абсолютним пріоритетом. **\*\*Заборонено вносити будь-які самостійні зміни\*\*** в CSS-стилі, DOM-структуру шаблонів або логіку рендерингу Chart.js без узгодження.  
-\* Перед редагуванням \`templates/index.html\`, \`static/js/app.js\` або \`static/css/style.css\` агент зобов'язаний надати текстовий опис, мокап або HTML-чернетку нового інтерфейсного елемента.  
-\* Кожна UI-зміна повинна явно відповідати на питання: *\*"Яке тертя (friction) користувача вона зменшує і як це відобразиться на мобільній версії (1x4 stack)?"\**.
+### B. Strategic Approval Required (MUST ASK)
+- DB schema changes or migration logic (SQLite ↔ Neon)
+- Global state mutations (threading.Lock, remote access security)
+- New dependencies in `requirements.txt`
+- Large monolith refactors (e.g., `web_app.py` → Blueprints architecture overhaul)
 
-\---
+**Process:** Present Option A/B, await user confirmation before coding.
 
-\#\# 3\. Управління секретами, конфіденційністю та конфігурацією  
-1\. **\*\*Сувора ізоляція логів:\*\*** Категорично заборонено зчитувати, логувати, виводити в консоль або передавати в контексті prompt-запитів текстові значення змінних із файлу \`.env\` (API-ключі YouTube, паролі БД).  
-2\. **\*\*Миттєва персистенція секретів:\*\*** Якщо користувач передає у вікно чату сирий токен, API-ключ або конфіденційні дані доступу, агент зобов'язаний **\*\*негайно записати їх безпосередньо у локальний \`.env\` файл\*\***, який додано до \`.gitignore\`.  
-3\. **\*\*Синхронізація шаблонів:\*\*** Одночасно із внесенням нового ключа в \`.env\`, агент автоматично оновлює файл \`.env.example\` у корені проекту, фіксуючи там порожнє ім'я змінної (placeholder) та текстову інструкцію щодо її призначення, щоб зберегти сумісність проекту при відкритті в будь-якому іншому середовищі.
+### C. UI/UX Consultation (STRICT)
+- AI banned from self-modifying CSS, DOM structure, Chart.js rendering without mockup + friction analysis.
+- **Mandatory question:** "What user friction does this reduce? How does it scale to mobile (1x4 stack)?"
+- Submission format: Text description + ASCII mockup or HTML draft before implementation.
 
-\---
+---
 
-\#\# 4\. Специфікація RAG-орієнтованої архітектури (Код як знання)  
-Код проекту повинен писатися так, щоб будь-яка LLM у будь-якому IDE-середовищі (Cursor, VS Code, Claude Code тощо) могла миттєво зчитати контекст і продовжити розробку з тієї ж точки:
+## Secret Management & Configuration (Critical)
 
-1\. **\*\*Text-First DOM Architecture (Copy as Brief):\*\*** Кожен аналітичний віджет фронтенду паралельно з графіком Canvas (Chart.js) генерує структуровану, приховану від ока людини Markdown-версію своїх даних у DOM-дереві. Це дозволяє користувачу або RAG-агенту через \`Ctrl+A\` миттєво отримати текстовий зріз без парсингу пікселів.  
-2\. **\*\*Metric Dictionary & Caveat Layer:\*\*** Кожен обчислений параметр супроводжується детермінованим контекстом. Якщо відео опубліковане менше ніж 4 години тому, система автоматично прикріплює жорстку мітку: \`\[CAVEAT: Data is volatility — insufficient age for trend analysis\]\`.  
-3\. **\*\*CLI Argument Validation (CLI-as-an-Interface):\*\*** Усі аналітичні скрипти мають сувору CLI-реалізацію на \`argparse\` або \`click\`. При отриманні некоректного параметра скрипт повертає структурований гайд по \`--help\`, навчаючи агент правильному виклику.  
-4\. **\*\*Атомарність документації:\*\*** Кожна папка аналітичного скрипта містить свій \`index.md\` та \`README.md\`. Інструкції до CLI оновлюються автоматично самими скриптами при зміні їхньої кодової бази.
+[!] **API Key Isolation:** Never log, console output, or reference `.env` tokens (YouTube, DB passwords) in prompts. Strip immediately.
 
-\---
+[!] **Immediate Persistence:** If user shares raw API key/token → write to `.env` instantly (zero logging).
 
-\#\# 5\. Протокол самоіндексації пам'яті (Auto-Indexing Memory)  
-\* Монолітний \`development\_log.md\` заморожується при досягненні критичного розміру. Проект переходить на систему архітектурних записів рішень (ADR) у форматі окремих JSON-файлів у директорії \`agent\_context/decisions/\`.  
-\* В кінці кожного успішного технічного циклу («під капотом») агент зобов'язаний згенерувати для користувача **\*\*Memory Snapshot Block\*\*** за таким шаблоном:
+[!] **Template Sync:** When adding new `.env` key → auto-update `.env.example` with placeholder + docstring so new agents know what to configure.
 
-\`\`\`markdown  
-💾 \*\*Memory Snapshot Ready for Commit\*\*  
-\- \*\*Action Execution:\*\* \[Опис реалізованої технічної фічі\]  
-\- \*\*Low-level Boundaries:\*\* \[Які файли та індекси були змінені\]  
-\- \*\*Suggested Index Tags:\*\* \[\#CLI, \#SQLite, \#Optimization\]  
-\- \*\*Sync Status:\*\* \[.env / .env.example updated\]  
-\-\> \*Підтвердіть коміт цього зрізу в довгострокову пам'ять агента (y/n)?\*
+---
 
-**Behavioral Contract Status:** ACTIVE. Обов'язково до зчитування перед кожною сесією розробки.
+## RAG-First Architecture (Code as Knowledge)
 
-\*\*\*
+1. **Text-First DOM (Copy as Brief):** Every analytics frontend widget = Chart.js canvas + hidden Markdown representation in DOM. User Ctrl+A grabs structured text without pixel parsing.
 
-\#\#\# 🎓 Навчальний підсумок для нашої редакції  
-Завдяки цим правкам ми створили \*\*ідеальний баланс\*\*:  
-1\. Наш ШІ більше не тупитиме на простих речах. Якщо треба прискорити SQL-запит чи додати математичну формулу в CLI — він просто бере і робить це мовчки («під капотом»), економлячи твій час.  
-2\. Але як тільки ШІ захоче посунути кнопку, змінити колір графіка чи переробити логіку відображення віджета — він зобов'язаний прийти до тебе за порадою, тому що у нього немає очей і розуміння психології журналіста, а у тебе — є.  
-3\. Наші API-ключі тепер у повній безпеці: вони миттєво злітають у \`.env\`, а \`.env.example\` завжди підкаже новому агенту, які змінні треба налаштувати.
+2. **Metric Dictionary + Caveat Layer:** Every computed parameter auto-tagged. Video published <4h ago? Hard inject: `[CAVEAT: Volatility — insufficient age for trend analysis]`
 
-Файл готовий. Створюй \`project\_strategy.md\` у корені та закидай цей текст. З чого почнемо наступний технічний крок — з опису структури \`agent\_router.json\` чи зі створення першого CLI-скрипта для зрізу аномалій за правилами нашої нової стратегії?  
+3. **CLI Argument Validation (CLI-as-Interface):** All analytics scripts strict argparse/Click. Malformed args return structured `--help` guide (teaches agents correct invocation).
+
+4. **Atomic Documentation:** Each analytics folder: own `index.md` + `README.md`. CLI instructions auto-updated when code changes.
+
+---
+
+## Memory Auto-Indexing Protocol (v0.6.0+)
+
+- `development_log.md` frozen at critical size → switch to **ADR system** (separate JSON files in `agent_context/decisions/`).
+- End of successful technical cycles → generate **Memory Snapshot Block** for user approval before committing to agent long-term memory.
+- Snapshot template: Action Execution | Low-level Boundaries | Index Tags | Sync Status | Approval (y/n)?
+
+---
+
+## Locked Tech Stack (v0.95)
+
+**Backend:** Python 3.9+, Flask (5 Blueprints: main/stats/videos/charts/actions), SQLite (9 indexes, WAL), Neon Postgres (async DR)
+
+**Frontend:** HTML5/CSS3 (4 themes: light/dark-black/dark-blue/sepia), Chart.js (18+ graph types), D3.js (partial), xterm.js (PTY), localStorage (state)
+
+**CLI:** Click, yt-dlp, Kaggle SDK, psycopg2
+
+**Infrastructure:** venv (auto-bootstrap, zero-dependency), subprocess (scraper isolation), threading (safe bg tasks)
+
+---
+
+## v0.95 Milestone Status
+
+✅ Strategy & architectural foundations locked
+✅ Multi-agent handshake protocol (handshake.md v2.0 + .ai_context.md)
+✅ ADR system (ADR-001: Shared KB Architecture)
+✅ RAG-optimized KB (13 docs, 2100+ lines, kb.json indexed, kb.log audited)
+✅ Metric Dictionary (10 metrics, 16 caveat types, injection algorithm)
+✅ Analytics scaffold (4 files, 0 implementation complete)
+⏳ CLI implementation (Antigravity Sprint 1, 2-3h ETA)
+⏳ Flask API integration (Sprint 1.5)
+⏳ Dashboard widgets (Sprint 2)
+
+---
+
+## v1.1.0 Roadmap (Next Phase)
+
+[+] Phase 1: Memory compression — telegraphic docs, JSON pointers, configs/schemas/
+[+] Phase 2: SaaS transition — DB schema v2 (users, invites, feedback, metrics, telemetry)
+[+] Phase 3: Cloud rotation — Gemini Free, OpenRouter, Ollama Hub, efficiency scoring, quota interceptor
+[+] Phase 4: Frontend enhancements — resizable chat, markdown streaming, drag-drop, health bar, feedback UI
+[+] Phase 5: Integration sweep → v1.1.0 release
+
+---
+
+## AI Behavioral Contract Status
+
+🔴 **ACTIVE.** Mandatory to read before each dev session. Violations require `!! ALARM !!` prefix and manual approval.
+
+Last Audit: 2026-05-31 v0.95

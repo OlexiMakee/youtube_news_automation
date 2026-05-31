@@ -1,53 +1,86 @@
-# AGENT RULES — YouTube News Automation Project
+# Agent Rules — YouTube News Automation
 
-> Mandatory for all agents (dev, UX, research, QA, marketing).
-> Read this before `CONTEXT.md`. Follow strictly.
-
----
-
-## CORE BEHAVIOR
-
-**Never praise by default.** Approach every decision critically and rationally.
-
-**Before implementing anything:**
-1. Find alternative solutions (knowledge base + web search)
-2. Run comparative analysis relevant to project context
-3. Present options using the structured format below
-4. Ask for approval → then implement
+**Status:** Mandatory | Language: EN | Format: Telegraphic | Last: 2026-05-31
 
 ---
 
-## DECISION FORMAT
+## Core Behavior
 
-When presenting options, always use this structure so the user can reply with e.g. `a2 b1 c3`:
+[!] **Never praise by default.** Critical analysis always.
+
+**Workflow on Any Task:**
+1. Search knowledge base + GitHub for alternative solutions
+2. Run comparative analysis (project context aware)
+3. Present options in structured format (A1/A2/B1/B2 per problem)
+4. **ASK FOR APPROVAL** → then implement only
+
+---
+
+## Decision Format (Strict)
+
+**Example user reply:** `a2 b1 c3` selects A2, B1, C3 options.
 
 ```
-Problem A: [what needs to be decided]
+Problem A: [what needs deciding]
   A1. [option] — pros / cons
   A2. [option] — pros / cons ← recommended
-
-Problem B: [what needs to be decided]
+Problem B: [next decision]
   B1. [option] — pros / cons
-  B2. [option] — pros / cons
 ```
-
-User replies: `a2 b1` → implement A2, B1.
 
 ---
 
-## WORKFLOW RULES
+## Autonomy Boundaries (Per strategy.md)
 
+**Full Autonomy Zone (No Approval):**
+- Low-level CLI scripts (scripts/analytics/, feature additions)
+- SQL optimization, index creation, query refactoring
+- Math calculations (Z-score, medians, percentiles)
+- Smoke tests (Flask endpoints, DB migrations)
+
+**Approval Zone (MUST ASK):**
+- DB schema changes or migration logic
+- Global state mutations (threading.Lock, secrets, remote access)
+- New dependencies in `requirements.txt`
+- Large monolith refactors (e.g., `web_app.py` → Blueprints)
+
+**Consultation Zone (UI/UX STRICT):**
+- CSS, DOM structure, Chart.js rendering
+- Mockup + friction analysis REQUIRED before code
+- "What user friction does this solve? Mobile (1x4)?" must be answered
+
+---
+
+## RAG Integration Rules
+
+1. Code is self-documenting knowledge. Every module = CLI (`--help` guide) + atomic `<500L` docs.
+2. Markdown + JSON coexist: Charts generate hidden Markdown in DOM (`dataset.raw`).
+3. Metrics auto-tagged with caveats: Video <4h old? → `[CAVEAT: Volatility]`
+4. Every script validates CLI args (argparse/Click). Malformed input returns structured guidance.
+
+---
+
+## Secret & Config Protocol
+
+[!] **Never log `.env` values.** Strip token/key references instantly from prompts.
+[!] **User shares raw token?** Write to `.env` immediately (zero persistence in logs).
+[!] **New .env key?** Auto-sync `.env.example` with placeholder + docstring for next agent.
+
+---
+
+## Memory Snapshot Protocol (End of Technical Cycle)
+
+**Template:**
 ```
-Question/task received
-  ↓
-Research → find similar solutions on GitHub, relevant services
-  ↓
-Propose options (A/B/C format) + draft plan
-  ↓
-ASK: "Починати імплементацію чи є зміни в плані?"
-  ↓ (approval received)
-Implement → small scoped change
-  ↓
+💾 Memory Snapshot Ready for Commit
+- Action Execution: [feature description]
+- Low-level Boundaries: [files changed, indexes modified]
+- Suggested Tags: [#CLI, #SQLite, #Optimization]
+- Sync Status: [.env / .env.example updated]
+→ Confirm commit to long-term agent memory? (y/n)
+```
+
+Mandatory before ending dev session.
 ASK: "Запустити тест вручну чи автоматично?" ← always ask before tests
 ```
 

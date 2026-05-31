@@ -1,103 +1,74 @@
-# Development Log — YouTube News Automation
+# Development Log — YouTube News Automation (Telegraphic Format)
 
-> Хронологія ключових рішень і реалізованих фіч.
-> Для нових агентів: читай від кінця до початку — найновіше знизу.
-
----
-
-## v0.1.0 — CLI Scraper (pre-alpha)
-
-**Що зроблено:**
-- CLI-скрапер на yt-dlp
-- SQLite через `DatabaseClient` з ABC `BaseStorage`
-- Auto-venv bootstrap через `setup_and_run_venv()`
-- Kaggle backup sync
-- Підтримка Neon PostgreSQL (delta sync)
-
-**Ключові рішення:**
-- `BaseStorage` ABC дозволяє легко міняти storage backend
-- `setup_and_run_venv` — zero-dependency bootstrap (не потребує pip від користувача)
-- `views_update` як JSON TEXT в SQLite (простіше ніж окрема таблиця)
+**Status:** v0.95 | Language: EN | Last Updated: 2026-05-31 | Lines: ~350 (compressed)
 
 ---
 
-## v0.5.0-alpha — MVP Web Dashboard (2026-05-27)
+## Milestones (Collapsed to Single Rows)
 
-**Що зроблено:**
-- Flask Web Dashboard (`web_app.py`) — 18+ API ендпоінтів
-- Мульти-канальний аналіз із checkbox-dropdown і кольоровим маркуванням
-- 18+ типів графіків (Chart.js): top/worst відео, scatter, hashtags, word lift, розподіл
-- Split-кнопки Топ ↔ Найгірші для парних метрик
-- Детальна модалка відео: thumbnail, графік динаміки переглядів, download MP4
-- Скрапінг full_description і stats в БД (`/api/videos/{id}/scrape_details`)
-- Оновлення переглядів з вибором діапазону (`update_views.py`)
-- Синхронізація view_count з `views_update` в основну колонку
-- Додавання каналів через модалку (режим: дати або ліміт)
-- Закріплений top-bar з фільтрами
-- Швидкі кнопки: 1 доба, тиждень, місяць, 3 місяці, рік, з 24.02.2022
-- Таблиця відео: сортування, пагінація, вибір колонок, CSV-export
-- 4 теми: light, dark-black, dark-blue, sepia
-- i18n: UA 🇺🇦 / EN 🇬🇧
-- Neon PostgreSQL cloud sync в фоні
-
-**Ключові рішення:**
-- `bg_state` dict для відстеження фонових subprocess/thread
-- Subprocess (не thread) для scraper/updater — ізоляція, власні логи
-- `views_update` max 50 entries — запобігає розростанню JSON
-- `player_client: ['android', 'ios']` — обхід 403 yt-dlp errors
-- `localStorage` для збереження вибраних каналів і кольорів між сесіями
-
-**Git:** `a7db86a` · tag: `v0.5.0-alpha-🎉MVP🚀`
+| Ver | Date | Milestone | Tech | Commit |
+|-----|------|-----------|------|--------|
+| 0.1.0 | pre-alpha | [+] CLI scraper, BaseStorage ABC, venv bootstrap, Kaggle sync, Neon fallback | yt-dlp, SQLite, ABC | — |
+| 0.5.0-alpha | 2026-05-27 | [+] Flask Web Dashboard (18+ endpoints), 18+ Chart.js graphs, multi-channel filter, video modal (thumbnail/download), video scraper (`/api/videos/{id}/scrape_details`), view sync, channel add modal, date range picker, table (sort/paginate/export CSV), 4 themes (light/dark-black/dark-blue/sepia), i18n (UA/EN) | Flask, Chart.js, SQLite, Neon async | a7db86a |
+| 0.5.x | 2026-05-28 | [+] 9 SQL indexes (5-20x speedup): `idx_videos_channel_id`, `idx_videos_published_at`, `idx_videos_view_count`, `idx_videos_like_count`, `idx_videos_comment_count`, `idx_videos_synced`, `idx_videos_channel_published` (composite), `idx_videos_channel_views` (composite), `idx_channels_synced` | SQLite | — |
+| 0.5.x | 2026-05-28 | [*] Flask refactor: monolithic `web_app.py` (1550L) → modular `app/` package: `create_app()` factory, `app/state.py` (bg_state isolation), 5 Blueprints (`main_bp`, `stats_bp`, `videos_bp`, `charts_bp`, `actions_bp`) | Blueprint, factory pattern | — |
+| 0.5.x | 2026-05-28 | [+] Interactive Web Terminal: `xterm.js` + fit addon, PTY endpoints (`/api/terminal/{stream,input,resize}`), quick script panel, rename Operations→Terminal tab, fix `init_db.py` path in actions.py | xterm.js, PTY | — |
+| 0.6.0 | 2026-05-29 | [+] Multi-agent handshake: `handshake.md` v2.0 (7-step onboarding), `.ai_context.md` (state snapshot), `.cursorrules`, `.windsurf` | Agent Protocol | 2507a7b |
+| 0.6.0 | 2026-05-29 | [+] ADR system: `ADR-001-SHARED_KB_ARCHITECTURE.md` (Git-backed KB, Last-Write-Wins sync, 60s TTL locks) | Decision Framework | e5044d8 |
+| 0.6.0 | 2026-05-29 | [+] RAG-optimized KB (13 docs, 2100+ lines): `METRIC_DICTIONARY.md` (10 metrics, 16 caveat types, injection algorithm), `RAG_RETRIEVAL_PATTERNS.md` (atomic docs, hierarchical nav, retrieval strategies), 5 INDEX.md files (730L navigation), `kb.json` v1.1 (metadata index), `kb.log` (audit trail) | Semantic Search, KB Design | 89eef46 |
+| 0.6.0 | 2026-05-29 | [+] Analytics scaffold: `scripts/analytics/cli.py` (Click CLI: anomalies/trend/kpi/brief commands), `anomaly_detector.py` (Z-score framework, caveat injection), `__init__.py`, INDEX.md | Click, NumPy (stub) | 89eef46 |
+| 0.95 | 2026-05-31 | [*] Version bump: pyproject.toml 0.5.3-alpha→0.95, strategy.md v0.5.1-alpha→v0.95, consolidate v0.6.0 milestones into single release | Milestone marker | 7c6765a |
 
 ---
 
-## Структурні оптимізації (2026-05-28)
+## Key Decisions (Locked)
 
-**Що зроблено:**
-- Додано 9 SQL-індексів до БД (5-20x прискорення запитів)
-- Видалено стару копію `news_scraper/youtube_news.db`
-- Реорганізовано корінь: `scripts/`, `docs/`
-- `.gitignore`: `data/*` + `!data/youtube_news.db` — БД tracked для offline
-- Версія `pyproject.toml`: `1.0.0` → `0.5.0-alpha`
-- Створено `agent_context/` для пам'яті між агентами
+[!] **Decision-First Architecture:** No passive BI dashboards. System generates actionable briefs + caveat warnings → Editorial workflows.
 
-**Нові індекси:**
-```
-idx_videos_channel_id
-idx_videos_published_at  
-idx_videos_view_count
-idx_videos_like_count
-idx_videos_comment_count
-idx_videos_synced
-idx_videos_channel_published  ← composite (найважливіший)
-idx_videos_channel_views      ← composite для top-N
-idx_channels_synced
-```
+[!] **Local-First + Cloud Fallback:** SQLite primary (18k+ videos, M4 MacBook Pro), Neon Postgres as DR + async backup layer.
 
-## Рефакторинг Flask додатку та Blueprints (2026-05-28)
+[!] **Human-in-the-Loop Autonomy:** 
+  - AI: Full autonomy on low-level (CLI scripts, SQL optimization, math calculations, smoke tests).
+  - AI: Approval required on strategic (DB schema, threading/locks, dependency additions, architectural refactoring).
+  - AI: UI/UX requires mockups + friction analysis (no blind CSS changes).
 
-**Що зроблено:**
-- Розділено монолітний `web_app.py` (~1,550 рядків) на модульний пакет `app/`.
-- Створено `app/__init__.py` з фабрикою додатку `create_app()`.
-- Створено `app/state.py` для ізоляції фонового стану `bg_state` та керуючих функцій.
-- Створено 5 окремих Blueprints в `app/routes/`: `main_bp`, `stats_bp`, `videos_bp`, `charts_bp`, `actions_bp`.
-- Спрощено кореневий скрипт `web_app.py` — тепер він відповідає виключно за конфігурацію venv, вибір порту та запуск фабрики додатку.
+[!] **Zero-Dependency Bootstrap:** `setup_and_run_venv()` manages Python env without requiring pip pre-install.
 
-**Ключові рішення:**
-- Збережено in-memory стан `bg_state` у спільному модулі `app/state.py` для простого імпорту, що виключає циклічні залежності та спрощує доступ із фонових потоків.
+[!] **BaseStorage ABC:** Abstraction layer allows future backend swaps (Mongo, PostgreSQL-first, S3).
+
+[!] **RAG-First Code:** Every module documented as self-indexing knowledge. CLI args validated strict. Atomic docs <500L per file.
+
+[!] **Metric Caveat Layer:** No bare numbers. 10 metrics + 16 caveat types (DATA_VOLATILITY, SMALL_SAMPLE, ZERO_VARIANCE, INSUFFICIENT_HISTORY, INSUFFICIENT_DATA, LOW_BASELINE, TIMEZONE_SKEW, OUTLIER_CONTAMINATION, NO_ENGAGEMENT_DATA, HIGH_ERROR, SAMPLE_SKEW, SMALL_POPULATION, SKEWED_DISTRIBUTION, WEEKEND_BIAS, VIRAL_KEYWORD, MONTHLY_EFFECT, NOT_VIRAL_YET, THRESHOLD_MET) injected automatically.
+
+[!] **Secret Isolation:** API keys → `.env` immediately (Zero logging). `.env.example` synced with placeholders for new agents.
 
 ---
 
-## Smart Scraper & Interactive Web Terminal Console (2026-05-28)
+## Tech Stack Frozen (v0.95)
 
-**Що зроблено:**
-- Створено [channels.txt](file:///Users/oleksii/Documents/News%20Research%20Automation/data/channels.txt) з пріоритетним списком каналів.
-- Рефакторинг [scrape_multi.py](file:///Users/oleksii/Documents/News%20Research%20Automation/scrape_multi.py): додано CLI аргументи, інтерактивне меню (`--interactive`), розумна перевірка за останній рік (`stop_on_known=True`).
-- Інтегровано повноцінний Unix-термінал (`xterm.js` + fit addon) у веб-інтерфейс.
-- Додано Flask-ендпоінти для PTY-стрімінгу (`/api/terminal/stream`), вводу (`/api/terminal/input`) та ресайзу (`/api/terminal/resize`).
-- Перейменовано вкладку «Operations» на «Terminal».
-- Додано панель швидких скриптів із випадаючими меню з аргументами, які інжектують команди у термінал.
-- Виправлено баг із викликом `init_db.py` в [app/routes/actions.py](file:///Users/oleksii/Documents/News%20Research%20Automation/app/routes/actions.py) (тепер вказується правильний шлях `scripts/init_db.py`).
+Backend: Python 3.9+, Flask (5 Blueprints), SQLite (9 indexes, WAL mode), Neon Postgres (async DR)
+Frontend: HTML5/CSS3 (4 themes), Chart.js (18+ graphs), D3.js (partial), xterm.js (PTY), localStorage (state persistence)
+CLI: Click, yt-dlp, Kaggle SDK, psycopg2
+Infrastructure: venv (auto-bootstrap), subprocess (scraper isolation), threading (safe bg tasks)
+
+---
+
+## Current Blockers / Warnings
+
+[-] Analytics CLI implementation pending (Antigravity Sprint 1, ETA 2-3h).
+[-] Flask API integration pending (endpoints for anomaly detector output).
+[-] Dashboard widget updates pending (real-time context saturation indicator).
+[-] Multi-tenant SaaS transition deferred to v1.1.0 (DB schema v2 in separate branch).
+
+---
+
+## Next Actions (v1.1.0 Roadmap)
+
+[+] Phase 1: Memory compression (THIS SESSION) — telegraphic docs, JSON pointers, configs/schemas/
+[+] Phase 2: SaaS infrastructure — DB schema (users, invites, feedback, metrics, leaked_quota), RBAC, telemetry daemon
+[+] Phase 3: Cloud rotation (Gemini Free, OpenRouter, Ollama Hub), efficiency scoring, quota interceptor
+[+] Phase 4: Frontend enhancements — resizable chat drawer, markdown streaming, drag-drop media, double-axis health bar, feedback UI
+[+] Phase 5: Integration sweep + version bump to v1.1.0
 
 **Ключові рішення:**
 - Використання Base64-кодування для SSE-трансляції байтів терміналу, що виключає пошкодження спецсимволів та UTF-8.

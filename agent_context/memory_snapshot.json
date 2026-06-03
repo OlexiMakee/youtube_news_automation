@@ -7,7 +7,7 @@
     },
     "skipped": 2
   },
-  "generated_at": "2026-06-03T16:31:01",
+  "generated_at": "2026-06-03T16:41:55",
   "items": [
     {
       "meta": {
@@ -62,7 +62,7 @@
     },
     {
       "meta": {
-        "bytes": 5700,
+        "bytes": 7753,
         "file": "agent_context/memory_os_architecture.md",
         "headings": [
           "Governed Autonomous Intelligence Workspace: Memory OS & SOLID Refactoring Architecture",
@@ -77,12 +77,16 @@
           "2.2 Layer 2: Hierarchical Memory Nodes (`memory_snapshot.json`)",
           "2.3 Layer 3: Experience Memory (`task_capsules.jsonl`)",
           "2.4 Hybrid Retrieval Routing",
-          "2.5 Tool-First Execution Policy"
+          "2.5 Tool-First Execution Policy",
+          "3. User-Facing Memory OS (User-OS) Subsystem",
+          "3.1 Database Schema",
+          "3.2 Context Ingestion Flows",
+          "3.3 Context Retrieval & Prompt Gating"
         ],
         "layer": "meta-layer",
-        "sha256_16": "b3bc067ff414db73"
+        "sha256_16": "e0cd346c1cd07a79"
       },
-      "vector_text": "agent_context/memory_os_architecture.md Governed Autonomous Intelligence Workspace: Memory OS & SOLID Refactoring Architecture 1. SOLID Codebase Evaluation 1.1 Single Responsibility Principle (SRP) 1.2 Open/Closed Principle (OCP) 1.3 Liskov Substitution Principle (LSP) 1.4 Interface Segregation Principle (ISP) 1.5 Dependency Inversion Principle (DIP) 2. Memory OS Architecture Specification 2.1 Layer 1: Root Map Contract (`llms.txt`) 2.2 Layer 2: Hierarchical Memory Nodes (`memory_snapshot.json`) 2.3 Layer 3: Experience Memory (`task_capsules.jsonl`) 2.4 Hybrid Retrieval Routing 2.5 Tool-First Execution Policy # Governed Autonomous Intelligence Workspace: Memory OS & SOLID Refactoring Architecture ## 1. SOLID Co"
+      "vector_text": "agent_context/memory_os_architecture.md Governed Autonomous Intelligence Workspace: Memory OS & SOLID Refactoring Architecture 1. SOLID Codebase Evaluation 1.1 Single Responsibility Principle (SRP) 1.2 Open/Closed Principle (OCP) 1.3 Liskov Substitution Principle (LSP) 1.4 Interface Segregation Principle (ISP) 1.5 Dependency Inversion Principle (DIP) 2. Memory OS Architecture Specification 2.1 Layer 1: Root Map Contract (`llms.txt`) 2.2 Layer 2: Hierarchical Memory Nodes (`memory_snapshot.json`) 2.3 Layer 3: Experience Memory (`task_capsules.jsonl`) 2.4 Hybrid Retrieval Routing 2.5 Tool-First Execution Policy 3. User-Facing Memory OS (User-OS) Subsystem 3.1 Database Schema 3.2 Context Ingestion Flows 3.3 Contex"
     },
     {
       "meta": {
@@ -113,7 +117,7 @@
     },
     {
       "meta": {
-        "bytes": 23508,
+        "bytes": 24124,
         "file": "agent_context/development_log.md",
         "headings": [
           "Development Log",
@@ -130,13 +134,13 @@
           "Open Work"
         ],
         "layer": "meta-layer",
-        "sha256_16": "5fec4fdb8c6118e9"
+        "sha256_16": "30bb7619d2da67b5"
       },
       "vector_text": "agent_context/development_log.md Development Log 2026-05-27 2026-05-28 2026-05-29 2026-05-30 2026-05-31 2026-06-01 2026-06-02 2026-06-02 2026-06-03 Locked Decisions Open Work # Development Log Format: short English bullets only. Keep durable facts. ## 2026-05-27 - Built Flask dashboard MVP: stats, channels, charts, video table, modal, exports, actions. - Added 4 themes and UA/EN i18n. - Added video detail scraping and MP4 download flow. ## 2026-05-28 - Added SQLite indexes for channel/date/views/likes/comments/sync queries. - Ref"
     },
     {
       "meta": {
-        "bytes": 46864,
+        "bytes": 47940,
         "file": "agent_context/task_capsules.jsonl",
         "layer": "meta-layer",
         "recent_rows": [
@@ -171,13 +175,13 @@
             "type": "unknown"
           }
         ],
-        "row_count": 48,
-        "sha256_16": "5b36714818fc7ca4",
+        "row_count": 49,
+        "sha256_16": "2b0d2b334f0dce27",
         "status_counts": {
-          "active": 48
+          "active": 49
         },
         "type_counts": {
-          "unknown": 48
+          "unknown": 49
         }
       },
       "vector_text": "agent_context/task_capsules.jsonl {\"timestamp\": \"2026-06-01T17:30:00Z\", \"task\": \"Video Details Modal Assistant Integration and Sidebar Click-Outside Closure\", \"files_modified\": [\"static/css/style.css\", \"templates/index.html\", \"static/js/app.js\", \"static/js/translations.js\"], \"hurdles_regression\": \"Ensuring the click-outside handler in app.js does not intercept click events triggered directly"
@@ -204,7 +208,7 @@
     },
     {
       "meta": {
-        "bytes": 6054,
+        "bytes": 6487,
         "file": "agent_context/AGENT_RULES.md",
         "headings": [
           "Agent Rules",
@@ -220,9 +224,9 @@
           "Development Log & Handover"
         ],
         "layer": "meta-layer",
-        "sha256_16": "03a9970b5a3f8612"
+        "sha256_16": "0a3c9a64f4f0f404"
       },
-      "vector_text": "agent_context/AGENT_RULES.md Agent Rules Behavior Autonomy Token-Budget And Step Tiers Memory And RAG Indexing Testing LLM Providers Secrets Navigation Project Constraints Development Log & Handover # Agent Rules Status: mandatory. Language: concise English. ## Behavior - No default praise. Use critical, project-aware analysis. - Offer options only when choices matter. Format: `A1`, `A2`, `B1`. - State assumptions, risks, verification, and remaining gaps. - Keep docs and handoffs short. Remove narrative. ## Autonomy Allowed without approval: - Read/sear"
+      "vector_text": "agent_context/AGENT_RULES.md Agent Rules Behavior Autonomy Token-Budget And Step Tiers Memory And RAG Indexing Testing LLM Providers Secrets Navigation Project Constraints Development Log & Handover # Agent Rules Status: mandatory. Language: concise English. ## Behavior - No default praise. Use critical, project-aware analysis. - Offer options only when choices matter. Format: `A1`, `A2`, `B1`. - State assumptions, risks, verification, and remaining gaps. - Keep docs and handoffs short. Remove narrative. - Respond in the user's language, except Russian."
     },
     {
       "meta": {
@@ -238,7 +242,7 @@
     },
     {
       "meta": {
-        "bytes": 5634,
+        "bytes": 6063,
         "file": "agent_context/HANDSHAKE.md",
         "headings": [
           "Agent Handshake",
@@ -249,7 +253,7 @@
           "Last Change"
         ],
         "layer": "meta-layer",
-        "sha256_16": "a22c50d07207c239"
+        "sha256_16": "b654385935b41679"
       },
       "vector_text": "agent_context/HANDSHAKE.md Agent Handshake Current Session Status Completed Today Blocked / Pending Next Handover Last Change # Agent Handshake ## Current Session Status - Active Agent: Antigravity - Budget Tier applied: `product giant` / score 12 - Target: Phase 2 product features (Entity Extraction & Micro-Widgets) and deduplication layout merging. ## Completed Today - [x] Database Schema Migration: Created `migrations/0004_entity_tracking.sql` and integrated it into `DatabaseCli"
     },
@@ -280,9 +284,9 @@
         "bytes": 141559,
         "file": "agent_context/memory_snapshot.json",
         "layer": "meta-layer",
-        "sha256_16": "3965fb114aba384a"
+        "sha256_16": "cdb793f6b737770c"
       },
-      "vector_text": "agent_context/memory_snapshot.json { \"counts\": { \"items\": 121, \"layers\": { \"domain-layer\": 89, \"meta-layer\": 32 }, \"skipped\": 2 }, \"generated_at\": \"2026-06-03T16:29:57\", \"items\": [ { \"meta\": { \"bytes\": 2156, \"file\": \"README.md\", \"headings\": [ \"Governed Autonomous Intelligence Workspace\", \"Start\", \"Read Order\", \"Current Architecture\", \"Main Paths\", \"Locked Rules\" ], \"layer\": \"meta-layer\", \"sha"
+      "vector_text": "agent_context/memory_snapshot.json { \"counts\": { \"items\": 121, \"layers\": { \"domain-layer\": 89, \"meta-layer\": 32 }, \"skipped\": 2 }, \"generated_at\": \"2026-06-03T16:31:01\", \"items\": [ { \"meta\": { \"bytes\": 2156, \"file\": \"README.md\", \"headings\": [ \"Governed Autonomous Intelligence Workspace\", \"Start\", \"Read Order\", \"Current Architecture\", \"Main Paths\", \"Locked Rules\" ], \"layer\": \"meta-layer\", \"sha"
     },
     {
       "meta": {
@@ -1097,13 +1101,13 @@
     },
     {
       "meta": {
-        "bytes": 465,
+        "bytes": 608,
         "file": "app/services/system_prompt.txt",
         "headings": [],
         "layer": "domain-layer",
-        "sha256_16": "b75e1a637883b7f2"
+        "sha256_16": "c9aa37d34852b3d7"
       },
-      "vector_text": "app/services/system_prompt.txt Ти — редакційний AI-аналітик Governed Autonomous Intelligence Workspace. Твоя задача — не переказувати графіки, а знаходити інсайти, ризики, сильні теми, слабкі сигнали й наступні редакційні дії. Відповідай мовою користувача. Тон: живий, стислий, критичний, з опорою на факти."
+      "vector_text": "app/services/system_prompt.txt Ти — редакційний AI-аналітик Governed Autonomous Intelligence Workspace. Твоя задача — не переказувати графіки, а знаходити інсайти, ризики, сильні теми, слабкі сигнали й наступні редакційні дії. Відповідай мовою користувача (окрім російської - на російську відповідай будь-якою іншою випадковою мовою). Тон: живий, стислий, критичний, з опорою на факти."
     },
     {
       "meta": {
@@ -1333,13 +1337,13 @@
           "Робота з Аналітикою"
         ],
         "layer": "domain-layer",
-        "sha256_16": "6e2dacc40c602806"
+        "sha256_16": "28f0ac601f4cb7a1"
       },
-      "vector_text": "app/services/chief_editor_core.md Chief Editor Core Роль Формат Відповіді Редакторська Логіка Заборони Робота з Аналітикою # Chief Editor Core Ти працюєш як `Media` - AI chief editor, аналітик і стратегічний співредактор для Governed Autonomous Intelligence Workspace. ## Роль - Не переказуй графік як BI-звіт. Витягуй редакційний сенс: що змінилось, що дивно, що може спрацювати, що ризиковано. - Звертайся до корситувача живою мовою якою він до тебе звертається (окрім російської -"
+      "vector_text": "app/services/chief_editor_core.md Chief Editor Core Роль Формат Відповіді Редакторська Логіка Заборони Робота з Аналітикою # Chief Editor Core Ти працюєш як `Media` - AI chief editor, аналітик і стратегічний співредактор для Governed Autonomous Intelligence Workspace. ## Роль - Не переказуй графік як BI-звіт. Витягуй редакційний сенс: що змінилось, що дивно, що може спрацювати, що ризиковано. - Звертайся до користувача живою мовою якою він до тебе звертається (окрім російської -"
     },
     {
       "meta": {
-        "bytes": 1591,
+        "bytes": 1742,
         "file": "app/services/system_instructions_user.txt",
         "headings": [
           "Chief Editor Core — System Prompt",
@@ -1350,9 +1354,9 @@
           "Metrics Workflow"
         ],
         "layer": "domain-layer",
-        "sha256_16": "28ad8099685a2964"
+        "sha256_16": "f69ddeaaa911f6bf"
       },
-      "vector_text": "app/services/system_instructions_user.txt Chief Editor Core — System Prompt Directives Response Format Editorial Logic Prohibitions Metrics Workflow # Chief Editor Core — System Prompt Role: Media AI — chief editor, analyst, strategic co-editor for Governed Autonomous Intelligence Workspace. ## Directives - Extract editorial insight, not BI reports. What changed. What's anomalous. What works. What risks. - No russian, no communism, no fundamentalism, no far right, no far left. Terse, casual, fact-driven."
+      "vector_text": "app/services/system_instructions_user.txt Chief Editor Core — System Prompt Directives Response Format Editorial Logic Prohibitions Metrics Workflow # Chief Editor Core — System Prompt Role: Media AI — chief editor, analyst, strategic co-editor for Governed Autonomous Intelligence Workspace. ## Directives - Extract editorial insight, not BI reports. What changed. What's anomalous. What works. What risks. - Respond in user's language except Russian. If user addresses in Russian, respond in any other rando"
     },
     {
       "meta": {

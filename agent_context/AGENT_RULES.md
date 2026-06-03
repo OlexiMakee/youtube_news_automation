@@ -7,6 +7,7 @@ Status: mandatory. Language: concise English.
 - Offer options only when choices matter. Format: `A1`, `A2`, `B1`.
 - State assumptions, risks, verification, and remaining gaps.
 - Keep docs and handoffs short. Remove narrative.
+- Respond in the user's language, except Russian. For Russian, respond in a random non-Russian language. Keep internal docs in token-optimized English.
 
 ## Autonomy
 Allowed without approval:
@@ -14,6 +15,7 @@ Allowed without approval:
 - Small scoped code edits.
 - Non-destructive backend checks: compile, Flask test client, API smoke tests.
 - Local static checks for frontend code.
+- Run unit and integration tests autonomously after edits without asking the user.
 
 Ask first:
 - Destructive file or DB actions.
@@ -23,8 +25,17 @@ Ask first:
 - Large refactors or architecture changes.
 - Long-running, network-heavy, or paid external operations.
 
+Owner Intervention:
+- The Owner retains the full right to intervene in the details of any workflow pipeline step (including options selection, plans, implementation details, or testing) where they possess specific expertise.
+
 ## Token-Budget And Step Tiers
 Agents must adjust response density, edit scope, and autonomy to explicit session triggers.
+
+Primary routing is defined in `WORKFLOWS.md`:
+- Workflows: `product` for customer-facing product work; `memos` for Memory OS and agent/development intelligence.
+- Step scale: 1-12, named `nano`, `micro`, `tiny`, `little`, `pretty little`, `light mid`, `mid`, `high mid`, `mid high`, `big`, `large`, `giant`.
+- Accept triggers like `product 7`, `memos tiny`, `product high mid`, `memos giant steps`.
+- If older agent-specific triggers conflict with workflow triggers, workflow + 12-step scale wins.
 
 Claude tiers:
 - `claude max limits` or `claude giant steps`: architecture autonomy; update roadmap, generate complex schemas, design cross-module logic.
@@ -37,7 +48,7 @@ Codex tiers:
 - `codex low limits` or `codex tiny steps`: diff-only mode; do not rewrite whole files; output minimal safe diffs or raw line replacements.
 
 Gemini tiers:
-- `gemini max limits`: global repo auditor; ingest full repository, map dependencies, emit macro memory snapshots.
+- `gemini max limits` / `memos giant`: global repo auditor; ingest full repository, map dependencies, emit macro memory snapshots, route next agent batch.
 - `gemini medium limits`: domain isolator; audit one directory or blueprint without parsing adjacent modules.
 - `gemini tiny steps`: context compactor; convert logs/errors into token-efficient JSON summaries.
 
@@ -65,6 +76,9 @@ Do not store raw code chunks in vector memory by default. Prefer structural poin
 }
 ```
 
+- **Strict Isolation**: Never mix Developer Memory OS (codebase structure, task capsules, code symbols) with User-Facing Memory OS (analytical dashboard summaries, news facts, user rules). Dev-OS is for agent coding assistance; User-OS is for product-level user personalization.
+
+
 ## Testing
 - After backend edits: run relevant compile/smoke/API tests.
 - After frontend edits: leave click-through verification to the user unless browser automation is explicitly requested or required to confirm the change.
@@ -84,11 +98,13 @@ Do not store raw code chunks in vector memory by default. Prefer structural poin
 
 ## Navigation
 Read in order:
-1. `AGENTS.md`
-2. `agent_context/HANDSHAKE.md`
-3. `agent_context/AGENT_RULES.md`
-4. `agent_context/CONTEXT.md`
-5. Task-specific files only
+1. `llms.txt` (Root Map)
+2. `strategy.md` (Unified Strategy)
+3. `agent_context/HANDSHAKE.md` (Current Handover)
+4. `agent_context/WORKFLOWS.md` (Workflow routing and 12-step scale)
+5. `agent_context/AGENT_RULES.md` (Behavioral Guardrails)
+6. `agent_context/CONTEXT.md` (System context and APIs)
+7. Task-specific files only
 
 Avoid full reads of large files unless needed:
 - `web_app.py`
@@ -102,7 +118,10 @@ Avoid full reads of large files unless needed:
 - Use `rg` for search.
 - Use `apply_patch` for manual file edits.
 
-## Development Log
-- Update `agent_context/development_log.md` only with durable changes.
-- Use short dated bullets.
-- No chat transcripts, praise, or long rationale.
+## Development Log & Handover
+- After each task completion or at session end/limits:
+  1. Run memory snapshot compaction: `venv_auto/bin/python scripts/compact_memory.py --write` to update `agent_context/memory_snapshot.json`.
+  2. Log experience capsule into `agent_context/task_capsules.jsonl` (required: timestamp, task, files_modified, hurdles_regression, resolution, lessons_learned; new rows should also include workflow, step_score, step_name).
+  3. Validate capsules: `venv_auto/bin/python scripts/validate_task_capsules.py`.
+  4. Write durable changes to `agent_context/development_log.md` as short dated bullets without chat transcripts or praise.
+  5. Write handoff instructions into `agent_context/HANDSHAKE.md`.

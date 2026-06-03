@@ -1,13 +1,13 @@
 {
   "counts": {
-    "items": 120,
+    "items": 121,
     "layers": {
-      "domain-layer": 88,
+      "domain-layer": 89,
       "meta-layer": 32
     },
     "skipped": 2
   },
-  "generated_at": "2026-06-03T16:11:05",
+  "generated_at": "2026-06-03T16:31:01",
   "items": [
     {
       "meta": {
@@ -113,7 +113,7 @@
     },
     {
       "meta": {
-        "bytes": 22984,
+        "bytes": 23508,
         "file": "agent_context/development_log.md",
         "headings": [
           "Development Log",
@@ -130,13 +130,13 @@
           "Open Work"
         ],
         "layer": "meta-layer",
-        "sha256_16": "8ff593845a9cf48c"
+        "sha256_16": "5fec4fdb8c6118e9"
       },
       "vector_text": "agent_context/development_log.md Development Log 2026-05-27 2026-05-28 2026-05-29 2026-05-30 2026-05-31 2026-06-01 2026-06-02 2026-06-02 2026-06-03 Locked Decisions Open Work # Development Log Format: short English bullets only. Keep durable facts. ## 2026-05-27 - Built Flask dashboard MVP: stats, channels, charts, video table, modal, exports, actions. - Added 4 themes and UA/EN i18n. - Added video detail scraping and MP4 download flow. ## 2026-05-28 - Added SQLite indexes for channel/date/views/likes/comments/sync queries. - Ref"
     },
     {
       "meta": {
-        "bytes": 45890,
+        "bytes": 46864,
         "file": "agent_context/task_capsules.jsonl",
         "layer": "meta-layer",
         "recent_rows": [
@@ -171,13 +171,13 @@
             "type": "unknown"
           }
         ],
-        "row_count": 47,
-        "sha256_16": "c8785c6a8d113f8e",
+        "row_count": 48,
+        "sha256_16": "5b36714818fc7ca4",
         "status_counts": {
-          "active": 47
+          "active": 48
         },
         "type_counts": {
-          "unknown": 47
+          "unknown": 48
         }
       },
       "vector_text": "agent_context/task_capsules.jsonl {\"timestamp\": \"2026-06-01T17:30:00Z\", \"task\": \"Video Details Modal Assistant Integration and Sidebar Click-Outside Closure\", \"files_modified\": [\"static/css/style.css\", \"templates/index.html\", \"static/js/app.js\", \"static/js/translations.js\"], \"hurdles_regression\": \"Ensuring the click-outside handler in app.js does not intercept click events triggered directly"
@@ -238,7 +238,7 @@
     },
     {
       "meta": {
-        "bytes": 5199,
+        "bytes": 5634,
         "file": "agent_context/HANDSHAKE.md",
         "headings": [
           "Agent Handshake",
@@ -249,7 +249,7 @@
           "Last Change"
         ],
         "layer": "meta-layer",
-        "sha256_16": "1c33b47303139e37"
+        "sha256_16": "a22c50d07207c239"
       },
       "vector_text": "agent_context/HANDSHAKE.md Agent Handshake Current Session Status Completed Today Blocked / Pending Next Handover Last Change # Agent Handshake ## Current Session Status - Active Agent: Antigravity - Budget Tier applied: `product giant` / score 12 - Target: Phase 2 product features (Entity Extraction & Micro-Widgets) and deduplication layout merging. ## Completed Today - [x] Database Schema Migration: Created `migrations/0004_entity_tracking.sql` and integrated it into `DatabaseCli"
     },
@@ -277,12 +277,12 @@
     },
     {
       "meta": {
-        "bytes": 140272,
+        "bytes": 141559,
         "file": "agent_context/memory_snapshot.json",
         "layer": "meta-layer",
-        "sha256_16": "7caa9a312d75e4d1"
+        "sha256_16": "3965fb114aba384a"
       },
-      "vector_text": "agent_context/memory_snapshot.json { \"counts\": { \"items\": 120, \"layers\": { \"domain-layer\": 88, \"meta-layer\": 32 }, \"skipped\": 2 }, \"generated_at\": \"2026-06-03T16:09:35\", \"items\": [ { \"meta\": { \"bytes\": 2156, \"file\": \"README.md\", \"headings\": [ \"Governed Autonomous Intelligence Workspace\", \"Start\", \"Read Order\", \"Current Architecture\", \"Main Paths\", \"Locked Rules\" ], \"layer\": \"meta-layer\", \"sha"
+      "vector_text": "agent_context/memory_snapshot.json { \"counts\": { \"items\": 121, \"layers\": { \"domain-layer\": 89, \"meta-layer\": 32 }, \"skipped\": 2 }, \"generated_at\": \"2026-06-03T16:29:57\", \"items\": [ { \"meta\": { \"bytes\": 2156, \"file\": \"README.md\", \"headings\": [ \"Governed Autonomous Intelligence Workspace\", \"Start\", \"Read Order\", \"Current Architecture\", \"Main Paths\", \"Locked Rules\" ], \"layer\": \"meta-layer\", \"sha"
     },
     {
       "meta": {
@@ -1898,7 +1898,7 @@
     },
     {
       "meta": {
-        "bytes": 12096,
+        "bytes": 12715,
         "classes": [],
         "dependencies": [
           "__future__",
@@ -1908,6 +1908,7 @@
           "pathlib",
           "scripts.analytics.method_review_proposals",
           "scripts.memory.audit_memos",
+          "scripts.memory.compact_capsules",
           "scripts.memory.quantize_task",
           "scripts.memory.validate_workflows",
           "scripts.validate_task_capsules",
@@ -1927,13 +1928,14 @@
           "cmd_method_proposals:204",
           "cmd_quantize:224",
           "cmd_workflows:251",
-          "build_parser:265",
-          "main:316"
+          "cmd_compact:265",
+          "build_parser:272",
+          "main:331"
         ],
         "layer": "domain-layer",
-        "sha256_16": "6728184d745c057c"
+        "sha256_16": "b0d2bab059615109"
       },
-      "vector_text": "scripts/memos.py write_if_missing:100 append_if_absent:109 cmd_init:122 cmd_integrate:152 cmd_audit:162 cmd_validate:171 cmd_snapshot:193 cmd_method_proposals:204 cmd_quantize:224 cmd_workflows:251 build_parser:265 main:316 #!/usr/bin/env python3 \"\"\"Portable Memos control CLI for project-local Memory OS operations.\"\"\" from __future__ import annotations import argparse import json import subprocess import sys from datetime import datetime from pathlib import Path from typing import Any, Dict, List ROOT = Path(__file__).resolve().parents[1] if str(ROOT) not in sys.path: sys.path."
+      "vector_text": "scripts/memos.py write_if_missing:100 append_if_absent:109 cmd_init:122 cmd_integrate:152 cmd_audit:162 cmd_validate:171 cmd_snapshot:193 cmd_method_proposals:204 cmd_quantize:224 cmd_workflows:251 cmd_compact:265 build_parser:272 main:331 #!/usr/bin/env python3 \"\"\"Portable Memos control CLI for project-local Memory OS operations.\"\"\" from __future__ import annotations import argparse import json import subprocess import sys from datetime import datetime from pathlib import Path from typing import Any, Dict, List ROOT = Path(__file__).resolve().parents[1] if str(ROOT) not in sys.path: sys.path."
     },
     {
       "meta": {
@@ -2031,7 +2033,38 @@
     },
     {
       "meta": {
-        "bytes": 12257,
+        "bytes": 13589,
+        "classes": [
+          "DummyArgs:314"
+        ],
+        "dependencies": [
+          "app.services.llm_clients",
+          "argparse",
+          "datetime",
+          "json",
+          "news_scraper.utils",
+          "os",
+          "pathlib",
+          "scripts.memory.lifecycle",
+          "subprocess",
+          "sys",
+          "typing"
+        ],
+        "file": "scripts/memory/compact_capsules.py",
+        "functions": [
+          "clean_llm_json:69",
+          "call_llm:79",
+          "compact_capsules:105",
+          "__init__:315"
+        ],
+        "layer": "domain-layer",
+        "sha256_16": "18814bd0455c3329"
+      },
+      "vector_text": "scripts/memory/compact_capsules.py clean_llm_json:69 call_llm:79 compact_capsules:105 __init__:315 DummyArgs:314 #!/usr/bin/env python3 import sys import json import os import argparse from datetime import datetime from pathlib import Path from typing import List, Dict, Set, Any, Optional ROOT = Path(__file__).resolve().parents[2] if str(ROOT) not in sys.path: sys.path.insert(0, str(ROOT)) from scripts.memory.lifecycle import ( load_jsonl, append_jsonl, write_jsonl, cm"
+    },
+    {
+      "meta": {
+        "bytes": 12290,
         "classes": [],
         "dependencies": [
           "argparse",
@@ -2058,7 +2091,7 @@
           "main:267"
         ],
         "layer": "domain-layer",
-        "sha256_16": "03e1e696dd5d5e04"
+        "sha256_16": "5532a468ec146894"
       },
       "vector_text": "scripts/memory/lifecycle.py log_info:13 log_error:16 sha256_file:19 load_jsonl:28 write_jsonl:41 append_jsonl:47 validate_evidence:52 cmd_propose:60 cmd_transition:96 cmd_manifest:190 cmd_prune:235 main:267 #!/usr/bin/env python3 import sys import json import hashlib import argparse from datetime import datetime from pathlib import Path from typing import List, Dict, Set, Any, Tuple ROOT = Path(__file__).resolve().parents[2] MEMORY_DIR = ROOT / \"memory\" def log_info(msg: str): print(f\"INFO: {msg}\") def log_error(msg: str): print(f\"ERROR: {msg}\", file=sys.stderr"
     },

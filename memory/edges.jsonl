@@ -56,3 +56,7 @@
 {"source": "automation.scheduling.manual_trigger_preference", "target": "automation.lifecycle.approval_gated", "type": "configures"}
 {"source": "automation.scheduling.manual_trigger_preference", "target": "ui.ingestion.preview_first_controls", "type": "depends_on"}
 {"source": "automation.scheduling.manual_trigger_preference", "target": "api.ingestion.governed_dry_run_first", "type": "depends_on"}
+{"source": "memos.task_capsule.validation", "target": "memory.compaction.batch_processing", "type": "depends_on"}
+{"source": "memory.compaction.batch_processing", "target": "automation.lifecycle.approval_gated", "type": "depends_on"}
+{"source": "memory.compaction.incremental_node_appending", "target": "memory.compaction.batch_processing", "type": "triggers"}
+{"source": "system.validation.native_checks_for_lightweight_contracts", "target": "memory.compaction.node_type_expansion", "type": "triggers"}

@@ -201,6 +201,8 @@ Format: short English bullets only. Keep durable facts.
 - Implemented the Proposal Metadata Contract validation under the `memos` workflow. Created JSON schema in `configs/schemas/proposal_schema.json` and integrated validators into `validate_memory.py`, `audit_memos.py`, and `memos.py validate`, with full unit tests in `scratch/test_proposal_validation.py` (all 199 tests passing).
 - Updated `agent_context/GLOBAL_ROADMAP.md` checking off completed SOLID and Phase 2 items (Saved Layouts, Micro-Widgets, Synchronized Filters, Entity Extraction, Alias Dictionary, Cross-Source Timeline, ISP Separation, and Proposal Metadata Contract).
 - Implemented Scheduler Binding (Option S1 - manual dashboard trigger button) for data method review proposals generation. Registered admin-gated `POST /api/analytics/data-methods/proposals` endpoint, added `generateMethodProposals` controller in `static/js/ui.js` and bound it globally in `static/js/app.js`, added "Proposals" button in the Operator panel of `templates/index.html`, wrote integration tests in `scratch/test_method_review_proposals_api.py`, checked off the roadmap item, and rebuilt the memory snapshot.
+- Implemented the Memory OS task capsule compactor. Created `scripts/memory/compact_capsules.py` which extracts permanent knowledge nodes and relationship edges from task capsules using LLM API calls in batches. Registered the `compact` subcommand in `scripts/memos.py`. Expanded lifecycle transition validation to support `connector`, `config`, and `policy` node types. Covered compaction logic with unit tests in `scratch/test_compact_capsules.py`, compacted the capsule backlog, and successfully validated memory state.
+
 
 ## Locked Decisions
 - Local SQLite remains primary.

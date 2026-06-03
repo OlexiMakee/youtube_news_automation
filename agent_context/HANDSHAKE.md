@@ -16,6 +16,8 @@
 - [x] Verified and validated: Wrote tests in [test_entity_extraction.py](file:///Users/oleksii/Documents/News%20Research%20Automation/scratch/test_entity_extraction.py) and verified all 194 tests pass successfully.
 - [x] Ran local Memory OS audit and validation (`memos.py audit` and `memos.py validate`), ensuring completely clean verification metrics.
 - [x] Scheduler Binding (manual dashboard trigger button) for data method review proposals generation: Registered admin-gated `POST /api/analytics/data-methods/proposals` endpoint, added `generateMethodProposals` controller in `static/js/ui.js` and bound it globally in `static/js/app.js`, added "Proposals" button in the Operator panel of `templates/index.html`, wrote integration tests in `scratch/test_method_review_proposals_api.py`, checked off the roadmap item, and rebuilt the memory snapshot.
+- [x] Memory OS Knowledge Compaction & Graph Extraction: Implemented `compact_capsules` in `scripts/memory/compact_capsules.py` and registered the `compact` subcommand in `scripts/memos.py` to extract permanent knowledge nodes/edges from task capsules log. Expanded transition validation in `scripts/memory/lifecycle.py` to accept `connector`, `config`, and `policy` node types, and covered compaction operations with unit tests in `scratch/test_compact_capsules.py`.
+
 
 ## Blocked / Pending
 - [ ] Keep live DB migrations to the main scraped database blocked until explicit user confirmation.
@@ -33,6 +35,7 @@
   4. Entity extraction service in [entities.py](file:///Users/oleksii/Documents/News%20Research%20Automation/app/services/entities.py) and routes in [entities_routes.py](file:///Users/oleksii/Documents/News%20Research%20Automation/app/routes/entities.py).
 
 ## Last Change
-- Updated at: 2026-06-03T16:11:00Z
-- Files: app/routes/analytics.py, static/js/ui.js, static/js/app.js, templates/index.html, scratch/test_method_review_proposals_api.py, agent_context/GLOBAL_ROADMAP.md, agent_context/memory_snapshot.json, agent_context/task_capsules.jsonl, agent_context/development_log.md, agent_context/HANDSHAKE.md
-- Status: Implemented Scheduler Binding (Option S1 - manual dashboard trigger button) for data method review proposals generation, allowing operators to manually generate review proposals from the dashboard without running background workers or daemons. Verified all 201 tests pass, validated/audited the Memory OS structure, and rebuilt the snapshot.
+- Updated at: 2026-06-03T16:28:00Z
+- Files: scripts/memory/compact_capsules.py, scripts/memos.py, scripts/memory/lifecycle.py, scratch/test_compact_capsules.py, agent_context/task_capsules.jsonl, agent_context/development_log.md, agent_context/HANDSHAKE.md
+- Status: Implemented Automated Knowledge Compaction & Graph Extraction for Memory OS, extracting permanent nodes and edges from uncompacted task capsules using batched LLM calls. Registered the `compact` subcommand in the Memos CLI router, updated lifecycle transition logic to support new types, ran 203/203 green unit/integration tests, and successfully validated/audited the Memory OS graph.
+

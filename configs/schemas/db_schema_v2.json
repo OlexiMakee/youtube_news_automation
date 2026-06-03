@@ -137,6 +137,144 @@
     "chat_messages": "team messages and AI responses after room model exists",
     "telemetry_logs": "sanitized bug/feature/perf telemetry after privacy rules are enforced"
   },
+  "target_schema_tables": {
+    "sources": {
+      "migration": "migrations/0002_governance_registry.sql",
+      "primary_key": "id",
+      "fields": {
+        "id": "INTEGER PRIMARY KEY AUTOINCREMENT",
+        "type": "TEXT NOT NULL",
+        "name": "TEXT NOT NULL",
+        "policy_tier": "TEXT NOT NULL CHECK IN A,B,C,D,E,X",
+        "status": "TEXT NOT NULL DEFAULT 'pending'",
+        "owner_user_id": "INTEGER",
+        "source_url": "TEXT",
+        "external_id": "TEXT",
+        "retention_days": "INTEGER",
+        "terms_url": "TEXT",
+        "policy_notes": "TEXT",
+        "created_at": "TEXT DEFAULT localtime",
+        "updated_at": "TEXT DEFAULT localtime"
+      },
+      "foreign_keys": {
+        "owner_user_id": "users.id"
+      }
+    },
+    "source_credentials": {
+      "migration": "migrations/0002_governance_registry.sql",
+      "primary_key": "id",
+      "fields": {
+        "id": "INTEGER PRIMARY KEY AUTOINCREMENT",
+        "source_id": "INTEGER NOT NULL",
+        "secret_ref": "TEXT NOT NULL",
+        "byok": "INTEGER NOT NULL DEFAULT 1",
+        "rotation_status": "TEXT NOT NULL DEFAULT 'not_required'",
+        "last_rotated_at": "TEXT",
+        "expires_at": "TEXT",
+        "created_at": "TEXT DEFAULT localtime"
+      },
+      "foreign_keys": {
+        "source_id": "sources.id ON DELETE CASCADE"
+      }
+    },
+    "source_records": {
+      "migration": "migrations/0002_governance_registry.sql",
+      "primary_key": "id",
+      "fields": {
+        "id": "INTEGER PRIMARY KEY AUTOINCREMENT",
+        "source_id": "INTEGER NOT NULL",
+        "external_record_id": "TEXT",
+        "record_type": "TEXT NOT NULL",
+        "title": "TEXT",
+        "url": "TEXT",
+        "published_at": "TEXT",
+        "captured_at": "TEXT DEFAULT localtime",
+        "content_hash": "TEXT",
+        "metadata_json": "TEXT"
+      },
+      "foreign_keys": {
+        "source_id": "sources.id ON DELETE CASCADE"
+      }
+    },
+    "connector_runs": {
+      "migration": "migrations/0002_governance_registry.sql",
+      "primary_key": "id",
+      "fields": {
+        "id": "INTEGER PRIMARY KEY AUTOINCREMENT",
+        "source_id": "INTEGER",
+        "job_type": "TEXT NOT NULL",
+        "status": "TEXT NOT NULL DEFAULT 'queued'",
+        "records_seen": "INTEGER DEFAULT 0",
+        "records_created": "INTEGER DEFAULT 0",
+        "records_updated": "INTEGER DEFAULT 0",
+        "cost_estimate": "REAL DEFAULT 0",
+        "error_message": "TEXT",
+        "started_at": "TEXT",
+        "ended_at": "TEXT",
+        "created_at": "TEXT DEFAULT localtime"
+      },
+      "foreign_keys": {
+        "source_id": "sources.id ON DELETE SET NULL"
+      }
+    },
+    "audit_events": {
+      "migration": "migrations/0002_governance_registry.sql",
+      "primary_key": "id",
+      "fields": {
+        "id": "INTEGER PRIMARY KEY AUTOINCREMENT",
+        "actor_id": "INTEGER",
+        "action": "TEXT NOT NULL",
+        "object_type": "TEXT NOT NULL",
+        "object_id": "TEXT",
+        "metadata_json": "TEXT",
+        "created_at": "TEXT DEFAULT localtime"
+      },
+      "foreign_keys": {
+        "actor_id": "users.id"
+      }
+    },
+    "ai_outputs": {
+      "migration": "migrations/0002_governance_registry.sql",
+      "primary_key": "id",
+      "fields": {
+        "id": "INTEGER PRIMARY KEY AUTOINCREMENT",
+        "output_type": "TEXT NOT NULL",
+        "title": "TEXT",
+        "prompt_hash": "TEXT",
+        "provider_id": "TEXT",
+        "model_id": "TEXT",
+        "status": "TEXT NOT NULL DEFAULT 'draft'",
+        "content_text": "TEXT NOT NULL",
+        "metadata_json": "TEXT",
+        "created_by": "INTEGER",
+        "created_at": "TEXT DEFAULT localtime"
+      },
+      "foreign_keys": {
+        "created_by": "users.id"
+      }
+    },
+    "evidence_links": {
+      "migration": "migrations/0002_governance_registry.sql",
+      "primary_key": "id",
+      "fields": {
+        "id": "INTEGER PRIMARY KEY AUTOINCREMENT",
+        "ai_output_id": "INTEGER NOT NULL",
+        "source_id": "INTEGER",
+        "source_record_id": "INTEGER",
+        "video_id": "TEXT",
+        "claim_text": "TEXT",
+        "evidence_text": "TEXT",
+        "confidence": "REAL",
+        "created_at": "TEXT DEFAULT localtime"
+      },
+      "foreign_keys": {
+        "ai_output_id": "ai_outputs.id ON DELETE CASCADE",
+        "source_id": "sources.id ON DELETE SET NULL",
+        "source_record_id": "source_records.id ON DELETE SET NULL",
+        "video_id": "videos.video_id"
+      }
+    }
+  },
   "hard_blocks": [
     "Do not create team chat tables before RBAC/session enforcement.",
     "Do not apply migrations directly from this JSON file.",

@@ -6,7 +6,8 @@ import csv
 from io import StringIO
 from datetime import datetime
 from flask import Blueprint, jsonify, request, send_file, make_response
-from news_scraper.db_client import DatabaseClient
+from scraper.db_client import DatabaseClient
+from app.services.rbac import require_admin as _admin_required
 from app.state import get_sqlite_conn, root_dir
 
 videos_bp = Blueprint('videos', __name__)
@@ -142,7 +143,32 @@ def get_videos():
         db_client.close_connection(conn)
 
 
+@videos_bp.route('/api/videos/<video_id>', methods=['GET'])
+def get_video_by_id(video_id):
+    db_client = DatabaseClient()
+    conn = db_client.get_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT v.video_id, v.title, c.channel_name, v.published_at, v.view_count, 
+                   v.like_count, v.comment_count, v.thumbnail_text, v.full_description, 
+                   v.top_comments, v.views_update, v.duration
+            FROM videos v
+            LEFT JOIN channels c ON v.channel_id = c.channel_id
+            WHERE v.video_id = ?
+        """, (video_id,))
+        row = cursor.fetchone()
+        if not row:
+            return jsonify({"error": f"Video with ID '{video_id}' not found."}), 404
+        return jsonify(dict(row))
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        db_client.close_connection(conn)
+
+
 @videos_bp.route('/api/videos/export', methods=['GET'])
+@_admin_required
 def export_videos():
     format_choice = request.args.get('format', 'csv').strip().lower()
     search = request.args.get('search', '').strip()
@@ -201,6 +227,7 @@ def export_videos():
 
 
 @videos_bp.route('/api/videos/<video_id>/scrape_details', methods=['POST'])
+@_admin_required
 def scrape_video_details_route(video_id):
     try:
         import yt_dlp
@@ -294,7 +321,7 @@ def scrape_video_details_route(video_id):
         views_update_json = json.dumps(new_history)
         
         # Extract thumbnail text via OCR
-        from news_scraper.ocr import extract_thumbnail_text
+        from scraper.ocr import extract_thumbnail_text
         try:
             thumbnail_text = extract_thumbnail_text(video_id)
         except Exception as ocr_err:
@@ -349,6 +376,7 @@ def scrape_video_details_route(video_id):
 
 
 @videos_bp.route('/api/videos/ocr_thumbnails', methods=['POST'])
+@_admin_required
 def ocr_thumbnails_batch_route():
     import threading
     data = request.json or {}
@@ -357,7 +385,7 @@ def ocr_thumbnails_batch_route():
         return jsonify({"message": "No video IDs provided."}), 200
 
     def process_batch():
-        from news_scraper.ocr import extract_thumbnail_text
+        from scraper.ocr import extract_thumbnail_text
         conn = get_sqlite_conn()
         cursor = conn.cursor()
         try:
@@ -402,6 +430,7 @@ def ocr_thumbnails_batch_route():
 
 
 @videos_bp.route('/api/videos/<video_id>/formats', methods=['GET'])
+@_admin_required
 def get_video_formats(video_id):
     try:
         import yt_dlp
@@ -446,6 +475,7 @@ def get_video_formats(video_id):
 
 
 @videos_bp.route('/api/videos/<video_id>/download', methods=['GET'])
+@_admin_required
 def download_video_route(video_id):
     try:
         import yt_dlp
@@ -511,3 +541,121 @@ def download_video_route(video_id):
         )
     except Exception as e:
         return jsonify({"error": f"Failed to download video: {e}"}), 500
+
+
+@videos_bp.route('/api/videos/<video_id>/transcript', methods=['GET'])
+@_admin_required
+def get_video_transcript_route(video_id):
+    try:
+        import yt_dlp
+        import glob
+        import re
+
+        transcript_dir = os.path.join(root_dir, 'data', 'transcripts')
+        os.makedirs(transcript_dir, exist_ok=True)
+        
+        txt_path = os.path.join(transcript_dir, f"{video_id}.txt")
+        if os.path.exists(txt_path):
+            with open(txt_path, 'r', encoding='utf-8') as f:
+                return jsonify({
+                    "ok": True,
+                    "video_id": video_id,
+                    "transcript": f.read(),
+                    "cached": True
+                })
+
+        # Download using yt-dlp
+        download_dir = os.path.join(root_dir, 'data', 'downloads', 'temp_subs')
+        os.makedirs(download_dir, exist_ok=True)
+        
+        # Clean up any leftover sub files in temp_subs
+        for f in glob.glob(os.path.join(download_dir, f"{video_id}.*")):
+            try:
+                os.remove(f)
+            except OSError:
+                pass
+
+        url = f"https://www.youtube.com/watch?v={video_id}"
+        ydl_opts = {
+            'skip_download': True,
+            'writeautomaticsub': True,
+            'writesubtitles': True,
+            'subtitleslangs': ['en', 'uk', 'ru', 'ua'],
+            'outtmpl': os.path.join(download_dir, f"{video_id}.%(ext)s"),
+            'quiet': True,
+            'no_warnings': True,
+            'extractor_args': {
+                'youtube': {
+                    'player_client': ['android', 'ios']
+                }
+            }
+        }
+        
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([url])
+
+        sub_files = glob.glob(os.path.join(download_dir, f"{video_id}.*"))
+        if not sub_files:
+            return jsonify({"error": "No subtitles or automatic captions found for this video."}), 404
+
+        def sub_priority(filepath):
+            name = os.path.basename(filepath)
+            if '.en.' in name:
+                return 0
+            if '.uk.' in name or '.ua.' in name:
+                return 1
+            if '.ru.' in name:
+                return 2
+            return 3
+
+        sub_files.sort(key=sub_priority)
+        chosen_sub = sub_files[0]
+
+        with open(chosen_sub, 'r', encoding='utf-8', errors='replace') as f:
+            vtt_content = f.read()
+
+        # Parse WebVTT to clean text
+        lines = vtt_content.splitlines()
+        clean_lines = []
+        for line in lines:
+            line = line.strip()
+            if not line or line == "WEBVTT" or "-->" in line or line.startswith("Kind:") or line.startswith("Language:"):
+                continue
+            # Strip WebVTT tags
+            line = re.sub(r'<[^>]+>', '', line).strip()
+            if not line:
+                continue
+            # Deduplicate substrings or consecutive duplicate text blocks
+            if clean_lines:
+                last = clean_lines[-1]
+                if last == line or line in last:
+                    continue
+                if last in line:
+                    clean_lines[-1] = line
+                    continue
+            clean_lines.append(line)
+
+        clean_text = " ".join(clean_lines)
+        if not clean_text.strip():
+            return jsonify({"error": "Failed to parse transcript."}), 500
+
+        # Save to cache
+        with open(txt_path, 'w', encoding='utf-8') as f:
+            f.write(clean_text)
+
+        # Clean up temp_subs
+        for f in sub_files:
+            try:
+                os.remove(f)
+            except OSError:
+                pass
+
+        return jsonify({
+            "ok": True,
+            "video_id": video_id,
+            "transcript": clean_text,
+            "cached": False
+        })
+
+    except Exception as e:
+        return jsonify({"error": f"Failed to extract transcript: {e}"}), 500

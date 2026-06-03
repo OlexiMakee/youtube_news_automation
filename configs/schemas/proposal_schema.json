@@ -1,0 +1,53 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Proposal",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "integer"
+    },
+    "ts": {
+      "type": "integer"
+    },
+    "role": {
+      "type": "string",
+      "enum": ["admin"]
+    },
+    "type": {
+      "type": "string",
+      "enum": ["bug", "feature"]
+    },
+    "status": {
+      "type": "string",
+      "enum": ["active", "done", "deferred", "rejected"]
+    },
+    "priority": {
+      "type": ["string", "null"]
+    },
+    "el": {
+      "type": "string"
+    },
+    "src": {
+      "type": "string"
+    },
+    "desc": {
+      "type": "string",
+      "minLength": 1
+    },
+    "workflow": {
+      "type": "string",
+      "enum": ["product", "memos"]
+    },
+    "role_tier": {
+      "type": "string",
+      "enum": ["developer", "automated", "master_admin", "admin", "user"]
+    },
+    "status_updated_at": {
+      "type": "integer"
+    },
+    "status_note": {
+      "type": "string"
+    }
+  },
+  "required": ["id", "ts", "role", "type", "status", "desc"]
+}

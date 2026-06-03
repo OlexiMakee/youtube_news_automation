@@ -135,6 +135,10 @@ class MemoryCompactor:
 
         if not uncompacted:
             print("No uncompacted capsules found.")
+            try:
+                self.archive_compacted_capsules()
+            except Exception as exc:
+                print(f"Warning: capsule archiving failed: {exc}", file=sys.stderr)
             return 0
 
         print(f"Found {len(uncompacted)} uncompacted task capsules. Proceeding with compaction...")
@@ -333,6 +337,12 @@ class MemoryCompactor:
         lifecycle.transition(validator="memos_compactor")
         lifecycle.manifest()
 
+        # Archive compacted capsules to prevent context bloat
+        try:
+            self.archive_compacted_capsules()
+        except Exception as exc:
+            print(f"Warning: capsule archiving failed: {exc}", file=sys.stderr)
+
         # Rebuild snapshot
         print("Updating memory snapshot...")
         try:
@@ -345,3 +355,71 @@ class MemoryCompactor:
             print(f"Warning: snapshot rebuild failed: {exc}", file=sys.stderr)
 
         return 0
+
+    def archive_compacted_capsules(self, keep_recent: int = 5) -> None:
+        task_capsules_path = self.config.capsules_file
+        if not task_capsules_path.exists():
+            return
+
+        archive_path = task_capsules_path.parent / "archived_task_capsules.jsonl"
+
+        # 1. Load all task capsules
+        capsules = self._load_jsonl(task_capsules_path)
+
+        # 2. Get compacted timestamps from events
+        events_path = self.config.memory_dir / "events.jsonl"
+        compacted_timestamps = set()
+        if events_path.exists():
+            events = self._load_jsonl(events_path)
+            for ev in events:
+                if ev.get("event") == "memory.task_capsules.compacted":
+                    timestamps = ev.get("compacted_timestamps", [])
+                    for ts in timestamps:
+                        compacted_timestamps.add(ts)
+
+        # 3. Separate compacted vs uncompacted
+        compacted = []
+        uncompacted = []
+        for cap in capsules:
+            ts = cap.get("timestamp")
+            if ts in compacted_timestamps:
+                compacted.append(cap)
+            else:
+                uncompacted.append(cap)
+
+        if not compacted:
+            return
+
+        # 4. Read existing archived timestamps to avoid duplicates
+        archived_timestamps = set()
+        if archive_path.exists():
+            archived = self._load_jsonl(archive_path)
+            for cap in archived:
+                ts = cap.get("timestamp")
+                if ts:
+                    archived_timestamps.add(ts)
+
+        # 5. Append newly compacted ones to archived_task_capsules.jsonl
+        archive_append_count = 0
+        archive_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(archive_path, "a", encoding="utf-8") as f:
+            for cap in compacted:
+                ts = cap.get("timestamp")
+                if ts not in archived_timestamps:
+                    f.write(json.dumps(cap) + "\n")
+                    archive_append_count += 1
+
+        if archive_append_count > 0:
+            print(f"INFO: Archived {archive_append_count} compacted capsules to {archive_path.name}")
+
+        # 6. Keep all uncompacted + last `keep_recent` compacted in task_capsules.jsonl
+        retained_compacted = compacted[-keep_recent:] if len(compacted) > keep_recent else compacted
+        
+        def get_ts(c):
+            return c.get("timestamp", "")
+            
+        final_capsules = sorted(uncompacted + retained_compacted, key=get_ts)
+
+        with open(task_capsules_path, "w", encoding="utf-8") as f:
+            for cap in final_capsules:
+                f.write(json.dumps(cap) + "\n")

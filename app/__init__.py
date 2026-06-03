@@ -18,12 +18,22 @@ def create_app():
     from app.routes.videos import videos_bp
     from app.routes.charts import charts_bp
     from app.routes.actions import actions_bp
+    from app.routes.analytics import analytics_bp
+    from app.routes.governance import governance_bp
+    from app.routes.briefs import briefs_bp
+    from app.routes.entities import entities_bp
+    from app.routes.scraper import scraper_bp
     
     app.register_blueprint(main_bp)
     app.register_blueprint(stats_bp)
     app.register_blueprint(videos_bp)
     app.register_blueprint(charts_bp)
     app.register_blueprint(actions_bp)
+    app.register_blueprint(analytics_bp)
+    app.register_blueprint(governance_bp)
+    app.register_blueprint(briefs_bp)
+    app.register_blueprint(entities_bp)
+    app.register_blueprint(scraper_bp)
     
     # Initialize v1.1.0 SaaS infrastructure (Phase 2)
     _init_telemetry_and_rotation(root_dir)

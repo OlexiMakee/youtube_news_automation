@@ -1,6 +1,6 @@
 # Agent Instructions
 
-Read `agent_context/AGENT_RULES.md`, then `agent_context/CONTEXT.md`.
+Read `llms.txt` (Root Map) and `strategy.md` (Unified Strategy) first, then follow onboarding order: `agent_context/HANDSHAKE.md` -> `agent_context/WORKFLOWS.md` -> `agent_context/AGENT_RULES.md` -> `agent_context/CONTEXT.md`.
 
 Rules:
 - Use concise, dry English in all agent docs.
@@ -12,6 +12,8 @@ Rules:
 - Do not expose secrets or `.env` values.
 - Ask before destructive DB/file actions, schema changes, new deps, or broad refactors.
 - Keep changes scoped. Do not rewrite unrelated user work.
+- Route tasks through `product` or `memos` workflow and the 12-step scale in `agent_context/WORKFLOWS.md`.
+- Treat `memos` as an internal shorthand for Memory OS workflows. It is not the final product name and is unrelated to the existing Memos note-taking app.
 - For UI work, provide the exact manual click path when not automating the browser.
 
 LLM provider contract:

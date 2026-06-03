@@ -17,6 +17,12 @@
 anomalies   # Detect viral/anomalous videos
 trend       # Forecast views using polynomial regression
 kpi         # Show KPI dashboard (median, Q1/Q3)
+topic-study # Study one customer topic with probabilities/correlations/anomalies
+phrase-performance # Rank 1/2/3/4-word phrases by views, likes, comments, growth, engagement
+method-log  # Log one governed data-access method experiment
+method-rank # Rank data-access methods from experiment logs
+method-review # Write latest method ranking JSON snapshot
+method-proposals # Convert repeated method-review insights into admin proposals
 brief       # Generate daily editorial brief for newsroom
 ```
 
@@ -26,6 +32,12 @@ python -m scripts.analytics anomalies --channel uatv_english --output json
 python -m scripts.analytics anomalies --channel bbc_news --threshold 3.0 --verbose
 python -m scripts.analytics trend --video abc123 --forecast 7d
 python -m scripts.analytics kpi --channel uatv_english
+python -m scripts.analytics topic-study --customer newsroom --topic "drone defense" --output markdown
+python -m scripts.analytics phrase-performance --channel "UATV English" --ngram-min 2 --ngram-max 4 --sort-metric view_count --sort-stat median --output markdown
+python -m scripts.analytics method-rank --output markdown
+python -m scripts.analytics method-review --output-path data/data_access_method_review.json
+python -m scripts.analytics method-proposals
+python -m scripts.analytics method-proposals --write --lifecycle-event
 python -m scripts.analytics brief --channel uatv_english > daily_brief.md
 ```
 
@@ -78,6 +90,66 @@ python -m scripts.analytics brief --channel uatv_english > daily_brief.md
 
 **Functions (TBD):**
 - `calculate_kpi(channel)` → KPI object
+
+---
+
+### [topic_study.py](./topic_study.py)
+**Status:** Implemented
+**Purpose:** Customer-scoped deep topic study over local video records
+
+**Functions:**
+- `study_topic(topic, customer, channel=None, days=90)` → TopicStudyReport
+- `to_json(report)` → JSON string
+- `to_markdown(report)` → Markdown string
+
+**Signals:**
+- match probability
+- attention share
+- recent momentum ratio
+- relevance correlations against views, engagement, and recency
+- topic-matched anomalies
+- evidence rows with matched terms
+- caveats and confidence score
+
+---
+
+### [data_method_evaluator.py](./data_method_evaluator.py)
+**Status:** Implemented
+**Purpose:** File-backed experiment log and ranking for data-access methods
+
+**Functions:**
+- `make_experiment(...)` → validated experiment row
+- `append_experiment(row, log_path)` → JSONL append
+- `analyze_log(log_path)` → ranked method report
+- `to_json(report)` / `to_markdown(report)`
+- `write_review_snapshot(report, output_path)`
+
+**Signals:**
+- success rate
+- partial rate
+- records per second
+- bytes per second
+- cost per record
+- error count
+- recommendation (`collect_more_runs`, `promote_to_reusable_function`, `keep_experimenting`, `investigate_or_retire`)
+
+---
+
+### [phrase_performance.py](./phrase_performance.py)
+**Status:** Implemented
+**Purpose:** Generic n-gram performance scoring over text records and numeric metrics
+
+**Functions:**
+- `analyze_records(records, text_fields, metric_fields)` → generic phrase report
+- `analyze_youtube_phrases(...)` → SQLite YouTube adapter
+- `to_json(report)` / `to_markdown(report)`
+
+**Signals:**
+- 1/2/3/4-gram record count
+- total, mean, median, Q1, Q3, min, max per metric
+- lift versus corpus median
+- sample records for top phrase evidence
+- sortable by views, likes, comments, growth metrics, or engagement
 
 ---
 

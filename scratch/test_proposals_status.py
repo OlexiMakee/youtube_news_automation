@@ -62,6 +62,47 @@ class TestProposalStatus(unittest.TestCase):
             saved = [json.loads(line) for line in f if line.strip()]
         self.assertEqual(saved[0]["status"], "done")
 
+    def test_proposal_workflow_and_role_tags(self):
+        # 1. Test valid tagging
+        res = self.client.post("/api/proposals/submit", json={
+            "type": "feature",
+            "desc": "Check workspace status",
+            "workflow": "memos",
+            "role_tier": "developer"
+        })
+        self.assertEqual(res.status_code, 200)
+        data = res.get_json()["proposal"]
+        self.assertEqual(data["workflow"], "memos")
+        self.assertEqual(data["role_tier"], "developer")
+
+        # 2. Test default fallback tagging
+        res_default = self.client.post("/api/proposals/submit", json={
+            "type": "bug",
+            "desc": "Default tagging"
+        })
+        self.assertEqual(res_default.status_code, 200)
+        data_default = res_default.get_json()["proposal"]
+        self.assertEqual(data_default["workflow"], "product")
+        self.assertEqual(data_default["role_tier"], "admin")
+
+        # 3. Test invalid workflow value
+        res_invalid_wf = self.client.post("/api/proposals/submit", json={
+            "type": "feature",
+            "desc": "Invalid workflow",
+            "workflow": "invalid_wf"
+        })
+        self.assertEqual(res_invalid_wf.status_code, 400)
+        self.assertIn("workflow must be 'product' or 'memos'", res_invalid_wf.get_json()["error"])
+
+        # 4. Test invalid role_tier value
+        res_invalid_role = self.client.post("/api/proposals/submit", json={
+            "type": "feature",
+            "desc": "Invalid role",
+            "role_tier": "invalid_role"
+        })
+        self.assertEqual(res_invalid_role.status_code, 400)
+        self.assertIn("role_tier must be one of", res_invalid_role.get_json()["error"])
+
 
 if __name__ == "__main__":
     unittest.main()

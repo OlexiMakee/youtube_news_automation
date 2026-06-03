@@ -869,6 +869,246 @@ function _renderCredentialStatus(data) {
     }).join("");
 }
 
+function _renderScrapingProposals(data) {
+    const target = document.getElementById("operator-scraping-proposals");
+    if (!target) return;
+
+    const proposals = (data?.proposals || []).filter(p => p.status === "pending");
+    if (!proposals.length) {
+        target.innerHTML = `<div class="operator-empty">No pending proposals.</div>`;
+        return;
+    }
+
+    window.cachedWorkflows = window.cachedWorkflows || {};
+
+    target.innerHTML = proposals.map(p => {
+        const lang = state.currentLang || "en";
+        const budgetLabel = translations[lang]?.lbl_scraping_budget || "Budget ($):";
+        const modeLabel = translations[lang]?.lbl_workflow_mode || "Workflow Mode:";
+        
+        return `
+            <article class="operator-source-row" data-proposal-container="${p.id}" data-source-type="${p.source_type}" style="display: flex; flex-direction: column; gap: 8px; padding: 12px; border-bottom: 1px solid var(--border-color);">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; width: 100%;">
+                    <div class="operator-source-main" style="flex: 1;">
+                        <strong>${escapeHtml(p.name || "Unnamed Proposal")}</strong>
+                        <span class="operator-source-meta" style="display: block; margin-top: 2px;">Type: ${escapeHtml(p.source_type)} | Importance: ${escapeHtml(Number(p.importance).toFixed(2))}</span>
+                        <span class="operator-source-meta" style="display: block; margin-top: 1px; font-family: monospace; font-size: 9px; max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Input: ${escapeHtml(JSON.stringify(p.query_input))}</span>
+                    </div>
+                    <div style="flex-shrink: 0;">
+                        <button class="btn-primary" onclick="approveScrapingProposal('${p.id}')" style="padding: 4px 8px; font-size: 10px; font-weight: 600;">
+                            Approve
+                        </button>
+                    </div>
+                </div>
+                
+                <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; background: var(--bg-hover); padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); margin-top: 4px;">
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <label style="font-size: 10px; font-weight: 600; color: var(--text-muted); margin: 0;">${escapeHtml(budgetLabel)}</label>
+                        <input type="number" step="0.01" min="0" placeholder="0.00" class="proposal-budget-input" 
+                               oninput="window.handleBudgetChange('${p.id}', '${p.source_type}', this.value)"
+                               style="width: 70px; padding: 4px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); border-radius: 4px; font-size: 11px;" />
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <label style="font-size: 10px; font-weight: 600; color: var(--text-muted); margin: 0;">${escapeHtml(modeLabel)}</label>
+                        <select class="proposal-workflow-select" id="wf-select-${p.id}" 
+                                onchange="window.handleWorkflowSelectChange('${p.id}', '${p.source_type}')"
+                                style="padding: 4px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); border-radius: 4px; font-size: 11px; min-width: 140px;">
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="proposal-wf-details" id="wf-details-${p.id}" style="font-size: 10px; color: var(--text-muted); padding-left: 8px; border-left: 2px solid var(--border-color); margin-top: 4px; min-height: 28px;">
+                    Loading workflows...
+                </div>
+            </article>
+        `;
+    }).join("");
+
+    proposals.forEach(p => {
+        _loadWorkflowsForProposal(p.id, p.source_type);
+    });
+}
+
+async function _loadWorkflowsForProposal(proposalId, sourceType) {
+    const select = document.getElementById(`wf-select-${proposalId}`);
+    if (!select) return;
+
+    if (!window.cachedWorkflows[sourceType]) {
+        try {
+            const res = await adminFetch(`/api/scraper/workflows?source_type=${sourceType}`);
+            const data = await res.json();
+            if (data.ok && data.workflows) {
+                window.cachedWorkflows[sourceType] = data.workflows;
+            }
+        } catch (err) {
+            console.error(`Failed to fetch workflows for ${sourceType}`, err);
+        }
+    }
+
+    const workflows = window.cachedWorkflows[sourceType] || [];
+    const lang = state.currentLang || "en";
+    
+    select.innerHTML = workflows.map(w => {
+        const wfKey = `workflow_${w.workflow}`;
+        const translatedLabel = translations[lang]?.[wfKey] || w.label;
+        return `<option value="${w.workflow}">${escapeHtml(translatedLabel)}</option>`;
+    }).join("");
+
+    const defaultWf = workflows.find(w => w.workflow === "medium") || workflows[0];
+    if (defaultWf) {
+        select.value = defaultWf.workflow;
+        _renderWorkflowDetails(proposalId, defaultWf);
+    }
+}
+
+function _renderWorkflowDetails(proposalId, wf) {
+    const details = document.getElementById(`wf-details-${proposalId}`);
+    if (!details) return;
+
+    const lang = state.currentLang || "en";
+    const delayLabel = translations[lang]?.lbl_estimated_delay || "Estimated Delay:";
+    const costLabel = translations[lang]?.lbl_estimated_cost || "Estimated Cost:";
+    const recLabel = translations[lang]?.lbl_api_recommendation || "Recommendation:";
+
+    let warningHtml = "";
+    if (wf.warning) {
+        warningHtml = `<div style="color: var(--danger-color); margin-top: 2px; font-weight: 600;"><i class="fa-solid fa-triangle-exclamation"></i> ${escapeHtml(wf.warning)}</div>`;
+    }
+
+    details.innerHTML = `
+        <div><strong>${escapeHtml(delayLabel)}</strong> ${wf.delay_sec}s | <strong>${escapeHtml(costLabel)}</strong> $${Number(wf.cost_estimate).toFixed(4)}</div>
+        <div style="margin-top: 2px; line-height: 1.3;"><strong>${escapeHtml(recLabel)}</strong> ${escapeHtml(wf.notes)}</div>
+        ${warningHtml}
+    `;
+}
+
+window.handleBudgetChange = async function(proposalId, sourceType, budgetVal) {
+    const select = document.getElementById(`wf-select-${proposalId}`);
+    if (!select) return;
+
+    if (!budgetVal || parseFloat(budgetVal) < 0) {
+        const workflows = window.cachedWorkflows[sourceType] || [];
+        const mediumWf = workflows.find(w => w.workflow === "medium") || workflows[0];
+        if (mediumWf) {
+            select.value = mediumWf.workflow;
+            _renderWorkflowDetails(proposalId, mediumWf);
+        }
+        return;
+    }
+
+    try {
+        const res = await adminFetch(`/api/scraper/workflows?source_type=${sourceType}&budget=${budgetVal}`);
+        const data = await res.json();
+        if (data.ok && data.optimal_workflow) {
+            select.value = data.optimal_workflow.workflow;
+            _renderWorkflowDetails(proposalId, data.optimal_workflow);
+        }
+    } catch (err) {
+        console.error("Error calculating optimal workflow", err);
+    }
+};
+
+window.handleWorkflowSelectChange = function(proposalId, sourceType) {
+    const select = document.getElementById(`wf-select-${proposalId}`);
+    if (!select) return;
+    const selectedVal = select.value;
+    const workflows = window.cachedWorkflows[sourceType] || [];
+    const match = workflows.find(w => w.workflow === selectedVal);
+    if (match) {
+        _renderWorkflowDetails(proposalId, match);
+    }
+};
+
+function _renderScrapingTasks(data) {
+    const target = document.getElementById("operator-scraping-tasks");
+    if (!target) return;
+
+    const tasks = data?.tasks || [];
+    if (!tasks.length) {
+        target.innerHTML = `<div class="operator-empty">No active tasks.</div>`;
+        return;
+    }
+
+    target.innerHTML = tasks.map(t => {
+        let statusBadgeClass = "idle";
+        let statusText = t.status;
+        let progressHtml = "";
+        
+        if (t.status === "running") {
+            statusBadgeClass = "scraping";
+            statusText = "RUNNING";
+            progressHtml = `
+                <div class="progress-bar-container" style="background: var(--border-color); height: 6px; border-radius: 3px; margin-top: 4px; overflow: hidden; position: relative;">
+                    <div class="progress-bar-fill" style="background: var(--accent-color); height: 100%; width: 50%; border-radius: 3px; animation: pulse 1.5s infinite ease-in-out;"></div>
+                </div>
+            `;
+        } else if (t.status === "completed") {
+            statusBadgeClass = "completed";
+            statusText = "COMPLETED";
+        } else if (t.status === "failed") {
+            statusBadgeClass = "error";
+            statusText = "FAILED";
+        }
+
+        const elapsed = t.elapsed_sec != null ? `${t.elapsed_sec}s` : "-";
+        const fetched = t.records_fetched != null ? `${t.records_fetched} records` : "";
+        const detail = t.error ? `<div class="operator-source-meta" style="color: var(--danger-color); word-break: break-all;">Error: ${escapeHtml(t.error)}</div>` : "";
+
+        return `
+            <article class="operator-source-row">
+                <div class="operator-source-main">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+                        <strong>${escapeHtml(t.name || "Scrape Job")}</strong>
+                        <span class="task-badge ${statusBadgeClass}" style="font-size: 8px; padding: 2px 4px;">${escapeHtml(statusText)}</span>
+                    </div>
+                    <span class="operator-source-meta">Type: ${escapeHtml(t.source_type)} | Elapsed: ${escapeHtml(elapsed)} | ${escapeHtml(fetched)}</span>
+                    <span class="operator-source-meta">Started: ${escapeHtml(t.started_at)}</span>
+                    ${progressHtml}
+                    ${detail}
+                </div>
+            </article>
+        `;
+    }).join("");
+}
+
+export async function approveScrapingProposal(proposalId) {
+    const select = document.getElementById(`wf-select-${proposalId}`);
+    const workflowMode = select ? select.value : "medium";
+    
+    let delaySec = null;
+    const proposalContainer = document.querySelector(`[data-proposal-container="${proposalId}"]`);
+    if (proposalContainer) {
+        const sourceType = proposalContainer.getAttribute("data-source-type");
+        const workflows = window.cachedWorkflows[sourceType] || [];
+        const match = workflows.find(w => w.workflow === workflowMode);
+        if (match) {
+            delaySec = match.delay_sec;
+        }
+    }
+
+    try {
+        const res = await adminFetch(`/api/scraper/proposals/${proposalId}/approve`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                workflow_mode: workflowMode,
+                delay_sec: delaySec
+            })
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) {
+            alert(data.error || "Approval failed.");
+        } else {
+            loadOperatorRuntimePanel();
+        }
+    } catch (err) {
+        alert(err.message || "Unable to approve proposal.");
+    }
+}
+
+
 export async function loadOperatorRuntimePanel() {
     const panel = document.getElementById("operator-runtime-panel");
     if (!panel) return;
@@ -882,7 +1122,7 @@ export async function loadOperatorRuntimePanel() {
             throw new Error(policy.error || `Policy request failed: HTTP ${policyRes.status}`);
         }
 
-        const [readinessRes, sourcesRes, connectorsRes, runsRes, recordsRes, dataMethodsRes, eventsRes, evidenceRes, credentialsRes] = await Promise.all([
+        const [readinessRes, sourcesRes, connectorsRes, runsRes, recordsRes, dataMethodsRes, eventsRes, evidenceRes, credentialsRes, proposalsRes, tasksRes] = await Promise.all([
             adminFetch("/api/governance/readiness"),
             adminFetch("/api/sources"),
             adminFetch("/api/source-connectors"),
@@ -891,7 +1131,9 @@ export async function loadOperatorRuntimePanel() {
             adminFetch("/api/analytics/data-methods?min_runs=1"),
             adminFetch("/api/audit-events?limit=5"),
             adminFetch("/api/evidence-links?limit=5"),
-            adminFetch("/api/source-credentials/status?limit=5")
+            adminFetch("/api/source-credentials/status?limit=5"),
+            adminFetch("/api/scraper/proposals"),
+            adminFetch("/api/scraper/tasks")
         ]);
         const readiness = await readinessRes.json();
         const sources = await sourcesRes.json();
@@ -902,6 +1144,8 @@ export async function loadOperatorRuntimePanel() {
         const events = await eventsRes.json();
         const evidence = await evidenceRes.json();
         const credentials = await credentialsRes.json();
+        const proposals = await proposalsRes.json();
+        const tasks = await tasksRes.json();
         if (!readinessRes.ok || readiness.error) {
             throw new Error(readiness.error || `Readiness request failed: HTTP ${readinessRes.status}`);
         }
@@ -929,6 +1173,12 @@ export async function loadOperatorRuntimePanel() {
         if (!credentialsRes.ok || credentials.error) {
             throw new Error(credentials.error || `Credential status request failed: HTTP ${credentialsRes.status}`);
         }
+        if (!proposalsRes.ok || proposals.error) {
+            throw new Error(proposals.error || `Proposals request failed: HTTP ${proposalsRes.status}`);
+        }
+        if (!tasksRes.ok || tasks.error) {
+            throw new Error(tasks.error || `Tasks request failed: HTTP ${tasksRes.status}`);
+        }
 
         _renderPolicyTiers(policy.policy_tiers);
         _renderMigrationReadiness(readiness);
@@ -940,6 +1190,8 @@ export async function loadOperatorRuntimePanel() {
         _renderAuditEvents(events);
         _renderEvidenceLinks(evidence);
         _renderCredentialStatus(credentials);
+        _renderScrapingProposals(proposals);
+        _renderScrapingTasks(tasks);
 
         const ready = Boolean(readiness.registry_ready && policy.registry_ready && sources.registry_ready && runs.registry_ready && records.registry_ready && events.registry_ready && evidence.registry_ready && credentials.registry_ready);
         if (ready) {
@@ -958,6 +1210,8 @@ export async function loadOperatorRuntimePanel() {
         const events = document.getElementById("operator-audit-events");
         const evidence = document.getElementById("operator-evidence-links");
         const credentials = document.getElementById("operator-credential-status");
+        const proposals = document.getElementById("operator-scraping-proposals");
+        const tasks = document.getElementById("operator-scraping-tasks");
         const ingest = document.getElementById("operator-ingest-result");
         if (tiers) tiers.innerHTML = `<div class="operator-empty">${escapeHtml(err.message || "Unable to load policy tiers.")}</div>`;
         if (readiness) readiness.innerHTML = `<div class="operator-empty">Migration readiness unavailable.</div>`;
@@ -969,6 +1223,8 @@ export async function loadOperatorRuntimePanel() {
         if (events) events.innerHTML = `<div class="operator-empty">Audit events unavailable.</div>`;
         if (evidence) evidence.innerHTML = `<div class="operator-empty">Evidence links unavailable.</div>`;
         if (credentials) credentials.innerHTML = `<div class="operator-empty">Credential status unavailable.</div>`;
+        if (proposals) proposals.innerHTML = `<div class="operator-empty">Scraping proposals unavailable.</div>`;
+        if (tasks) tasks.innerHTML = `<div class="operator-empty">Scraping tasks unavailable.</div>`;
     }
 }
 

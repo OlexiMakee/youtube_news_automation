@@ -29,6 +29,27 @@ python scripts/update_handshake.py --last "..." --place "..." --next "..."
 python scripts/compact_memory.py
 python scripts/compact_memory.py --write
 
+# Audit Memory OS control-plane state
+python scripts/memos.py audit
+python scripts/memos.py validate
+python scripts/memos.py quantize --task "fix one route test"
+python scripts/memos.py workflows
+python scripts/memos.py workflows --write-manifest
+python scripts/memos.py snapshot --write
+python scripts/memos.py method-proposals
+python scripts/memos.py method-proposals --write --lifecycle-event
+python scripts/memory/audit_memos.py
+python scripts/memory/audit_memos.py --format json
+python scripts/memory/validate_workflows.py
+python scripts/memory/validate_workflows.py --write-manifest
+
+# Convert repeated data-access method insights into proposals (dry-run default)
+python -m scripts.analytics method-proposals
+python -m scripts.analytics method-proposals --write --lifecycle-event
+
+# Rank phrase/n-gram performance from local YouTube records
+python -m scripts.analytics phrase-performance --channel "UATV English" --ngram-min 2 --ngram-max 4 --output markdown
+
 # Pre-compute N-grams + TF-IDF weighted performance lift trends
 python scripts/analyze_trends.py
 ```

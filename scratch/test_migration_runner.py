@@ -92,6 +92,46 @@ class TestMigrationRunner(unittest.TestCase):
             conn.close()
         self.assertIsNone(migration)
 
+    def test_repo_governance_registry_migration_creates_target_tables(self):
+        conn = sqlite3.connect(self.db_path)
+        try:
+            conn.execute("CREATE TABLE videos (video_id TEXT PRIMARY KEY)")
+            conn.commit()
+        finally:
+            conn.close()
+
+        result = migrate_db.apply_migrations(
+            self.db_path,
+            migrations_dir=migrate_db.DEFAULT_MIGRATIONS_DIR,
+            backup_dir=self.backup_dir
+        )
+        self.assertIn("0002_governance_registry", result["applied"])
+
+        expected_tables = {
+            "sources",
+            "source_credentials",
+            "source_records",
+            "connector_runs",
+            "audit_events",
+            "ai_outputs",
+            "evidence_links",
+        }
+        conn = sqlite3.connect(self.db_path)
+        try:
+            existing = {
+                row[0] for row in conn.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table'"
+                ).fetchall()
+            }
+            migration = conn.execute(
+                "SELECT version FROM schema_migrations WHERE version='0002_governance_registry'"
+            ).fetchone()
+        finally:
+            conn.close()
+
+        self.assertTrue(expected_tables.issubset(existing))
+        self.assertIsNotNone(migration)
+
 
 if __name__ == "__main__":
     unittest.main()

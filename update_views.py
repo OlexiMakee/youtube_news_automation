@@ -18,13 +18,13 @@ root_dir = os.path.dirname(os.path.abspath(__file__))
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
 
-import news_scraper.utils as utils
+import scraper.utils as utils
 
 # Auto-bootstrap virtual environment
 utils.setup_and_run_venv(__file__)
 
 import yt_dlp
-from news_scraper.db_client import DatabaseClient
+from scraper.db_client import DatabaseClient
 
 db_client = DatabaseClient()
 
@@ -200,7 +200,7 @@ def main():
     
     # Automatically synchronize final views data to Neon Postgres if configured
     try:
-        from news_scraper.postgres_sync import PostgresSyncClient
+        from scraper.postgres_sync import PostgresSyncClient
         pg_client = PostgresSyncClient()
         if pg_client.is_configured():
             print("\n[*] Running final synchronization to Neon Postgres...")

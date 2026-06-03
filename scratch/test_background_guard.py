@@ -162,6 +162,25 @@ class TestBackgroundGuard(unittest.TestCase):
             response = client.get("/api/terminal/stream")
             self.assertEqual(response.status_code, 403)
 
+            response = client.get("/api/action/status")
+            self.assertEqual(response.status_code, 403)
+
+            response = client.get("/api/action/status", headers={"X-Admin-Token": "secret-token"})
+            self.assertEqual(response.status_code, 200)
+            self.assertIn("status", response.get_json())
+
+            response = client.get("/api/agent/models")
+            self.assertEqual(response.status_code, 403)
+
+            response = client.post("/api/agent/chat", json={"message": "hello"})
+            self.assertEqual(response.status_code, 403)
+
+            response = client.post("/api/agent/chat/stream", json={"message": "hello"})
+            self.assertEqual(response.status_code, 403)
+
+            response = client.post("/api/chat/clear-context", json={})
+            self.assertEqual(response.status_code, 403)
+
             response = client.post(
                 "/api/action/scrape",
                 headers={"X-Admin-Token": "secret-token"},
@@ -169,6 +188,30 @@ class TestBackgroundGuard(unittest.TestCase):
             )
             self.assertEqual(response.status_code, 503)
             self.assertIn(b"Background daemons are disabled", response.data)
+        finally:
+            if old_token is None:
+                os.environ.pop("NEWS_RESEARCH_ADMIN_TOKEN", None)
+            else:
+                os.environ["NEWS_RESEARCH_ADMIN_TOKEN"] = old_token
+
+    def test_video_utility_endpoints_require_token_when_configured(self):
+        from app import create_app
+
+        old_token = os.environ.get("NEWS_RESEARCH_ADMIN_TOKEN")
+        os.environ["NEWS_RESEARCH_ADMIN_TOKEN"] = "secret-token"
+        try:
+            client = create_app().test_client()
+            checks = [
+                ("get", "/api/videos/export"),
+                ("post", "/api/videos/test-video/scrape_details"),
+                ("post", "/api/videos/ocr_thumbnails"),
+                ("get", "/api/videos/test-video/formats"),
+                ("get", "/api/videos/test-video/download"),
+            ]
+            for method, path in checks:
+                response = getattr(client, method)(path, json={} if method == "post" else None)
+                self.assertEqual(response.status_code, 403, path)
+                self.assertIn(b"Admin access required", response.data)
         finally:
             if old_token is None:
                 os.environ.pop("NEWS_RESEARCH_ADMIN_TOKEN", None)
@@ -185,6 +228,15 @@ class TestBackgroundGuard(unittest.TestCase):
         finally:
             if old_var is not None:
                 os.environ["NEWS_RESEARCH_DISABLE_BACKGROUND_DAEMONS"] = old_var
+
+    def test_web_app_initial_update_respects_daemon_guard(self):
+        import web_app
+
+        with patch("web_app.background_daemons_disabled", return_value=True):
+            self.assertFalse(web_app.should_start_initial_update(True))
+        with patch("web_app.background_daemons_disabled", return_value=False):
+            self.assertTrue(web_app.should_start_initial_update(True))
+            self.assertFalse(web_app.should_start_initial_update(False))
 
 
 if __name__ == "__main__":

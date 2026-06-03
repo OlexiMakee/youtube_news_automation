@@ -41,7 +41,6 @@
 {"source": "backend.state_sanitization.layout_key_whitelist", "target": "ui.layout.persistence_bounds_and_suppression", "type": "depends_on"}
 {"source": "agent.governance.behavioral_guidelines_update", "target": "documentation.best_practices.dynamic_update", "type": "depends_on"}
 {"source": "system.dependency_routing.full_module_paths", "target": "system.cli.single_entrypoint", "type": "depends_on"}
-{"source": "solid.isp_separation.db_client", "target": "solid.isp_separation.db_client", "type": "overrides"}
 {"source": "governance.proposals.test_verification", "target": "governance.schema.validation_authoring_sync", "type": "configures"}
 {"source": "governance.proposals.test_verification", "target": "testing.unit_test_integrity", "type": "depends_on"}
 {"source": "data.deduplication.relational_integrity", "target": "data.schema.no_unapproved_changes", "type": "depends_on"}

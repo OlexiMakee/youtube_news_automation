@@ -16,20 +16,20 @@ import argparse
 import select
 from datetime import date, timedelta
 
-# Add the current directory to sys.path so that news_scraper imports work seamlessly
+# Add the current directory to sys.path so that scraper imports work seamlessly
 root_dir = os.path.dirname(os.path.abspath(__file__))
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
 
-import news_scraper.utils as utils
+import scraper.utils as utils
 
 # Launch automatic virtual environment setup
 utils.setup_and_run_venv(__file__)
 
-from news_scraper.db_client import DatabaseClient
-from news_scraper.scraper_engine import YouTubeScraperEngine
-import news_scraper.cli_progress as cli_progress
-from news_scraper.keypress import KeypressDetector
+from scraper.db_client import DatabaseClient
+from scraper.scraper_engine import YouTubeScraperEngine
+import scraper.cli_progress as cli_progress
+from scraper.keypress import KeypressDetector
 
 # Maximum video limit per channel
 LIMIT_PER_CHANNEL = 17000
@@ -177,7 +177,7 @@ def make_auto_sync_callback(silent=False):
     """Creates a callback for auto-syncing DB with Neon Postgres (delta replication)."""
     def auto_sync(db_client):
         try:
-            from news_scraper.postgres_sync import PostgresSyncClient
+            from scraper.postgres_sync import PostgresSyncClient
             pg_client = PostgresSyncClient()
             if pg_client.is_configured():
                 if not silent:
@@ -213,7 +213,7 @@ def run_multi_scraping(channels_list, days, stop_on_known=True, single_channel_m
 
     if run_kaggle:
         try:
-            from news_scraper.kaggle_sync import sync_db_with_kaggle
+            from scraper.kaggle_sync import sync_db_with_kaggle
             print("[*] Checking for database updates in the cloud (Kaggle)...")
             sync_db_with_kaggle(db_path, direction="smart", silent=False)
         except Exception as e:
@@ -227,7 +227,7 @@ def run_multi_scraping(channels_list, days, stop_on_known=True, single_channel_m
     run_postgres = True
     pg_configured = False
     try:
-        from news_scraper.postgres_sync import PostgresSyncClient
+        from scraper.postgres_sync import PostgresSyncClient
         pg_client = PostgresSyncClient()
         pg_configured = pg_client.is_configured()
     except Exception:
@@ -360,7 +360,7 @@ def run_multi_scraping(channels_list, days, stop_on_known=True, single_channel_m
 
     # Final Neon Postgres sync (timeout default: sync)
     try:
-        from news_scraper.postgres_sync import PostgresSyncClient
+        from scraper.postgres_sync import PostgresSyncClient
         pg_client = PostgresSyncClient()
         if pg_client.is_configured():
             run_final_postgres = True
@@ -386,7 +386,7 @@ def run_multi_scraping(channels_list, days, stop_on_known=True, single_channel_m
         )
     if run_final_kaggle:
         try:
-            from news_scraper.kaggle_sync import sync_db_with_kaggle
+            from scraper.kaggle_sync import sync_db_with_kaggle
             db_path = os.path.join(root_dir, "data", "youtube_news.db")
             print("\n[*] Running final Kaggle synchronization...")
             sync_db_with_kaggle(db_path, direction="smart", silent=False)

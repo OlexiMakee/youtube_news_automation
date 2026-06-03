@@ -13,7 +13,7 @@ warnings.filterwarnings("ignore")
 import os
 import sys
 
-# Add the current directory to sys.path so that news_scraper imports work seamlessly
+# Add the current directory to sys.path so that scraper imports work seamlessly
 root_dir = os.path.dirname(os.path.abspath(__file__))
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
@@ -22,15 +22,15 @@ import time
 import json
 import argparse
 import requests
-import news_scraper.utils as utils
+import scraper.utils as utils
 
 # Auto-bootstrap virtual environment to ensure all dependencies are resolved
 utils.setup_and_run_venv(__file__)
 
 import re
-from news_scraper.db_client import DatabaseClient
-from news_scraper.scraper_engine import YouTubeScraperEngine
-import news_scraper.cli_progress as cli_progress
+from scraper.db_client import DatabaseClient
+from scraper.scraper_engine import YouTubeScraperEngine
+import scraper.cli_progress as cli_progress
 
 # Global database client instance for script functions
 db_client = DatabaseClient()
@@ -153,7 +153,7 @@ def update_channel_via_api(channel_id, api_key, known_ids, silent):
     return len(video_map)
 
 
-from news_scraper.keypress import KeypressDetector
+from scraper.keypress import KeypressDetector
 
 def update_channel_via_scraping(channel_id, known_ids, silent):
     """

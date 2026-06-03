@@ -16,6 +16,8 @@
 
 ### 🎯 Decision Records
 - [ADR-001: Shared KB Architecture](./decisions/ADR-001-SHARED_KB_ARCHITECTURE.md) — Multi-agent sync
+- [ADR-002: Memory OS Deep Topic Study Doctrine](./decisions/ADR-002-MEMORY_OS_DEEP_TOPIC_STUDY.md) — OS-inspired memory and bounded customer-topic analytics
+- [ADR-003: Data Access Experiment Loop](./decisions/ADR-003-DATA_ACCESS_EXPERIMENT_LOOP.md) — Logging and ranking permitted data-reading methods
 - [FEATURE_PRIORITIES.md](./decisions/FEATURE_PRIORITIES.md) — Roadmap (Tier 1/2/3)
 - [decisions/INDEX.md](./decisions/INDEX.md) — All ADRs
 
@@ -23,6 +25,7 @@
 - [CHANNEL_PERFORMANCE_PATTERNS.md](./insights/CHANNEL_PERFORMANCE_PATTERNS.md) — Initial findings
 - [insights/INDEX.md](./insights/INDEX.md) — All insights
 - [COMMON_ERRORS_AND_WORKAROUNDS.md](./learnings/COMMON_ERRORS_AND_WORKAROUNDS.md) — Known issues
+- [OPERATOR_RUNTIME_GOVERNANCE.md](./learnings/OPERATOR_RUNTIME_GOVERNANCE.md) — Governance endpoint redaction contracts
 - [learnings/INDEX.md](./learnings/INDEX.md) — All learnings
 
 ### 🔄 Sync & Collaboration
@@ -37,8 +40,9 @@
 ### 🤖 For AI Agents (First Time)
 
 1. **Read first (5 min):**
-   - [handshake.md](../handshake.md) — 7-step onboarding
-   - [.ai_context.md](../.ai_context.md) — Current state snapshot
+   - [HANDSHAKE.md](../agent_context/HANDSHAKE.md) — Latest session status & handover
+   - [llms.txt](../llms.txt) — Curated index of codebase entrypoints
+   - [agent_context/task_capsules.jsonl](../agent_context/task_capsules.jsonl) — Chronological experience log
 
 2. **Read second (10 min):**
    - [../strategy.md](../strategy.md) — Project philosophy (Local-First, Decision-First, CLI-First)
@@ -82,6 +86,8 @@
 ### CLI Scripts & Analytics
 - [BEST_PRACTICES.md](./docs/BEST_PRACTICES.md#cli-patterns) — CLI implementation rules
 - [METRIC_DICTIONARY.md](./docs/METRIC_DICTIONARY.md) — What metrics to implement
+- [ADR-002](./decisions/ADR-002-MEMORY_OS_DEEP_TOPIC_STUDY.md) — Deep topic study doctrine and command
+- [ADR-003](./decisions/ADR-003-DATA_ACCESS_EXPERIMENT_LOOP.md) — Data-access method experiment loop
 - [scripts/analytics/README.md](../scripts/analytics/README.md) — Anomaly Detector spec
 
 ### Database & SQL
@@ -96,7 +102,7 @@
 ### Multi-Agent Coordination
 - [ADR-001](./decisions/ADR-001-SHARED_KB_ARCHITECTURE.md) — Why we use Git-backed KB
 - [SYNC_PROTOCOL.md](./SYNC_PROTOCOL.md) — How conflicts are resolved
-- [handshake.md](../handshake.md) — Onboarding protocol
+- [HANDSHAKE.md](../agent_context/HANDSHAKE.md) — Onboarding & handover protocol
 
 ---
 
@@ -146,20 +152,23 @@ knowledge_base/
 | `#errors` | COMMON_ERRORS_AND_WORKAROUNDS.md |
 | `#decisions` | decisions/INDEX.md, ADRs |
 | `#sync` | SYNC_PROTOCOL.md, ADR-001 |
-| `#onboarding` | ../handshake.md, .ai_context.md |
+| `#onboarding` | ../agent_context/HANDSHAKE.md, ../llms.txt |
 
 ### Common Queries
 
 | Query | Best Document |
 |-------|---|
 | "What metrics do we have?" | [METRIC_DICTIONARY.md](./docs/METRIC_DICTIONARY.md) |
+| "How do we study one topic deeply?" | [ADR-002](./decisions/ADR-002-MEMORY_OS_DEEP_TOPIC_STUDY.md) |
+| "How do we rank data-reading methods?" | [ADR-003](./decisions/ADR-003-DATA_ACCESS_EXPERIMENT_LOOP.md) |
 | "How do I write a SQL query?" | [BEST_PRACTICES.md](./docs/BEST_PRACTICES.md#sql-patterns) |
 | "What's the system architecture?" | [ARCHITECTURE.md](./docs/ARCHITECTURE.md) |
 | "How do conflicts get resolved?" | [SYNC_PROTOCOL.md](./SYNC_PROTOCOL.md) |
 | "What should I build next?" | [FEATURE_PRIORITIES.md](./decisions/FEATURE_PRIORITIES.md) |
 | "Why does this happen?" | [COMMON_ERRORS_AND_WORKAROUNDS.md](./learnings/COMMON_ERRORS_AND_WORKAROUNDS.md) |
+| "What can Operator Runtime endpoints expose?" | [OPERATOR_RUNTIME_GOVERNANCE.md](./learnings/OPERATOR_RUNTIME_GOVERNANCE.md) |
 | "What's the project philosophy?" | [../strategy.md](../strategy.md) |
-| "How do I start working?" | [../handshake.md](../handshake.md) |
+| "How do I start working?" | [HANDSHAKE.md](../agent_context/HANDSHAKE.md) |
 
 ---
 
@@ -170,6 +179,9 @@ knowledge_base/
 | 2026-05-30 | Created INDEX.md + METRIC_DICTIONARY.md | Copilot |
 | 2026-05-30 | Created ADR-001, SYNC_PROTOCOL.md | Copilot |
 | 2026-05-30 | Initial KB structure (ARCHITECTURE.md, BEST_PRACTICES.md) | Copilot |
+| 2026-06-01 | Added Operator Runtime governance redaction contracts | Codex |
+| 2026-06-01 | Added Memory OS deep topic study doctrine | Codex |
+| 2026-06-01 | Added Data Access Experiment Loop doctrine | Codex |
 
 ---
 
@@ -178,8 +190,10 @@ knowledge_base/
 | File | Purpose |
 |------|---------|
 | [strategy.md](../strategy.md) | Architectural contract (locked) |
-| [handshake.md](../handshake.md) | Agent onboarding (5-step) |
-| [.ai_context.md](../.ai_context.md) | State snapshot for Antigravity |
+| [HANDSHAKE.md](../agent_context/HANDSHAKE.md) | Agent onboarding & handover status |
+| [llms.txt](../llms.txt) | Root Map codebase entry points |
+| [memory_snapshot.json](../agent_context/memory_snapshot.json) | Memory Nodes snapshot index |
+| [task_capsules.jsonl](../agent_context/task_capsules.jsonl) | Experience Memory Log |
 | [.cursorrules](../.cursorrules) | Behavioral guardrails |
 | [.windsurf](./.windsurf) | Windsurf IDE rules |
 | [agent_context/](../agent_context/) | Context + logs + memory templates |

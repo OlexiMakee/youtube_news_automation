@@ -11,20 +11,25 @@ import os
 import sys
 import threading
 
-# Add the current directory to sys.path so that news_scraper and app imports work seamlessly
+# Add the current directory to sys.path so that scraper and app imports work seamlessly
 root_dir = os.path.dirname(os.path.abspath(__file__))
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
 
-import news_scraper.utils as utils
+import scraper.utils as utils
 # Automatically reboot inside venv if not already active, ensuring all dependencies are met
 utils.setup_and_run_venv(__file__, required_libs=["psycopg2-binary", "pytesseract", "pillow"])
 
 from app import create_app
-from app.state import trigger_background_update
+from app.state import background_daemons_disabled, trigger_background_update
 
 # Initialize the Flask app using the application factory
 app = create_app()
+
+
+def should_start_initial_update(is_reloader_child):
+    """Return True when the dev reloader child may start the initial DB update."""
+    return is_reloader_child and not background_daemons_disabled()
 
 
 def find_free_port(preferred=5001, max_tries=20):
@@ -90,7 +95,7 @@ def main():
             print(f"[!] Process cleanup failed: {e}")
 
     # Initialize DB (run migrations) on web app startup
-    from news_scraper.db_client import DatabaseClient
+    from scraper.db_client import DatabaseClient
     db_client = DatabaseClient()
     db_client.init_db()
 
@@ -109,7 +114,7 @@ def main():
         os.environ["WEB_APP_PORT"] = str(port)
 
     # Trigger initial database update only in the reloader child (runs the real app)
-    if is_reloader_child:
+    if should_start_initial_update(is_reloader_child):
         print("[*] Starting initial database update in the background...")
         threading.Thread(target=lambda: trigger_background_update(cooldown_seconds=0), daemon=True).start()
 

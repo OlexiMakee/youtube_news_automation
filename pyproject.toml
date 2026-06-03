@@ -22,4 +22,4 @@ dependencies = [
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["news_scraper", "news_scraper.*"]
+include = ["scraper", "scraper.*"]

@@ -18,8 +18,7 @@
 - [x] Scheduler Binding (manual dashboard trigger button) for data method review proposals generation: Registered admin-gated `POST /api/analytics/data-methods/proposals` endpoint, added `generateMethodProposals` controller in `static/js/ui.js` and bound it globally in `static/js/app.js`, added "Proposals" button in the Operator panel of `templates/index.html`, wrote integration tests in `scratch/test_method_review_proposals_api.py`, checked off the roadmap item, and rebuilt the memory snapshot.
 - [x] Memory OS Knowledge Compaction & Graph Extraction: Implemented `compact_capsules` in `scripts/memory/compact_capsules.py` and registered the `compact` subcommand in `scripts/memos.py` to extract permanent knowledge nodes/edges from task capsules log. Expanded transition validation in `scripts/memory/lifecycle.py` to accept `connector`, `config`, and `policy` node types, and covered compaction operations with unit tests in `scratch/test_compact_capsules.py`.
 - [x] Memory OS Dual-Purpose Architecture & Language Gating: Documented the division between Dev-OS (internal codebase RAG) and User-OS (isolated end-user dashboard metrics stored in SQLite data/memory_os.db) in strategy.md and memory_os_architecture.md. Added global language policy rules (respond in user's language, block Russian, fallback to random non-Russian language) in AGENT_RULES.md and prompts: chief_editor_core.md, system_prompt.txt, system_instructions_user.txt.
-
-
+- [x] Memory OS Architecture Rebuild & Backlog Compaction: Audited and staged rebuild. Translated Ukrainian nodes, removed self-referential edges, added validator integrity rules (dangling and self-referential check), resolved stale node transition locks, and implemented automatic archiving of compacted task capsules. Archived 49 task capsules to `archived_task_capsules.jsonl` reducing active context, and verified all 207 tests discover and pass successfully.
 
 ## Blocked / Pending
 - [ ] Keep live DB migrations to the main scraped database blocked until explicit user confirmation.
@@ -29,7 +28,7 @@
 ## Next Handover
 - Target Command: `product high mid` → next agent
 - Scope: Manual rendered smoke and next Phase 3 product features (Editorial Briefs generation refinements, custom layouts export/imports).
-- Entry Criteria: Verify all 199 tests are passing; verify `memos validate` is clean.
+- Entry Criteria: Verify all 207 tests are passing; verify `memos validate` is clean.
 - Context Payload:
   1. Relocated close button (.widget-remove-btn) position directly under `.dashboard-widget` in [widgets.js](file:///Users/oleksii/Documents/News%20Research%20Automation/static/js/widgets.js).
   2. Database-backed layout presets inside `app/routes/actions.py` and layouts menu dropdown in workspace.
@@ -37,8 +36,6 @@
   4. Entity extraction service in [entities.py](file:///Users/oleksii/Documents/News%20Research%20Automation/app/services/entities.py) and routes in [entities_routes.py](file:///Users/oleksii/Documents/News%20Research%20Automation/app/routes/entities.py).
 
 ## Last Change
-- Updated at: 2026-06-03T16:41:00Z
-- Files: strategy.md, agent_context/memory_os_architecture.md, agent_context/AGENT_RULES.md, app/services/chief_editor_core.md, app/services/system_prompt.txt, app/services/system_instructions_user.txt, agent_context/task_capsules.jsonl, agent_context/development_log.md, agent_context/HANDSHAKE.md
-- Status: Aligned Memory OS for dual-purpose operations (Developer Dev-OS vs User-Facing User-OS) and integrated the Global Response Language Policy. Updated documentation, agent rules, and prompt templates, and verified all 203 backend tests compile and pass cleanly.
-
-
+- Updated at: 2026-06-03T18:10:00Z
+- Files: memory/nodes.jsonl, memory/edges.jsonl, app/services/memory_os/lifecycle.py, app/services/memory_os/validator.py, app/services/memory_os/compactor.py, scratch/test_memory_lifecycle.py, scratch/test_memory_os_mvp.py, scratch/test_memory_rebuild.py, agent_context/task_capsules.jsonl, agent_context/archived_task_capsules.jsonl, agent_context/development_log.md, agent_context/HANDSHAKE.md
+- Status: Completed Memory OS Audit & staged rebuild. Translated Ukrainian nodes, removed self-referential edge, added validation logic for dangling and self-referential edges, resolved stale node re-transition locks, and implemented automatic archiving of compacted task capsules to reduce context bloat. Verified all 207 tests pass cleanly.

@@ -113,7 +113,7 @@ def build_admin_health(root_dir: str, bg_state: Dict[str, Any]) -> Dict[str, Any
         "ok": True,
         "generated_at": datetime.now().isoformat(timespec="seconds"),
         "app": {
-            "name": "YouTube News Automation",
+            "name": "Governed Autonomous Intelligence Workspace",
             "mode": os.environ.get("FLASK_ENV", "development"),
         },
         "system": {

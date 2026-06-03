@@ -60,6 +60,9 @@ class TestWidgetsState(unittest.TestCase):
                     "activeChartType": "top_viewed",
                     "chartLimit": 1000,
                     "ignored": "drop me",
+                    "width": "400px",
+                    "height": "300px",
+                    "collapsed": True
                 }
             ]
         }
@@ -68,6 +71,9 @@ class TestWidgetsState(unittest.TestCase):
         self.assertEqual(save.status_code, 200)
         saved = save.get_json()
         self.assertEqual(saved["widgets"][0]["chartLimit"], 500)
+        self.assertEqual(saved["widgets"][0]["width"], "400px")
+        self.assertEqual(saved["widgets"][0]["height"], "300px")
+        self.assertEqual(saved["widgets"][0]["collapsed"], True)
         self.assertNotIn("ignored", saved["widgets"][0])
 
         state_file = self.root / "data" / "dashboard_widgets.json"
@@ -88,6 +94,85 @@ class TestWidgetsState(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 400)
         self.assertIn("unsupported widget type", response.get_json()["error"])
+
+    def test_layouts_crud_flow_and_isolation(self):
+        client = self._client_with_root()
+        headers = {"X-Admin-Token": "secret-token"}
+
+        # 1. Get initial layouts, default should exist
+        res = client.get("/api/widgets/layouts", headers=headers)
+        self.assertEqual(res.status_code, 200)
+        layouts = res.get_json()["layouts"]
+        self.assertEqual(len(layouts), 1)
+        self.assertEqual(layouts[0]["name"], "Default")
+        self.assertEqual(layouts[0]["is_default"], 1)
+        default_layout_id = layouts[0]["id"]
+
+        # Save some widgets on the Default layout
+        payload_default = {
+            "widgets": [
+                {
+                    "id": "widget-def-1",
+                    "type": "channel-analytics",
+                    "width": "400px",
+                    "height": "300px",
+                    "collapsed": True
+                }
+            ]
+        }
+        res = client.put("/api/widgets/state", headers=headers, json=payload_default)
+        self.assertEqual(res.status_code, 200)
+
+        # 2. Create a new layout preset
+        res = client.post("/api/widgets/layouts", headers=headers, json={"name": "Crisis Monitor"})
+        self.assertEqual(res.status_code, 200)
+        new_layout = res.get_json()["layout"]
+        self.assertEqual(new_layout["name"], "Crisis Monitor")
+        self.assertEqual(new_layout["is_default"], 0)
+        crisis_layout_id = new_layout["id"]
+
+        # 3. Activate the new layout
+        res = client.post(f"/api/widgets/layouts/activate/{crisis_layout_id}", headers=headers)
+        self.assertEqual(res.status_code, 200)
+
+        # 4. Read state of active layout (Crisis Monitor) - should be empty
+        res = client.get("/api/widgets/state", headers=headers)
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(len(res.get_json()["widgets"]), 0)
+
+        # Save widgets on Crisis Monitor layout
+        payload_crisis = {
+            "widgets": [
+                {
+                    "id": "widget-crisis-1",
+                    "type": "anomaly-alerts",
+                    "width": "500px",
+                    "height": "400px",
+                    "collapsed": False,
+                    "anomalyThreshold": 3.0
+                }
+            ]
+        }
+        res = client.put("/api/widgets/state", headers=headers, json=payload_crisis)
+        self.assertEqual(res.status_code, 200)
+
+        # 5. Switch back to Default layout and read state - should contain widget-def-1
+        res = client.post(f"/api/widgets/layouts/activate/{default_layout_id}", headers=headers)
+        self.assertEqual(res.status_code, 200)
+
+        res = client.get("/api/widgets/state", headers=headers)
+        self.assertEqual(res.status_code, 200)
+        widgets = res.get_json()["widgets"]
+        self.assertEqual(len(widgets), 1)
+        self.assertEqual(widgets[0]["id"], "widget-def-1")
+
+        # 6. Delete layout
+        res = client.delete(f"/api/widgets/layouts/{crisis_layout_id}", headers=headers)
+        self.assertEqual(res.status_code, 200)
+
+        # Verify it's gone
+        res = client.get("/api/widgets/layouts", headers=headers)
+        self.assertEqual(len(res.get_json()["layouts"]), 1)
 
 
 if __name__ == "__main__":

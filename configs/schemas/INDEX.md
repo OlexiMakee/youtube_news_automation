@@ -3,7 +3,7 @@
 Status: pointer docs for v1.1 planning and implementation checks.
 
 ## Files
-- `db_schema_v2.json`: current SQLite reality plus planned tables and migration policy.
+- `db_schema_v2.json`: current SQLite reality plus planned/target tables and migration policy.
 - `llm_providers.json`: provider chain contract.
 
 ## Current Local DB Reality
@@ -18,6 +18,9 @@ Not present yet:
 - `chat_room_members`
 - `chat_messages`
 - `telemetry_logs`
+
+## Target Schema Drafts
+- `migrations/0002_governance_registry.sql`: source registry, credentials, connector runs, audit events, AI outputs, and evidence links.
 
 ## Provider Contract
 - Gemini free/default first when configured.

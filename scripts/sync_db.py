@@ -9,18 +9,18 @@ import os
 import sys
 import datetime
 
-# Add the current directory to sys.path so that news_scraper imports work seamlessly
+# Add the current directory to sys.path so that scraper imports work seamlessly
 root_dir = os.path.dirname(os.path.abspath(__file__))
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
 
-import news_scraper.utils as utils
+import scraper.utils as utils
 
 # Automatically launch virtual environment
 utils.setup_and_run_venv(__file__)
 
 # After importing venv, we can resolve specific dependencies
-from news_scraper.kaggle_sync import get_sync_status, sync_db_with_kaggle, check_and_setup_kaggle_auth
+from scraper.kaggle_sync import get_sync_status, sync_db_with_kaggle, check_and_setup_kaggle_auth
 
 # Configuration constants
 DB_PATH = os.path.join(root_dir, "data", "youtube_news.db")

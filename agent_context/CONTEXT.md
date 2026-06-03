@@ -1,9 +1,52 @@
 # Project Context
 
-Project: YouTube News Automation.
+Project: Governed Autonomous Intelligence Workspace.
 Owner: Oleksii, news media analyst.
 State: local-first Flask dashboard, AI chat in progress.
 Runtime: macOS, Python 3.9, `venv_auto/`, SQLite local, Neon optional.
+
+## Governance, Policy, & Ethical Guardrails
+
+### Acceptable Use Boundaries
+The workspace is built exclusively to support:
+- News monitoring & editorial briefing
+- Public narrative analysis & entity tracking
+- Evidence-backed research & claim verification
+- Crisis monitoring, OSINT investigation, and internal risk reporting
+
+### Misuse & Prohibited Boundaries
+The workspace explicitly prohibits and blocks the following workflows:
+- Stalking, doxxing, or harvesting private credentials/data
+- Covert influence operations or automated political persuasion
+- Bot coordination or evasion of platform restrictions
+- Unlawful surveillance or bypassing access controls
+
+### Source Policy Tiers
+All data sources ingested must belong to one of these governed tiers:
+- **Tier A**: Official APIs or permitted programmatic feeds (allow with quotas)
+- **Tier B**: Licensed, research, or partner feeds (allow with contract compliance)
+- **Tier C**: User-provided owned sources, manual imports, and RSS (allow with ownership disclaimer)
+- **Tier D**: Managed collection vendors with built-in governance (allow after vendor review)
+- **Tier E**: Custom scrapers (disabled by default; requires explicit administrator whitelist)
+- **Tier X**: Prohibited or high-risk collection sources (permanently blocked)
+
+### Progressive Entitlement Modes
+Feature access is scaffolded through entitlement flags, not ad hoc UI checks:
+- `ready_workspace`: prebuilt editorial workspace and monitored source cards.
+- `dense_workspace`: resizable widgets, saved layouts, dense analyst workflow.
+- `linked_intelligence`: entity linking, timelines, cross-source evidence inspection.
+- `operator_runtime`: source registry, connector runs, model routing, quotas, logs.
+- `autonomous_watchers`: scheduled watchers, agent runs, anomaly queues, approval workflows.
+
+Current scaffold: `app/state.py` exposes `ENTITLEMENT_FLAGS`, `DEFAULT_ENTITLEMENT_STATE`, and `get_entitlement_state()`.
+
+### Basic UI Roles
+UI visibility is role-tiered without changing backend authorization:
+- `reader`: baseline Analysis workspace and read-only surfaces.
+- `analyst`: reader plus widget palette, brief generation controls, assistant/model tooling.
+- `admin`: analyst plus Administration, Operator Runtime, terminal, proposals, and collection/download actions.
+
+Current scaffold: `/api/auth/status` returns backend `role` and `admin`; `static/js/auth.js` maps backend `user` to UI `reader`, preserves future `analyst`, and maps admin access to UI `admin`. Backend `require_admin` remains the enforcement layer.
 
 ## Start
 ```bash
@@ -46,10 +89,32 @@ Use narrower compile/test scopes when possible.
 - `GET /api/charts`
 - `GET /api/videos`
 - `POST /api/videos/{id}/scrape_details`
+- `GET /api/auth/status`
+- `POST /api/auth/session`
+- `DELETE /api/auth/session`
 - `POST /api/action/update`
 - `POST /api/action/update_views`
 - `POST /api/action/add_channel`
 - `GET /api/action/status`
+- `GET /api/admin/health`
+- `GET /api/governance/policy`
+- `GET /api/governance/readiness`
+- `GET /api/sources`
+- `POST /api/sources`
+- `GET /api/source-connectors`
+- `POST /api/sources/ingest`
+- `GET /api/connector-runs`
+- `GET /api/source-records`
+- `GET /api/audit-events`
+- `GET /api/evidence-links`
+- `GET /api/source-credentials/status`
+- `GET /api/widgets/registry`
+- `GET /api/widgets/state`
+- `PUT /api/widgets/state`
+- `GET /api/terminal/stream`
+- `POST /api/terminal/input`
+- `POST /api/terminal/resize`
+- `POST /api/action/shutdown`
 - `GET /api/agent/models`
 - `POST /api/agent/chat/stream`
 - `POST /api/chat/feedback`
@@ -57,6 +122,10 @@ Use narrower compile/test scopes when possible.
 - `GET /api/proposals`
 - `POST /api/proposals/submit`
 - `POST /api/proposals/status`
+- `GET /api/analytics/anomalies`
+- `GET /api/analytics/data-methods`
+- `POST /api/analytics/data-methods/review`
+
 
 ## DB
 SQLite path: `data/youtube_news.db`.
@@ -80,6 +149,8 @@ Important video fields:
 Never print values.
 - `YOUTUBE_API_KEY`
 - `DATABASE_URL`
+
+> **Memory OS Audit Checkpoint:** 2026-06-02 memos micro-steps complete; verify `scripts/memos.py audit` before Gemini giant agent activation.
 - `GEMINI_API_KEY`
 - `OPENAI_API_KEY`
 - `OPENROUTER_API_KEY`

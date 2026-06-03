@@ -1,7 +1,7 @@
 import datetime
 from flask import Blueprint, jsonify, request
-from news_scraper.db_client import DatabaseClient
-from news_scraper.postgres_sync import PostgresSyncClient
+from scraper.db_client import DatabaseClient
+from scraper.postgres_sync import PostgresSyncClient
 from app.state import bg_state, check_active_tasks
 
 stats_bp = Blueprint('stats', __name__)

@@ -22,27 +22,19 @@ class TestChatRoleRbac(unittest.TestCase):
         else:
             os.environ["NEWS_RESEARCH_ADMIN_TOKEN"] = self.old_token
 
-    def test_client_admin_role_is_downgraded_without_admin_token(self):
+    def test_chat_requires_admin_access_when_token_configured(self):
         from app import create_app
         from app.services.agent import AgentService
 
-        seen_roles = []
-
-        def fake_stream(*_args, **kwargs):
-            seen_roles.append(kwargs["role"])
-            yield 'data: {"text":"ok"}\n\n'
-            yield "data: [DONE]\n\n"
-
         with patch.object(AgentService, "build_dashboard_context", return_value="ctx"), \
-                patch.object(AgentService, "stream_chat_response", side_effect=fake_stream):
+                patch.object(AgentService, "stream_chat_response") as mock_stream:
             response = create_app().test_client().post("/api/agent/chat", json={
                 "message": "hello",
                 "role": "admin"
             })
 
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.get_json()["response"], "ok")
-        self.assertEqual(seen_roles, ["user"])
+        self.assertEqual(response.status_code, 403)
+        mock_stream.assert_not_called()
 
     def test_client_admin_role_is_allowed_with_admin_token(self):
         from app import create_app
@@ -60,6 +52,31 @@ class TestChatRoleRbac(unittest.TestCase):
             response = create_app().test_client().post(
                 "/api/agent/chat",
                 headers={"X-Admin-Token": "secret-token"},
+                json={"message": "hello", "role": "admin"}
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(payloads, [{"role": "admin"}])
+
+    def test_client_admin_role_is_allowed_with_admin_session(self):
+        from app import create_app
+        from app.services.agent import AgentService
+
+        payloads = []
+
+        def fake_stream(*_args, **kwargs):
+            payloads.append({"role": kwargs["role"]})
+            yield f"data: {json.dumps({'text': 'ok'})}\n\n"
+            yield "data: [DONE]\n\n"
+
+        client = create_app().test_client()
+        login = client.post("/api/auth/session", headers={"X-Admin-Token": "secret-token"})
+        self.assertEqual(login.status_code, 200)
+
+        with patch.object(AgentService, "build_dashboard_context", return_value="ctx"), \
+                patch.object(AgentService, "stream_chat_response", side_effect=fake_stream):
+            response = client.post(
+                "/api/agent/chat",
                 json={"message": "hello", "role": "admin"}
             )
 

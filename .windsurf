@@ -9,9 +9,9 @@
 
 ```bash
 git pull origin main
-cat .ai_context.md
+cat llms.txt
 cat strategy.md
-cat .cursorrules  # (for full rules)
+cat agent_context/HANDSHAKE.md
 ```
 
 ---
@@ -56,14 +56,14 @@ For errors: `cat knowledge_base/learnings/COMMON_ERRORS_AND_WORKAROUNDS.md`
 
 ## CURRENT TASK
 
-Build Anomaly Detector CLI (see `scripts/analytics/README.md`)
+Build Phase 1 Editorial MVP & Ingestion Connectors (see `agent_context/PHASE_1_KICKOFF_CHECKLIST.md`)
 
 ---
 
 ## WORKFLOW
 
 ```
-git pull → read .ai_context.md → read strategy.md → code → test → commit → (if limits: update .ai_context.md + commit)
+git pull → read llms.txt → read strategy.md → check task_capsules.jsonl → code → test → compact memory & log capsule → commit
 ```
 
 ---
@@ -76,14 +76,16 @@ Use DECISION FORMAT (A1/A2/A3 options, not open-ended)
 
 ## CRITICAL RULES
 
-1. Read `.ai_context.md` every session start
-2. Never modify `strategy.md` directly
-3. Always inject caveats
-4. Always output JSON + Markdown
-5. Always test before commit
-6. Always ask if unsure
+1. Read `llms.txt` and `strategy.md` every session start
+2. Follow the 3-layer Memory OS (Root Map -> Memory Nodes -> Experience Log)
+3. Reference `knowledge_base/` constantly
+4. Write tests alongside code
+5. Run memory compaction (`scripts/compact_memory.py --write`) before session end
+6. Record lessons in `task_capsules.jsonl`
+7. Ask if unsure (DECISION FORMAT)
+8. Update `HANDSHAKE.md` before limits hit or handover
 
 ---
 
 For detailed rules: `cat .cursorrules`  
-For onboarding: `cat handshake.md`
+For onboarding: `cat agent_context/HANDSHAKE.md`

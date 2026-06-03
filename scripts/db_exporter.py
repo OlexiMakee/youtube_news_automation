@@ -10,13 +10,13 @@ It also includes a console menu to select channels for export.
 import os
 import sys
 
-# Add the current directory to sys.path so that news_scraper imports work seamlessly
+# Add the current directory to sys.path so that scraper imports work seamlessly
 root_dir = os.path.dirname(os.path.abspath(__file__))
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
 
 import subprocess
-import news_scraper.utils as utils
+import scraper.utils as utils
 
 # --- AUTOMATIC ENVIRONMENT CONFIGURATION ---
 # Launch virtual environment bootstrapper with additional packages for tabular data.
@@ -27,7 +27,7 @@ utils.setup_and_run_venv(__file__, ["pandas", "openpyxl"])
 import argparse
 from datetime import datetime
 import pandas as pd
-from news_scraper.db_client import DatabaseClient
+from scraper.db_client import DatabaseClient
 
 
 class DataExporter:

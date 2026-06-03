@@ -62,6 +62,17 @@
    - Impact: Real-time anomaly detection inherently delayed
    - Mitigation: Document in Brief Generator
 
+### [OPERATOR_RUNTIME_GOVERNANCE.md](./OPERATOR_RUNTIME_GOVERNANCE.md)
+**Status:** Complete
+**Last Updated:** 2026-06-01
+**Owner:** Codex Agent
+
+**Contains:**
+- Admin-gated Operator Runtime endpoint contract.
+- Redaction rules for audit metadata, evidence previews, and credential status.
+- Temp-DB test pattern that keeps live migrations blocked.
+- UI rule: no credential input or migration apply controls.
+
 ---
 
 ## Quick Reference
@@ -76,6 +87,7 @@
 | Large JSON blobs | Storage | Compress | 🟠 Advisory |
 | Single-row inserts | Perf | Batch 100 | 🟠 Advisory |
 | Linear z-scores | Analytics | Use log transform | 🟠 Advisory |
+| Operator Runtime secret leakage | Governance | Return status flags only | 🔴 Critical |
 
 ---
 
@@ -136,6 +148,7 @@ Before committing code:
 - [../docs/METRIC_DICTIONARY.md](../docs/METRIC_DICTIONARY.md#caveat-layer-specification) — Caveat specifications
 - [../insights/CHANNEL_PERFORMANCE_PATTERNS.md](../insights/CHANNEL_PERFORMANCE_PATTERNS.md) — Positive findings
 - [../../scripts/analytics/README.md](../../scripts/analytics/README.md) — Implementation details
+- [./OPERATOR_RUNTIME_GOVERNANCE.md](./OPERATOR_RUNTIME_GOVERNANCE.md) — Governance endpoint redaction contracts
 
 ---
 

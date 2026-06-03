@@ -65,6 +65,7 @@ import {
     runIngest,
     runIngestionPreview,
     runIngestionPersist,
+    approveScrapingProposal,
     applyEntitlementsUI,
     applyRoleVisibility
 } from './ui.js';
@@ -278,6 +279,7 @@ window.prepareIngestSource = prepareIngestSource;
 window.runIngest = runIngest;
 window.runIngestionPreview = runIngestionPreview;
 window.runIngestionPersist = runIngestionPersist;
+window.approveScrapingProposal = approveScrapingProposal;
 window.applyRoleVisibility = applyRoleVisibility;
 window.syncDateRangeSliderFromInputs = syncDateRangeSliderFromInputs;
 

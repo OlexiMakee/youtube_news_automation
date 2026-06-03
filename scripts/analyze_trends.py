@@ -15,11 +15,11 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 root_dir = os.path.dirname(script_dir)
 sys.path.insert(0, root_dir)
 
-import news_scraper.utils as utils
+import scraper.utils as utils
 # Automatically reboot inside venv if not already active
 utils.setup_and_run_venv(__file__, required_libs=["pytesseract", "pillow"])
 
-from news_scraper.db_client import DatabaseClient
+from scraper.db_client import DatabaseClient
 
 # Stop words dictionary
 STOP_WORDS = {

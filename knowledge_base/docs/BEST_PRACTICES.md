@@ -314,6 +314,25 @@ def compute_anomaly(
 
 ---
 
+### Pattern 2: Retrieval API Backward Compatibility
+
+When extending core library/RAG retrieval routes, map new matched items (like codebase file search results or dependency graphs) directly to the existing flat node dictionary schema instead of changing the overall response type signature.
+
+```python
+# ❌ Bad: Returns dictionary of lists, breaking legacy clients
+results = {"nodes": [...], "codebase_files": [...]}
+
+# ✅ Good: Returns backward-compatible flat list of uniform node shapes
+results = [
+    {"id": "node.a", "type": "rule", "summary": "..."},
+    {"id": "scripts/main.py", "type": "code_file", "summary": "..."}
+]
+```
+
+**Why:** Retaining uniform schemas and output types prevents breaking changes for existing unit tests and downstream graph traversal consumers.
+
+---
+
 ## Known Gotchas
 
 ### Gotcha 1: SQLite View Count Snapshot Overflow
@@ -349,7 +368,23 @@ Max videos per day: 100 (unlimited via yt-dlp)
 Solution: Use yt-dlp as primary, API as fallback
 ```
 
+### Gotcha 4: SQLite Database Isolation Joins
+
+```
+When isolating databases (e.g., youtube_news.db and governance.db), standard SQLite configurations cannot easily join tables across separate physical files.
+
+Solution: Maintain logical relationships in application memory (Python dict mappings) rather than relying on attached database files or cross-database SQL joins.
+```
+
+### Gotcha 5: Chronological File Event Journaling
+
+```
+When updating file-backed event logs or journals (like events.jsonl), combining lists via order-insensitive concatenation can inadvertently reverse chronological logs.
+
+Solution: Mutate loaded list items in-place to preserve their original chronological sequence, and append new event logs at the end.
+```
+
 ---
 
-**Last Updated:** 2026-05-30  
-**Maintained by:** Copilot Agent
+**Last Updated:** 2026-06-02  
+**Maintained by:** Antigravity Agent

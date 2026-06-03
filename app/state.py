@@ -5,8 +5,8 @@ import subprocess
 import threading
 from datetime import datetime
 
-from news_scraper.db_client import DatabaseClient
-from news_scraper.postgres_sync import PostgresSyncClient
+from scraper.db_client import DatabaseClient
+from scraper.postgres_sync import PostgresSyncClient
 
 # Calculate root directory relative to this file
 app_dir = os.path.dirname(os.path.abspath(__file__))
@@ -26,6 +26,50 @@ bg_state = {
     "error_msg": None,
     "last_update_time": 0.0
 }
+
+ENTITLEMENT_FLAGS = {
+    "ready_workspace": {
+        "label": "Ready Workspace",
+        "default_enabled": True,
+        "description": "Prebuilt editorial workspace, daily brief surface, and monitored source cards."
+    },
+    "dense_workspace": {
+        "label": "Dense Workspace",
+        "default_enabled": True,
+        "description": "Resizable grid widgets, saved layouts, and keyboard-friendly analyst workflow."
+    },
+    "linked_intelligence": {
+        "label": "Linked Intelligence",
+        "default_enabled": False,
+        "description": "Entity linking, cross-source filtering, timelines, and evidence inspection."
+    },
+    "operator_runtime": {
+        "label": "Operator Runtime",
+        "default_enabled": False,
+        "description": "Source registry, connector jobs, model routing, quotas, prompts, and job logs."
+    },
+    "autonomous_watchers": {
+        "label": "Autonomous Watchers",
+        "default_enabled": False,
+        "description": "Scheduled watchers, agent runs, anomaly queues, and human approval workflows."
+    }
+}
+
+DEFAULT_ENTITLEMENT_STATE = {
+    key: config["default_enabled"]
+    for key, config in ENTITLEMENT_FLAGS.items()
+}
+
+# TODO: Phase 1 toggle: enable ready_workspace + dense_workspace by default during MVP; gate linked_intelligence + autonomous_watchers for Phase 2+
+
+def get_entitlement_state(overrides=None):
+    """Return progressive workspace feature flags with optional explicit overrides."""
+    state = DEFAULT_ENTITLEMENT_STATE.copy()
+    if overrides:
+        for key, value in overrides.items():
+            if key in state:
+                state[key] = bool(value)
+    return state
 
 
 def background_daemons_disabled():

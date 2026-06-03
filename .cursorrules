@@ -22,7 +22,7 @@
 ✅ CLI scripts (scripts/analytics/)  
 ✅ Mathematical calculations  
 ✅ Documentation  
-✅ Tests  
+✅ Run unit/integration tests autonomously after edits without asking the user  
 ✅ Knowledge Base updates
 
 ### What You CANNOT Do
@@ -38,10 +38,9 @@
 ## SESSION WORKFLOW
 
 ```
-1. START: git pull, read .ai_context.md, read strategy.md
-2. CODE: Reference knowledge_base/, write tests, inject caveats
-3. BEFORE COMMIT: pytest, git diff self-review
-4. IF LIMITS: Update .ai_context.md + commit
+1. START: git pull, read llms.txt, read strategy.md, check agent_context/HANDSHAKE.md / agent_context/task_capsules.jsonl.
+2. CODE: Comply with Strategy planes, source policy tiers, and progressive entitlements. Adhere to SOLID principles (SRP, OCP).
+3. BEFORE COMMIT / HANDOVER: Run all tests, run memory snapshot compaction, record experience capsule, and update agent_context/HANDSHAKE.md.
 ```
 
 ---
@@ -61,11 +60,10 @@
 
 ## CURRENT TASK
 
-**Build:** Anomaly Detector CLI  
-**Files:** `scripts/analytics/cli.py` + `anomaly_detector.py` + tests + Flask endpoint  
-**Spec:** `scripts/analytics/README.md`  
-**Time:** ~2-3 hours  
-**Success:** `python -m scripts.analytics anomalies --channel uatv_english` works
+**Build:** Phase 1 Editorial MVP & Ingestion Connectors  
+**Files:** `news_scraper/connectors/`, `app/services/briefs.py`, `app/routes/briefs.py`  
+**Spec:** `agent_context/PHASE_1_KICKOFF_CHECKLIST.md`  
+**Success:** Ingestion connectors fetch successfully, briefs generate with verified citations, and all tests pass.
 
 ---
 
@@ -85,28 +83,33 @@ User replies: a2
 
 ---
 
-## WHEN HITTING LIMITS
+## WHEN HITTING LIMITS / SESSION END
 
 ```bash
-# 1. Update .ai_context.md with WIP status
-# 2. Fill MEMORY_SNAPSHOT_TEMPLATE.md
-# 3. Commit + push
-# 4. Tell user "Ліміти вичерпано"
+# 1. Update the Memory Nodes:
+venv_auto/bin/python scripts/compact_memory.py --write
+
+# 2. Append experience capsule to agent_context/task_capsules.jsonl
+#    Format: {"timestamp": "...", "task": "...", "files_modified": [...], "hurdles_regression": "...", "resolution": "...", "lessons_learned": "..."}
+
+# 3. Update agent_context/HANDSHAKE.md and agent_context/development_log.md
+
+# 4. Commit and push modified files. Tell the user: "Ліміти вичерпано / Роботу завершено"
 ```
 
 ---
 
 ## CRITICAL REMINDERS
 
-1. Read `.ai_context.md` at session start
-2. Read `strategy.md` before coding
+1. Read `llms.txt` and `strategy.md` at session start
+2. Follow the 3-layer Memory OS (Root Map -> Memory Nodes -> Experience Log)
 3. Reference `knowledge_base/` constantly
 4. Write tests alongside code
-5. Inject caveats on metrics
-6. Output Text-First DOM (JSON + Markdown)
+5. Run memory compaction (`scripts/compact_memory.py --write`) before session end
+6. Record lessons in `task_capsules.jsonl`
 7. Ask if unsure (DECISION FORMAT)
-8. Update `.ai_context.md` before limits hit
+8. Update `HANDSHAKE.md` before limits hit or handover
 
 ---
 
-**For Details:** See `.cursorrules` (this file) or `handshake.md`
+**For Details:** See `.cursorrules` (this file) or `agent_context/HANDSHAKE.md`

@@ -6,10 +6,15 @@ import threading
 from datetime import datetime
 from flask import Blueprint, jsonify, request, Response
 from app.services.rbac import (
+    ADMIN_SESSION_COOKIE,
+    ADMIN_SESSION_TTL_SECONDS,
     assistant_role_for_request,
     configured_admin_token,
+    create_admin_session,
     current_request_role,
+    destroy_admin_session,
     has_admin_access,
+    has_valid_admin_session,
     require_admin as _admin_required,
 )
 from app.state import (
@@ -81,8 +86,42 @@ def auth_status():
         "token_configured": token_configured,
         "admin": has_admin_access(request),
         "role": current_request_role(request),
-        "auth_methods": ["X-Admin-Token", "Authorization: Bearer"] if token_configured else []
+        "session_authenticated": has_valid_admin_session(request),
+        "auth_methods": ["X-Admin-Token", "Authorization: Bearer", "HttpOnly session cookie"] if token_configured else []
     })
+
+
+@actions_bp.route('/api/auth/session', methods=['POST'])
+def auth_session_create():
+    """Mint an HttpOnly admin session from the configured admin token."""
+    session = create_admin_session(request)
+    if session is None:
+        return jsonify({"error": "Admin access required."}), 403
+
+    response = jsonify({
+        "ok": True,
+        "admin": True,
+        "role": "admin",
+        "expires_at": session["expires_at"]
+    })
+    response.set_cookie(
+        ADMIN_SESSION_COOKIE,
+        session["id"],
+        max_age=ADMIN_SESSION_TTL_SECONDS,
+        httponly=True,
+        samesite="Lax",
+        secure=request.is_secure
+    )
+    return response
+
+
+@actions_bp.route('/api/auth/session', methods=['DELETE'])
+def auth_session_destroy():
+    """Clear the current server-side admin session."""
+    destroyed = destroy_admin_session(request)
+    response = jsonify({"ok": True, "destroyed": destroyed})
+    response.delete_cookie(ADMIN_SESSION_COOKIE, samesite="Lax", secure=request.is_secure)
+    return response
 
 
 @actions_bp.route('/api/action/add_channel', methods=['POST'])
@@ -238,6 +277,7 @@ def start_views_update():
 
 
 @actions_bp.route('/api/action/status', methods=['GET'])
+@_admin_required
 def get_action_status():
     check_active_tasks()
     
@@ -271,10 +311,24 @@ def admin_health():
 
 @actions_bp.route('/api/widgets/registry', methods=['GET'])
 def widgets_registry():
-    """Return supported dashboard widget types."""
+    """Return supported dashboard widget types gated by progressive entitlements."""
     from app.services.widgets import widget_registry
+    from app.state import get_entitlement_state
 
-    return jsonify(widget_registry())
+    entitlements = get_entitlement_state()
+    reg = widget_registry()
+    filtered_types = []
+
+    for wtype in reg.get("types", []):
+        if wtype["type"] == "channel-analytics" and entitlements.get("ready_workspace"):
+            filtered_types.append(wtype)
+        elif wtype["type"] == "anomaly-alerts" and entitlements.get("dense_workspace"):
+            filtered_types.append(wtype)
+        elif wtype["type"] == "daily-brief" and entitlements.get("ready_workspace"):
+            filtered_types.append(wtype)
+
+    reg["types"] = filtered_types
+    return jsonify(reg)
 
 
 @actions_bp.route('/api/widgets/state', methods=['GET'])
@@ -298,6 +352,57 @@ def widgets_state_put():
     except ValueError as exc:
         return jsonify({"error": str(exc)}), 400
     return jsonify({"ok": True, **state})
+
+
+@actions_bp.route('/api/widgets/layouts', methods=['GET'])
+@_admin_required
+def widgets_layouts_get():
+    """Return all available layout presets."""
+    from app.services.widgets import load_layouts
+    return jsonify({"layouts": load_layouts(root_dir)})
+
+
+@actions_bp.route('/api/widgets/layouts', methods=['POST'])
+@_admin_required
+def widgets_layouts_create():
+    """Create a new named layout preset."""
+    from app.services.widgets import create_layout
+    data = request.json or {}
+    name = str(data.get("name") or "").strip()
+    is_default = bool(data.get("is_default"))
+    if not name:
+        return jsonify({"error": "Layout name is required"}), 400
+    try:
+        layout = create_layout(root_dir, name, is_default)
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
+    return jsonify({"ok": True, "layout": layout})
+
+
+@actions_bp.route('/api/widgets/layouts/<int:layout_id>', methods=['DELETE'])
+@_admin_required
+def widgets_layouts_delete(layout_id):
+    """Delete a layout preset."""
+    from app.services.widgets import delete_layout
+    try:
+        ok = delete_layout(root_dir, layout_id)
+        if not ok:
+            return jsonify({"error": "Layout not found"}), 404
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
+    return jsonify({"ok": True})
+
+
+@actions_bp.route('/api/widgets/layouts/activate/<int:layout_id>', methods=['POST'])
+@_admin_required
+def widgets_layouts_activate(layout_id):
+    """Set a layout preset as active/default."""
+    from app.services.widgets import activate_layout
+    ok = activate_layout(root_dir, layout_id)
+    if not ok:
+        return jsonify({"error": "Layout not found"}), 404
+    return jsonify({"ok": True})
+
 
 
 # ── Terminal PTY Console Endpoints ────────────────────────────────────
@@ -500,6 +605,7 @@ def terminal_resize():
 
 
 @actions_bp.route('/api/agent/models', methods=['GET'])
+@_admin_required
 def agent_models():
     """Returns available AI models from the configured provider."""
     try:
@@ -512,6 +618,7 @@ def agent_models():
 
 
 @actions_bp.route('/api/agent/chat', methods=['POST'])
+@_admin_required
 def agent_chat():
     """Legacy non-streaming chat endpoint (kept for compatibility)."""
     data = request.json or {}
@@ -559,6 +666,7 @@ def agent_chat():
 
 
 @actions_bp.route('/api/agent/chat/stream', methods=['POST'])
+@_admin_required
 def agent_chat_stream():
     """Streaming SSE chat endpoint."""
     data = request.json or {}
@@ -628,6 +736,15 @@ def submit_agent_proposal():
     if not desc:
         return jsonify({"error": "desc is required."}), 400
 
+    workflow = (data.get("workflow") or "product").strip().lower()
+    if workflow not in {"product", "memos"}:
+        return jsonify({"error": "workflow must be 'product' or 'memos'."}), 400
+
+    role_tier = (data.get("role_tier") or "admin").strip().lower()
+    valid_roles = {"developer", "automated", "master_admin", "admin", "user"}
+    if role_tier not in valid_roles:
+        return jsonify({"error": f"role_tier must be one of {', '.join(sorted(valid_roles))}."}), 400
+
     now = int(datetime.now().timestamp() * 1000)
     row = {
         "id": now,
@@ -638,7 +755,9 @@ def submit_agent_proposal():
         "priority": (data.get("priority") or "").strip() or None,
         "el": (data.get("el") or "").strip(),
         "src": (data.get("src") or "").strip(),
-        "desc": desc
+        "desc": desc,
+        "workflow": workflow,
+        "role_tier": role_tier
     }
     row = {key: value for key, value in row.items() if value is not None}
 
@@ -689,6 +808,7 @@ def update_agent_proposal_status():
 
 
 @actions_bp.route('/api/chat/clear-context', methods=['POST'])
+@_admin_required
 def chat_clear_context():
     """Compatibility hook for clearing server-side chat context."""
     return jsonify({

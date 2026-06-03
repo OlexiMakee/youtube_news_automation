@@ -13,7 +13,7 @@ Shared progress logic, timers, and pause controls are implemented in cli_progres
 import os
 import sys
 
-# Add the current directory to sys.path to resolve news_scraper package imports seamlessly
+# Add the current directory to sys.path to resolve scraper package imports seamlessly
 root_dir = os.path.dirname(os.path.abspath(__file__))
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
@@ -21,15 +21,15 @@ if root_dir not in sys.path:
 import time
 import json
 import argparse
-import news_scraper.utils as utils
+import scraper.utils as utils
 
 # Auto-bootstrap virtual environment to ensure all dependencies are resolved
 utils.setup_and_run_venv(__file__)
 
-from news_scraper.db_client import DatabaseClient
-from news_scraper.scraper_engine import YouTubeScraperEngine
-from news_scraper.keypress import KeypressDetector
-import news_scraper.cli_progress as cli_progress
+from scraper.db_client import DatabaseClient
+from scraper.scraper_engine import YouTubeScraperEngine
+from scraper.keypress import KeypressDetector
+import scraper.cli_progress as cli_progress
 
 # Global database client instance for script functions
 db_client = DatabaseClient()

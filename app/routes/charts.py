@@ -3,8 +3,9 @@ import os
 import time
 import threading
 from flask import Blueprint, jsonify, request
-from news_scraper.db_client import DatabaseClient
+from scraper.db_client import DatabaseClient
 from app.state import bg_state
+from scripts.analytics.phrase_performance import analyze_records, youtube_rows_to_phrase_records
 
 charts_bp = Blueprint('charts', __name__)
 
@@ -24,6 +25,185 @@ def get_db_mtime():
         return mtime
     except Exception:
         return 0
+
+
+PHRASE_METRIC_FIELDS = (
+    "view_count",
+    "like_count",
+    "comment_count",
+    "views_24h",
+    "views_7d",
+    "engagement_rate",
+)
+
+
+def _empty_phrase_payload():
+    return {
+        "title_ngrams_best": [],
+        "title_ngrams_worst": [],
+        "metric_fields": list(PHRASE_METRIC_FIELDS),
+        "notes": [
+            "Derived from filtered video rows through the generic phrase-performance scorer.",
+            "Lift is phrase median divided by filtered corpus median for the selected metric.",
+        ],
+    }
+
+
+def _legacy_top_items(report, source, item_key, *, hashtags=False, limit=10):
+    rows = []
+    for item in report.get("ranked", []):
+        phrase = item.get("phrase", "")
+        if item.get("source") != source or item.get("ngram") != 1:
+            continue
+        if hashtags != phrase.startswith("#"):
+            continue
+        views = item.get("metrics", {}).get("view_count", {})
+        rows.append({
+            item_key: phrase,
+            "count": int(views.get("total", 0)),
+            "video_count": int(item.get("record_count", 0)),
+        })
+    return rows[:limit]
+
+
+def _legacy_lift_items(report, source, item_key, *, hashtags=False, section="best_by_lift", limit=100):
+    rows = []
+    for item in report.get(section, []):
+        phrase = item.get("phrase", "")
+        if item.get("source") != source or item.get("ngram") != 1:
+            continue
+        if int(item.get("record_count", 0)) < 5:
+            continue
+        if hashtags != phrase.startswith("#"):
+            continue
+        views = item.get("metrics", {}).get("view_count", {})
+        rows.append({
+            item_key: phrase,
+            "median_views": views.get("median", 0),
+            "video_count": int(item.get("record_count", 0)),
+            "lift": views.get("lift", 0),
+        })
+    return rows[:limit]
+
+
+def _build_phrase_analytics(cursor, placeholders, date_filter, query_params, limit):
+    cursor.execute(f"""
+        SELECT
+            v.video_id, v.title, v.description, v.full_description,
+            v.thumbnail_text, v.tags, v.top_comments, v.published_at,
+            v.view_count, v.like_count, v.comment_count, v.views_update,
+            c.channel_id, c.channel_name
+        FROM videos v
+        JOIN channels c ON v.channel_id = c.channel_id
+        WHERE v.channel_id IN ({placeholders}){date_filter}
+        ORDER BY datetime(v.published_at) DESC
+    """, query_params)
+    records = youtube_rows_to_phrase_records(cursor.fetchall())
+    if not records:
+        return {
+            "top_hashtags": [],
+            "top_words": [],
+            "best_promo_words": [],
+            "worst_promo_words": [],
+            "best_promo_tags": [],
+            "worst_promo_tags": [],
+            "top_title_words": [],
+            "best_promo_title_words": [],
+            "worst_promo_title_words": [],
+            "top_thumb_words": [],
+            "best_promo_thumb_words": [],
+            "worst_promo_thumb_words": [],
+            "phrase_performance": _empty_phrase_payload(),
+        }
+
+    analysis_limit = max(limit * 10, 500)
+    description_report = analyze_records(
+        records,
+        text_fields=["description", "full_description"],
+        metric_fields=PHRASE_METRIC_FIELDS,
+        ngram_min=1,
+        ngram_max=1,
+        min_count=3,
+        combine_sources=True,
+        limit=analysis_limit,
+        sort_metric="view_count",
+        sort_stat="total",
+        direction="best",
+    )
+    title_report = analyze_records(
+        records,
+        text_fields=["title"],
+        metric_fields=PHRASE_METRIC_FIELDS,
+        ngram_min=1,
+        ngram_max=1,
+        min_count=3,
+        limit=analysis_limit,
+        sort_metric="view_count",
+        sort_stat="total",
+        direction="best",
+    )
+    thumbnail_report = analyze_records(
+        records,
+        text_fields=["thumbnail_text"],
+        metric_fields=PHRASE_METRIC_FIELDS,
+        ngram_min=1,
+        ngram_max=1,
+        min_count=3,
+        limit=analysis_limit,
+        sort_metric="view_count",
+        sort_stat="total",
+        direction="best",
+    )
+    title_ngrams_best = analyze_records(
+        records,
+        text_fields=["title"],
+        metric_fields=PHRASE_METRIC_FIELDS,
+        ngram_min=2,
+        ngram_max=4,
+        min_count=3,
+        limit=limit,
+        sort_metric="view_count",
+        sort_stat="median",
+        direction="best",
+    )
+    title_ngrams_worst = analyze_records(
+        records,
+        text_fields=["title"],
+        metric_fields=PHRASE_METRIC_FIELDS,
+        ngram_min=2,
+        ngram_max=4,
+        min_count=3,
+        limit=limit,
+        sort_metric="view_count",
+        sort_stat="median",
+        direction="worst",
+    )
+
+    return {
+        "top_hashtags": _legacy_top_items(description_report, "combined", "tag", hashtags=True),
+        "top_words": _legacy_top_items(description_report, "combined", "word", limit=10),
+        "best_promo_words": _legacy_lift_items(description_report, "combined", "word", limit=limit),
+        "worst_promo_words": _legacy_lift_items(description_report, "combined", "word", section="worst_by_lift", limit=limit),
+        "best_promo_tags": _legacy_lift_items(description_report, "combined", "tag", hashtags=True, limit=limit),
+        "worst_promo_tags": _legacy_lift_items(description_report, "combined", "tag", hashtags=True, section="worst_by_lift", limit=limit),
+        "top_title_words": _legacy_top_items(title_report, "title", "word", limit=10),
+        "best_promo_title_words": _legacy_lift_items(title_report, "title", "word", limit=limit),
+        "worst_promo_title_words": _legacy_lift_items(title_report, "title", "word", section="worst_by_lift", limit=limit),
+        "top_thumb_words": _legacy_top_items(thumbnail_report, "thumbnail_text", "word", limit=10),
+        "best_promo_thumb_words": _legacy_lift_items(thumbnail_report, "thumbnail_text", "word", limit=limit),
+        "worst_promo_thumb_words": _legacy_lift_items(thumbnail_report, "thumbnail_text", "word", section="worst_by_lift", limit=limit),
+        "phrase_performance": {
+            "title_ngrams_best": title_ngrams_best.get("ranked", []),
+            "title_ngrams_worst": title_ngrams_worst.get("ranked", []),
+            "record_count": len(records),
+            "metric_fields": list(PHRASE_METRIC_FIELDS),
+            "corpus_baselines": title_ngrams_best.get("corpus_baselines", {}),
+            "ngram_min": 2,
+            "ngram_max": 4,
+            "min_count": 3,
+            "notes": _empty_phrase_payload()["notes"],
+        },
+    }
 
 
 @charts_bp.route('/api/charts', methods=['GET'])
@@ -88,7 +268,8 @@ def get_charts():
                 "worst_promo_title_words": [],
                 "top_thumb_words": [],
                 "best_promo_thumb_words": [],
-                "worst_promo_thumb_words": []
+                "worst_promo_thumb_words": [],
+                "phrase_performance": _empty_phrase_payload()
             })
         
         # Build date filter clause (applied to all queries)
@@ -267,115 +448,8 @@ def get_charts():
         """, query_params)
         views_distribution = [dict(row) for row in cursor.fetchall()]
         
-        # 9. Dynamic Text Analytics based on video_phrases and active filters
-        cursor.execute(f"""
-            SELECT vp.phrase, vp.ngram_type, vp.source, v.view_count
-            FROM video_phrases vp
-            JOIN videos v ON vp.video_id = v.video_id
-            WHERE v.channel_id IN ({placeholders}){date_filter}
-        """, query_params)
-        
-        from collections import defaultdict
-        phrase_views = defaultdict(list)
-        for row in cursor.fetchall():
-            phrase_views[(row['phrase'], row['ngram_type'], row['source'])].append(row['view_count'] or 0)
-            
-        chan_median = max(1, median_views)
-        
-        # Description
-        hashtag_list = []
-        word_list = []
-        promo_words_list = []
-        promo_tags_list = []
-
-        # Title
-        title_word_list = []
-        promo_title_words_list = []
-
-        # Thumbnail
-        thumb_word_list = []
-        promo_thumb_words_list = []
-        
-        for (phrase, ngram_type, source), views in phrase_views.items():
-            is_hashtag = phrase.startswith('#')
-            video_count = len(views)
-            total_views = sum(views)
-            
-            # Top Lists (based on total views of containing videos)
-            if ngram_type == 1:
-                if source == 'description':
-                    if is_hashtag:
-                        if video_count >= 3:
-                            hashtag_list.append({"tag": phrase, "count": total_views, "video_count": video_count})
-                    else:
-                        if video_count >= 3:
-                            word_list.append({"word": phrase, "count": total_views, "video_count": video_count})
-                elif source == 'title':
-                    if not is_hashtag and video_count >= 3:
-                        title_word_list.append({"word": phrase, "count": total_views, "video_count": video_count})
-                elif source == 'thumbnail':
-                    if not is_hashtag and video_count >= 3:
-                        thumb_word_list.append({"word": phrase, "count": total_views, "video_count": video_count})
-                        
-            # Promo Lists (performance lift)
-            if video_count >= 5:
-                sorted_v = sorted(views)
-                n_v = len(sorted_v)
-                if n_v % 2 == 1:
-                    phrase_median = sorted_v[n_v // 2]
-                else:
-                    phrase_median = (sorted_v[n_v // 2 - 1] + sorted_v[n_v // 2]) // 2
-                    
-                lift = phrase_median / chan_median
-                
-                if source == 'description':
-                    if is_hashtag:
-                        promo_tags_list.append({
-                            "tag": phrase,
-                            "median_views": phrase_median,
-                            "video_count": video_count,
-                            "lift": lift
-                        })
-                    else:
-                        promo_words_list.append({
-                            "word": phrase,
-                            "median_views": phrase_median,
-                            "video_count": video_count,
-                            "lift": lift
-                        })
-                elif source == 'title':
-                    if not is_hashtag:
-                        promo_title_words_list.append({
-                            "word": phrase,
-                            "median_views": phrase_median,
-                            "video_count": video_count,
-                            "lift": lift
-                        })
-                elif source == 'thumbnail':
-                    if not is_hashtag:
-                        promo_thumb_words_list.append({
-                            "word": phrase,
-                            "median_views": phrase_median,
-                            "video_count": video_count,
-                            "lift": lift
-                        })
-                    
-        top_hashtags = sorted(hashtag_list, key=lambda x: x["count"], reverse=True)[:10]
-        top_words = sorted(word_list, key=lambda x: x["count"], reverse=True)[:10]
-        top_title_words = sorted(title_word_list, key=lambda x: x["count"], reverse=True)[:10]
-        top_thumb_words = sorted(thumb_word_list, key=lambda x: x["count"], reverse=True)[:10]
-        
-        best_promo_words = sorted(promo_words_list, key=lambda x: x["lift"], reverse=True)[:limit]
-        worst_promo_words = sorted(promo_words_list, key=lambda x: x["lift"])[:limit]
-        
-        best_promo_tags = sorted(promo_tags_list, key=lambda x: x["lift"], reverse=True)[:limit]
-        worst_promo_tags = sorted(promo_tags_list, key=lambda x: x["lift"])[:limit]
-
-        best_promo_title_words = sorted(promo_title_words_list, key=lambda x: x["lift"], reverse=True)[:limit]
-        worst_promo_title_words = sorted(promo_title_words_list, key=lambda x: x["lift"])[:limit]
-
-        best_promo_thumb_words = sorted(promo_thumb_words_list, key=lambda x: x["lift"], reverse=True)[:limit]
-        worst_promo_thumb_words = sorted(promo_thumb_words_list, key=lambda x: x["lift"])[:limit]
+        # 9. Dynamic text analytics from the generic phrase-performance scorer.
+        phrase_payload = _build_phrase_analytics(cursor, placeholders, date_filter, query_params, limit)
         
         # Store in cache
         response_data = {
@@ -391,18 +465,19 @@ def get_charts():
             "best_day_to_post": best_day_to_post,
             "duration_vs_views": duration_vs_views,
             "views_distribution": views_distribution,
-            "top_hashtags": top_hashtags,
-            "top_words": top_words,
-            "best_promo_words": best_promo_words,
-            "worst_promo_words": worst_promo_words,
-            "best_promo_tags": best_promo_tags,
-            "worst_promo_tags": worst_promo_tags,
-            "top_title_words": top_title_words,
-            "best_promo_title_words": best_promo_title_words,
-            "worst_promo_title_words": worst_promo_title_words,
-            "top_thumb_words": top_thumb_words,
-            "best_promo_thumb_words": best_promo_thumb_words,
-            "worst_promo_thumb_words": worst_promo_thumb_words
+            "top_hashtags": phrase_payload["top_hashtags"],
+            "top_words": phrase_payload["top_words"],
+            "best_promo_words": phrase_payload["best_promo_words"],
+            "worst_promo_words": phrase_payload["worst_promo_words"],
+            "best_promo_tags": phrase_payload["best_promo_tags"],
+            "worst_promo_tags": phrase_payload["worst_promo_tags"],
+            "top_title_words": phrase_payload["top_title_words"],
+            "best_promo_title_words": phrase_payload["best_promo_title_words"],
+            "worst_promo_title_words": phrase_payload["worst_promo_title_words"],
+            "top_thumb_words": phrase_payload["top_thumb_words"],
+            "best_promo_thumb_words": phrase_payload["best_promo_thumb_words"],
+            "worst_promo_thumb_words": phrase_payload["worst_promo_thumb_words"],
+            "phrase_performance": phrase_payload["phrase_performance"]
         }
         
         db_client.close_connection(conn)

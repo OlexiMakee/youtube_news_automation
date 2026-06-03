@@ -8,18 +8,18 @@ import os
 import sys
 import time
 
-# Add the current directory to sys.path so that news_scraper imports work seamlessly
+# Add the current directory to sys.path so that scraper imports work seamlessly
 root_dir = os.path.dirname(os.path.abspath(__file__))
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
 
-import news_scraper.utils as utils
+import scraper.utils as utils
 
 # Automatically launch virtual environment and ensure requirements are met
 utils.setup_and_run_venv(__file__, required_libs=["psycopg2-binary"])
 
-from news_scraper.db_client import DatabaseClient
-from news_scraper.postgres_sync import PostgresSyncClient
+from scraper.db_client import DatabaseClient
+from scraper.postgres_sync import PostgresSyncClient
 
 
 def check_and_prompt_postgres_config():
@@ -41,7 +41,7 @@ def check_and_prompt_postgres_config():
         
         pg_url = input("Enter Neon Postgres Connection URL:\n> ").strip()
         if pg_url:
-            from news_scraper.utils import write_env
+            from scraper.utils import write_env
             write_env({"NEON_DATABASE_URL": pg_url})
             print("\n[+] Connection URL successfully saved to .env")
             time.sleep(1)

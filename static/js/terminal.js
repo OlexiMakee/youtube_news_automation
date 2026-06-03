@@ -1,5 +1,6 @@
 import { state } from './state.js';
 import { translations } from './translations.js';
+import { adminFetch, adminFetchSilent, ensureAdminSession } from './auth.js';
 
 export function initTerminal() {
     const container = document.getElementById("xterm-container");
@@ -54,7 +55,7 @@ export function initTerminal() {
                 ? "Ви впевнені, що хочете зупинити сервер і завершити процес?" 
                 : "Are you sure you want to stop the server and terminate the process?";
             if (confirm(confirmMsg)) {
-                fetch('/api/action/shutdown', { method: 'POST' })
+                adminFetch('/api/action/shutdown', { method: 'POST' })
                     .then(() => {
                         const alertMsg = state.currentLang === 'ua'
                             ? "Сервер зупинено. Цю вкладку можна закрити."
@@ -99,7 +100,9 @@ export function initTerminal() {
     connectTerminalStream();
 }
 
-export function connectTerminalStream() {
+export async function connectTerminalStream() {
+    if (!(await ensureAdminSession())) return;
+
     if (state.termEventSource) {
         state.termEventSource.close();
     }
@@ -145,7 +148,7 @@ export function connectTerminalStream() {
 
 export async function sendTerminalInput(dataString) {
     try {
-        await fetch("/api/terminal/input", {
+        await adminFetch("/api/terminal/input", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
@@ -159,7 +162,7 @@ export async function sendTerminalInput(dataString) {
 
 export async function sendTerminalResize(cols, rows) {
     try {
-        await fetch("/api/terminal/resize", {
+        await adminFetchSilent("/api/terminal/resize", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"

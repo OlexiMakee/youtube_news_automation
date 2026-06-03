@@ -1,4 +1,4 @@
-// Global App State for News Research Automation Dashboard
+// Global App State for Governed Autonomous Intelligence Workspace
 export const state = {
     currentLang: localStorage.getItem("app_lang") || "ua",
     currentTheme: localStorage.getItem("app_theme") || "light",
@@ -45,7 +45,20 @@ export const state = {
     
     // AI Chat config
     agentRole: "admin",
-    agentProvider: localStorage.getItem("ui_chat_provider") || "gemini"
+    agentProvider: localStorage.getItem("ui_chat_provider") || "gemini",
+
+    // Basic role visibility state. Backend authorization remains authoritative.
+    authStatus: null,
+    userRole: "reader",
+
+    // Progressive Entitlements state
+    entitlements: {
+        ready_workspace: true,
+        dense_workspace: true,
+        linked_intelligence: false,
+        operator_runtime: false,
+        autonomous_watchers: false
+    }
 };
 
 export const DEFAULT_COLORS = ["#008abb", "#10b981", "#f59e0b", "#8b5cf6", "#ec4899", "#3b82f6", "#ef4444", "#14b8a6", "#f97316"];

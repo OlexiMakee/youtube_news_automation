@@ -1,0 +1,18 @@
+# Settings Configuration for Governed Autonomous Intelligence Workspace
+# Memory OS Settings
+
+[model]
+provider = "ollama"
+name = "llama3"
+temperature = 0.7
+
+[rag]
+chunk_size = 800
+overlap = 120
+vector_db = "qdrant"
+distance_metric = "cosine"
+
+[memory]
+storage_type = "sqlite"
+log_format = "jsonl"
+compression_threshold_tokens = 2048

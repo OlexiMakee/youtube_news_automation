@@ -7,6 +7,7 @@ Frontend assets.
 | `css/style.css` | Layout, themes, widgets, chat drawer, responsive rules |
 | `js/app.js` | Entry module and initialization |
 | `js/state.js` | Shared frontend state |
+| `js/auth.js` | Admin session prompts and protected fetch helpers |
 | `js/api.js` | Fetch/API helpers |
 | `js/charts.js` | Chart.js rendering |
 | `js/d3-charts.js` | D3/copyable chart rendering |
@@ -14,5 +15,7 @@ Frontend assets.
 | `js/widgets.js` | Dashboard widget workspace |
 | `js/terminal.js` | xterm terminal client |
 | `js/translations.js` | UI strings |
+
+**TODO Phase 1:** Implement resizable grid layout (compact v1) with saved layout persistence in `js/grid-layout.js`. Support: drag-resize, localStorage save/restore, minimal responsive fallback.
 
 Frontend text that users copy should be DOM text, not canvas-only.

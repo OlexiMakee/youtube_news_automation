@@ -106,7 +106,7 @@ class LifecycleManager:
         new_events = []
 
         for node in nodes:
-            if node["status"] == "draft":
+            if node["status"] in ["draft", "stale"]:
                 if not node.get("id") or not node.get("summary") or node.get("type") not in ["rule", "fact", "variable", "connector", "config", "policy"]:
                     print(f"INFO: Rejecting transition for node '{node['id']}': invalid schema.")
                     node["status"] = "stale"
@@ -255,7 +255,10 @@ class LifecycleManager:
         pruned_edges = []
         pruned_edges_count = 0
         for e in edges:
-            if e["source"] in active_node_ids and e["target"] in active_node_ids:
+            if e["source"] == e["target"]:
+                print(f"INFO: Pruning self-referential edge: {e['source']} -> {e['target']} ({e['type']})")
+                pruned_edges_count += 1
+            elif e["source"] in active_node_ids and e["target"] in active_node_ids:
                 pruned_edges.append(e)
             else:
                 print(f"INFO: Pruning dangling edge: {e['source']} -> {e['target']} ({e['type']})")

@@ -2,6 +2,7 @@ import { state, DEFAULT_COLORS } from './state.js';
 import { translations } from './translations.js';
 import { renderTable, updateActiveChannelNameLabel, renderChannelsMenu, openVideoModal } from './ui.js';
 import { renderActiveChart, initChartUI } from './charts.js';
+import { adminFetch, adminFetchSilent, loadAuthStatus } from './auth.js';
 
 // API CALL: FETCH DATABASE STATS
 export async function loadStats() {
@@ -95,9 +96,6 @@ export async function loadChannelStatsHeader() {
                             <img src="${avatarUrl}" alt="Avatar" onerror="this.src='https://www.youtube.com/img/desktop/yt_1200_share.png'">
                         </div>
                         <div class="channel-meta-text">
-                            <div class="channel-name-title">
-                                <span>${data.channel_name}</span>
-                            </div>
                             <div class="channel-handle-sub">${handleText}</div>
                             <div class="channel-desc-sub" title="${desc.replace(/"/g, '&quot;')}">${desc}</div>
                         </div>
@@ -290,7 +288,7 @@ export async function triggerAction(actionName) {
     if (btnUpdate) btnUpdate.disabled = true;
     
     try {
-        const res = await fetch(`/api/action/${actionName}`, { method: "POST" });
+        const res = await adminFetch(`/api/action/${actionName}`, { method: "POST" });
         const data = await res.json();
         
         const consoleOut = document.getElementById("console-output");
@@ -316,7 +314,8 @@ export async function triggerAction(actionName) {
 // LIVE LOGS POLLING & TASK STATUS
 export async function checkProcessStatus() {
     try {
-        const res = await fetch("/api/action/status");
+        const res = await adminFetchSilent("/api/action/status");
+        if (res.status === 403) return;
         const status = await res.json();
         
         const badge = document.getElementById("task-badge");
@@ -471,7 +470,7 @@ export async function loadChartsData(channelId) {
             
             if (ocrQueue.length > 0) {
                 console.log(`[OCR Charts] Queueing background OCR for ${ocrQueue.length} top/worst videos without text.`);
-                fetch("/api/videos/ocr_thumbnails", {
+                adminFetchSilent("/api/videos/ocr_thumbnails", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ video_ids: ocrQueue })
@@ -515,5 +514,34 @@ export function applyFilters() {
             state.activeChartInstance.destroy();
             state.activeChartInstance = null;
         }
+     }
+}
+
+// API CALL: LOAD PROGRESSIVE ENTITLEMENTS
+export async function loadEntitlements() {
+    try {
+        const res = await adminFetchSilent("/api/governance/entitlements");
+        if (res.status === 403) {
+            await loadAuthStatus(true);
+            // Unauthenticated: default to baseline ready+dense
+            state.entitlements = {
+                ready_workspace: true,
+                dense_workspace: true,
+                linked_intelligence: false,
+                operator_runtime: false,
+                autonomous_watchers: false
+            };
+            return;
+        }
+        const data = await res.json();
+        if (data.ok) {
+            state.entitlements = data.entitlements;
+            const authStatus = await loadAuthStatus();
+            if (authStatus?.admin) {
+                state.entitlements.operator_runtime = true;
+            }
+        }
+    } catch (err) {
+        console.error("Failed to load progressive entitlements:", err);
     }
 }

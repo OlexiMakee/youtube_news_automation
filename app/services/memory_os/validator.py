@@ -79,9 +79,25 @@ class MemoryValidator:
 
     def validate_edges(self) -> List[str]:
         edges_file = self.config.memory_dir / "edges.jsonl"
+        nodes_file = self.config.memory_dir / "nodes.jsonl"
         errors: List[str] = []
         if not edges_file.exists():
             return []
+
+        # Load all valid node IDs
+        valid_node_ids = set()
+        if nodes_file.exists():
+            with open(nodes_file, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        node = json.loads(line)
+                        if "id" in node:
+                            valid_node_ids.add(node["id"])
+                    except json.JSONDecodeError:
+                        continue
 
         valid_types = {"depends_on", "triggers", "refutes", "overrides", "configures", "secures"}
 
@@ -108,6 +124,16 @@ class MemoryValidator:
 
                 if edge["type"] not in valid_types:
                     errors.append(f"edges.jsonl:L{line_num} invalid type '{edge['type']}'")
+
+                # Check for self-referential edge
+                if edge["source"] == edge["target"]:
+                    errors.append(f"edges.jsonl:L{line_num} self-referential edge is invalid: source and target are '{edge['source']}'")
+
+                # Check for dangling edge
+                if edge["source"] not in valid_node_ids:
+                    errors.append(f"edges.jsonl:L{line_num} source node '{edge['source']}' not found in nodes.jsonl")
+                if edge["target"] not in valid_node_ids:
+                    errors.append(f"edges.jsonl:L{line_num} target node '{edge['target']}' not found in nodes.jsonl")
 
         return errors
 

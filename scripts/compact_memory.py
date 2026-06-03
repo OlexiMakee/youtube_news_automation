@@ -42,7 +42,7 @@ EXCLUDED_DIRS = {
     ".pytest_cache",
     "data",
 }
-TEXT_SUFFIXES = {".md", ".txt", ".json", ".jsonl", ".py", ".js", ".css", ".html", ".sql", ".yml", ".yaml"}
+TEXT_SUFFIXES = {".md", ".txt", ".json", ".jsonl", ".py", ".js", ".css", ".html", ".sql", ".yml", ".yaml", ".toml"}
 SECRET_PATTERNS = (
     re.compile(r"sk-[A-Za-z0-9_\-]{12,}"),
     re.compile(r"(?i)(api[_-]?key|token|secret|password)\s*[:=]\s*['\"]?[^'\"\s,}]+"),
@@ -126,9 +126,9 @@ def python_symbols(text: str) -> Dict[str, List[str]]:
         elif isinstance(node, ast.ClassDef):
             classes.append(f"{node.name}:{node.lineno}")
         elif isinstance(node, ast.Import):
-            imports.extend(alias.name.split(".")[0] for alias in node.names)
+            imports.extend(alias.name for alias in node.names)
         elif isinstance(node, ast.ImportFrom) and node.module:
-            imports.append(node.module.split(".")[0])
+            imports.append(node.module)
     return {
         "functions": funcs[:30],
         "classes": classes[:20],

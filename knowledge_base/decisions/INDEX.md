@@ -28,7 +28,72 @@
 - ✅ No sync conflicts
 - ✅ No context loss at token limits
 
-**Related:** [SYNC_PROTOCOL.md](../SYNC_PROTOCOL.md), [handshake.md](../../handshake.md)
+**Related:** [SYNC_PROTOCOL.md](../SYNC_PROTOCOL.md), [HANDSHAKE.md](../../agent_context/HANDSHAKE.md)
+
+---
+
+### [ADR-002: Memory OS Deep Topic Study Doctrine](./ADR-002-MEMORY_OS_DEEP_TOPIC_STUDY.md)
+**Status:** ACCEPTED
+**Date:** 2026-06-01
+**Owner:** User directive, Codex implementation
+
+**Problem:** The workspace needs to study one bounded customer topic deeply instead of acting like a generic oracle.
+
+**Decision:**
+- Use OS-inspired memory: hierarchy, addressable nodes, process isolation, journaling, scheduler policy, verification.
+- Route repeated deterministic analysis into Python/SQLite/Numpy tools.
+- Make deep topic study a core analytics primitive with evidence, probabilities, correlations, anomalies, caveats, and confidence.
+
+**Related:** [../../strategy.md](../../strategy.md), [../../scripts/analytics/topic_study.py](../../scripts/analytics/topic_study.py)
+
+---
+
+### [ADR-003: Data Access Experiment Loop](./ADR-003-DATA_ACCESS_EXPERIMENT_LOOP.md)
+**Status:** ACCEPTED
+**Date:** 2026-06-01
+**Owner:** User directive, Codex implementation
+
+**Problem:** The workspace needs to try many permitted data-reading methods, learn from outcomes, and promote reliable methods into reusable infrastructure.
+
+**Decision:**
+- Log every data-access method experiment as structured JSONL.
+- Rank methods by success rate, throughput, cost, errors, and sample confidence.
+- Periodically analyze method logs using local analytics tools.
+- Keep the loop inside source policy, redaction, resource, and migration boundaries.
+
+**Related:** [../../strategy.md](../../strategy.md), [../../scripts/analytics/data_method_evaluator.py](../../scripts/analytics/data_method_evaluator.py)
+
+---
+
+### [ADR-004: Memory OS Kernel and Task Quantization](./ADR-004-MEMORY_OS_KERNEL_AND_QUANTIZATION.md)
+**Status:** ✅ APPROVED  
+**Date:** 2026-06-02  
+**Owner:** Codex / Antigravity implementation  
+
+**Problem:** We need a model-agnostic, context-budgeted cognition layer that routes tasks by complexity and validates memory updates with strict evidence.
+
+**Decision:**
+- Establish the Memory OS Microkernel separating task routing from LLM calls.
+- Implement a 1-100 Task Quantization scale with YAML-defined workflows and an escalation ladder.
+- Validate all memory updates against JSON schemas with mandatory evidence references.
+
+**Related:** [../../strategy.md](../../strategy.md), [../../agent_context/WORKFLOWS.md](../../agent_context/WORKFLOWS.md)
+
+---
+
+### [ADR-005: Healthy Development & Company-Mode Governance (PROPOSAL)](./ADR-005-HEALTHY_DEVELOPMENT_AND_COMPANY_MODE_PROPOSAL.md)
+**Status:** 📋 PROPOSED (Pending Owner Review / Modification)
+**Date:** 2026-06-03
+**Owner:** User (proposed), Owner (reviewing / editing details based on expertise)
+
+**Problem:** Scaling development requires clear quality metrics, task quantization scopes, and role-aware modes without causing code bloat or performance degradation in the Memory OS microkernel.
+
+**Decision:**
+- Stage strategic coding/architecture policies and development modes under the `knowledge/` scope.
+- Define a 1-100 task quantization gate threshold.
+- Grant the Owner absolute authority to edit, override, and adapt specific guidelines directly in the draft file.
+
+**Related:** [../../strategy.md](../../strategy.md), [../../agent_context/WORKFLOWS.md](../../agent_context/WORKFLOWS.md)
 
 ---
 
@@ -99,6 +164,10 @@ SUPERSEDED ← Only if new ADR explicitly replaces it
 | ADR | Title | Status | Impact |
 |-----|-------|--------|--------|
 | 001 | Shared KB Architecture | ✅ ACCEPTED | Multi-agent sync |
+| 002 | Memory OS Deep Topic Study Doctrine | ACCEPTED | Customer-scoped analysis core |
+| 003 | Data Access Experiment Loop | ACCEPTED | Method logs and rankings |
+| 004 | Memory OS Kernel and Task Quantization | ✅ APPROVED | Model-agnostic context microkernel |
+| 005 | Healthy Development & Company Governance | 📋 PROPOSED | Development modes and quality gates |
 
 ---
 

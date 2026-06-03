@@ -207,8 +207,29 @@ Format: short English bullets only. Keep durable facts.
 - Refactored `scripts/memos.py` CLI and `scripts/memory/` scripts into thin delegating wrappers, preserving backwards compatibility and test harness configurations.
 - Verified package portability by running validation against an isolated mock User-OS configuration.
 - Ran the entire test suite and verified 203/203 green tests.
-
-
+- Conducted a repo-wide Memory OS control-plane audit and executed a staged graph rebuild.
+- Translated Ukrainian node summaries (`proposal.1780409787036`, `proposal.1780268042454`, and `proposal.1780268104255`) to English in `nodes.jsonl` to ensure rule compliance.
+- Removed self-referential overrides edge for `solid.isp_separation.db_client` in `edges.jsonl`.
+- Upgraded `LifecycleManager.transition()` to support re-verifying `stale` status nodes once evidence files are corrected.
+- Enhanced `LifecycleManager.prune()` to automatically purge self-referential edges alongside dangling edges.
+- Upgraded `MemoryValidator.validate_edges()` to catch self-referential and dangling edges.
+- Implemented `MemoryCompactor.archive_compacted_capsules()` to automatically archive compacted task logs to `archived_task_capsules.jsonl` and rotate active capsules, reducing active `task_capsules.jsonl` footprint to 5 rows.
+- Created unit tests in `scratch/test_memory_rebuild.py` covering all rebuild mechanisms, with all 207 tests discovered and passing.
+- Created `/api/scraper/proposals`, `/api/scraper/proposals/<id>/approve`, and `/api/scraper/tasks` endpoints under a new `scraper` blueprint, registered in Flask app factory.
+- Gated scraper endpoints with admin authorization check.
+- Added Scraping Proposals and Active Scraping Tasks sections inside the Operator Runtime panel in `templates/index.html`.
+- Implemented frontend rendering, status badge styles, and proposal approval trigger in `ui.js`, `app.js`, and `style.css`.
+- Registered translations for the new sections across UA, EN, ES, PT, and TR.
+- Fixed `TestConnectors` registry assertion in `test_connectors.py` to match the newly added Reddit, GitHub, and scientific connectors.
+- Created `test_scraper_toolkit.py` unit and integration tests covering polite feeds parsing, background job orchestrator, and endpoints routing.
+- Implemented `PoliteScraperEngine` in `news_scraper/connectors/polite_engine.py` to parse domains, cache `robots.txt` thread-safely, and dynamically determine optimal crawl delays.
+- Added base-class helpers `polite_sleep()` and `report_rate_limit()` in `news_scraper/connectors/base.py` and integrated them into Reddit, GitHub, and Scientific connectors.
+- Implemented exponential backoff for the politeness engine to double delays up to a 60-second cap upon receiving HTTP 429 errors.
+- Added unit tests verifying robots.txt parser, rate-limit backoff, and connector sleep delegation (all 215/215 tests passing green).
+- Implemented the Scraping Policy & Workflow API including provider pricing/quota rules and workflow options (Super Economical, Moderately Economical, Medium, Fast, and Ultra Fast) (218/218 tests passing).
+- Added `GET /api/scraper/workflows` endpoint and custom configuration body support in the proposal approval handler.
+- Integrated the interactive budget constraint optimizer, workflow dropdowns, cost/delay labels, and recommendation hints under Scraping Proposals in the Operator panel with multi-language translation.
+- Refactored and renamed the `news_scraper` namespace to the generic `scraper` namespace across all code modules, scripts, blueprints, entry points, configuration files, and unit test suites for SOLID compliance.
 
 ## Locked Decisions
 - Local SQLite remains primary.

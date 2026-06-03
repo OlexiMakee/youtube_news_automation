@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 System Telemetry Daemon (v1.1.0)
-YouTube News Automation
+Governed Autonomous Intelligence Workspace
 
 Purpose: Collect real-time system metrics (CPU, RAM, Disk IO, HTTP sessions) for cloud migration planning.
 Runs as lightweight background daemon thread. Safe for SQLite WAL mode (no write bottlenecks).

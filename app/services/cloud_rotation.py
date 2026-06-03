@@ -1,6 +1,6 @@
 """
 Cloud Rotation Engine (v1.1.0)
-YouTube News Automation
+Governed Autonomous Intelligence Workspace
 
 Purpose: Manage free/paid LLM provider rotation with efficiency scoring and quota interception.
 

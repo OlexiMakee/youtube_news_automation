@@ -60,3 +60,7 @@
 {"source": "memory.compaction.batch_processing", "target": "automation.lifecycle.approval_gated", "type": "depends_on"}
 {"source": "memory.compaction.incremental_node_appending", "target": "memory.compaction.batch_processing", "type": "triggers"}
 {"source": "system.validation.native_checks_for_lightweight_contracts", "target": "memory.compaction.node_type_expansion", "type": "triggers"}
+{"source": "architecture.memory_os.db_level_isolation", "target": "architecture.memory_os.dual_purpose_separation", "type": "depends_on"}
+{"source": "policy.language.gate_by_user_language", "target": "policy.language.block_russian_generation", "type": "depends_on"}
+{"source": "governance.prompt.language_policy_synchronization", "target": "policy.language.block_russian_generation", "type": "configures"}
+{"source": "governance.prompt.language_policy_synchronization", "target": "policy.language.gate_by_user_language", "type": "configures"}

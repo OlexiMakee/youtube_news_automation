@@ -193,6 +193,9 @@ def compact_capsules(root_dir: Path, provider: Optional[str] = None, model: Opti
         proposed_nodes = []
         proposed_edges = []
         
+        if isinstance(payload, list) and len(payload) == 1 and isinstance(payload[0], dict) and ("nodes" in payload[0] or "edges" in payload[0]):
+            payload = payload[0]
+            
         if isinstance(payload, dict):
             proposed_nodes = payload.get("nodes", [])
             proposed_edges = payload.get("edges", [])
@@ -203,6 +206,7 @@ def compact_capsules(root_dir: Path, provider: Optional[str] = None, model: Opti
                         proposed_edges.append(item)
                     else:
                         proposed_nodes.append(item)
+
                         
         existing_node_ids = {n["id"] for n in existing_nodes}
         new_node_ids = set()

@@ -7,7 +7,7 @@
     },
     "skipped": 2
   },
-  "generated_at": "2026-06-03T16:41:55",
+  "generated_at": "2026-06-03T16:44:16",
   "items": [
     {
       "meta": {
@@ -281,12 +281,12 @@
     },
     {
       "meta": {
-        "bytes": 141559,
+        "bytes": 141884,
         "file": "agent_context/memory_snapshot.json",
         "layer": "meta-layer",
-        "sha256_16": "cdb793f6b737770c"
+        "sha256_16": "a5555116596bb247"
       },
-      "vector_text": "agent_context/memory_snapshot.json { \"counts\": { \"items\": 121, \"layers\": { \"domain-layer\": 89, \"meta-layer\": 32 }, \"skipped\": 2 }, \"generated_at\": \"2026-06-03T16:31:01\", \"items\": [ { \"meta\": { \"bytes\": 2156, \"file\": \"README.md\", \"headings\": [ \"Governed Autonomous Intelligence Workspace\", \"Start\", \"Read Order\", \"Current Architecture\", \"Main Paths\", \"Locked Rules\" ], \"layer\": \"meta-layer\", \"sha"
+      "vector_text": "agent_context/memory_snapshot.json { \"counts\": { \"items\": 121, \"layers\": { \"domain-layer\": 89, \"meta-layer\": 32 }, \"skipped\": 2 }, \"generated_at\": \"2026-06-03T16:42:55\", \"items\": [ { \"meta\": { \"bytes\": 2156, \"file\": \"README.md\", \"headings\": [ \"Governed Autonomous Intelligence Workspace\", \"Start\", \"Read Order\", \"Current Architecture\", \"Main Paths\", \"Locked Rules\" ], \"layer\": \"meta-layer\", \"sha"
     },
     {
       "meta": {
@@ -2037,9 +2037,9 @@
     },
     {
       "meta": {
-        "bytes": 13589,
+        "bytes": 13782,
         "classes": [
-          "DummyArgs:314"
+          "DummyArgs:318"
         ],
         "dependencies": [
           "app.services.llm_clients",
@@ -2059,12 +2059,12 @@
           "clean_llm_json:69",
           "call_llm:79",
           "compact_capsules:105",
-          "__init__:315"
+          "__init__:319"
         ],
         "layer": "domain-layer",
-        "sha256_16": "18814bd0455c3329"
+        "sha256_16": "d9594bc1145ec9da"
       },
-      "vector_text": "scripts/memory/compact_capsules.py clean_llm_json:69 call_llm:79 compact_capsules:105 __init__:315 DummyArgs:314 #!/usr/bin/env python3 import sys import json import os import argparse from datetime import datetime from pathlib import Path from typing import List, Dict, Set, Any, Optional ROOT = Path(__file__).resolve().parents[2] if str(ROOT) not in sys.path: sys.path.insert(0, str(ROOT)) from scripts.memory.lifecycle import ( load_jsonl, append_jsonl, write_jsonl, cm"
+      "vector_text": "scripts/memory/compact_capsules.py clean_llm_json:69 call_llm:79 compact_capsules:105 __init__:319 DummyArgs:318 #!/usr/bin/env python3 import sys import json import os import argparse from datetime import datetime from pathlib import Path from typing import List, Dict, Set, Any, Optional ROOT = Path(__file__).resolve().parents[2] if str(ROOT) not in sys.path: sys.path.insert(0, str(ROOT)) from scripts.memory.lifecycle import ( load_jsonl, append_jsonl, write_jsonl, cm"
     },
     {
       "meta": {

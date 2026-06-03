@@ -42,13 +42,39 @@ WIDGET_TYPES = {
         "default_config": {
             "limit": 10,
         },
+    },
+    "minified-stats": {
+        "type": "minified-stats",
+        "label": "Mini Stats",
+        "description": "Minified system statistics dashboard.",
+        "default_config": {},
+    },
+    "entity-timeline": {
+        "type": "entity-timeline",
+        "label": "Entity Timeline",
+        "description": "Entity timeline tracks visualization.",
+        "default_config": {},
+    },
+    "system-status": {
+        "type": "system-status",
+        "label": "System Status",
+        "description": "System status indicator lights.",
+        "default_config": {},
+    },
+    "cost-quota": {
+        "type": "cost-quota",
+        "label": "Cost & Quota",
+        "description": "Expose real-time API call counts and model token budgets.",
+        "default_config": {
+            "timeRange": "24h",
+        },
     }
 }
 ALLOWED_WIDGET_KEYS = {
     "id", "type", "width", "height", "collapsed",
     "selectedChannelIds", "activeChartType", "chartLimit",
     "selectedChannelId", "anomalyThreshold", "limit",
-    "dateStart", "dateEnd", "linkedWidgetIds"
+    "dateStart", "dateEnd", "linkedWidgetIds", "timeRange"
 }
 ALLOWED_CHART_TYPES = {
     "top_viewed",
@@ -191,6 +217,11 @@ def sanitize_widget(raw: Dict[str, Any]) -> Dict[str, Any]:
         if not isinstance(linked_ids, list):
             raise ValueError("linkedWidgetIds must be a list")
         widget["linkedWidgetIds"] = [str(item)[:80] for item in linked_ids][:50]
+
+    time_range = widget.get("timeRange")
+    if time_range is not None:
+        time_range = str(time_range).strip()
+        widget["timeRange"] = time_range if time_range in {"24h", "7d", "30d", "all"} else "24h"
 
     return widget
 

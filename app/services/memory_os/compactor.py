@@ -4,8 +4,10 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Set, Any, Optional
 
+from app.services.memory_os.interfaces import IMemosConfig, IMemoryStorage, ILlmProviderService
 from app.services.memory_os.config import MemosConfig
-from app.services.llm_clients import LLMClientFactory
+from app.services.memory_os.storage import FileSystemMemoryStorage
+from app.services.memory_os.llm_service import DefaultLlmProviderService
 
 SYSTEM_PROMPT = """You are the Memory OS Knowledge Compactor.
 Your job is to analyze developer task logs (task capsules) and existing memory nodes, then extract new permanent knowledge nodes (rules, facts, configurations, or policies) and relationships (edges).
@@ -51,26 +53,21 @@ Do not write markdown wraps like ```json or any other text before/after. Just th
 class MemoryCompactor:
     """Compacts task capsules into permanent Memory OS nodes using LLMs."""
 
-    def __init__(self, config: Optional[MemosConfig] = None):
+    def __init__(
+        self,
+        config: Optional[IMemosConfig] = None,
+        storage: Optional[IMemoryStorage] = None,
+        llm_service: Optional[ILlmProviderService] = None,
+    ):
         self.config = config or MemosConfig()
+        self.storage = storage or FileSystemMemoryStorage()
+        self.llm_service = llm_service or DefaultLlmProviderService()
 
     def _load_jsonl(self, path: Path) -> List[Dict[str, Any]]:
-        if not path.exists():
-            return []
-        items = []
-        with open(path, "r", encoding="utf-8") as f:
-            for line in f:
-                if line.strip():
-                    try:
-                        items.append(json.loads(line))
-                    except json.JSONDecodeError:
-                        continue
-        return items
+        return self.storage.load_jsonl(path)
 
     def _append_jsonl(self, path: Path, item: Dict[str, Any]) -> None:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        with open(path, "a", encoding="utf-8") as f:
-            f.write(json.dumps(item) + "\n")
+        self.storage.append_jsonl(path, item)
 
     def _clean_llm_json(self, text: str) -> str:
         text = text.strip()
@@ -83,30 +80,7 @@ class MemoryCompactor:
         return text
 
     def _call_llm(self, user_message: str, provider_override: Optional[str] = None, model_override: Optional[str] = None) -> str:
-        providers_to_try = [provider_override] if provider_override else ["gemini", "openrouter", "openai"]
-
-        for provider in providers_to_try:
-            api_key, base_url, model = LLMClientFactory.get_provider_config(provider, model_override)
-            if not api_key or not base_url:
-                continue
-
-            try:
-                client = LLMClientFactory.create_client(provider)
-                chunks = []
-                for chunk in client.stream_chat(
-                    api_key=api_key,
-                    base_url=base_url,
-                    model=model,
-                    user_message=user_message,
-                    system_prompt=SYSTEM_PROMPT
-                ):
-                    chunks.append(chunk)
-                return "".join(chunks)
-            except Exception as exc:
-                print(f"Warning: failed to run compaction with provider {provider}: {exc}", file=sys.stderr)
-                continue
-
-        raise RuntimeError("No LLM provider configured with valid API keys in environment.")
+        return self.llm_service.call_llm(user_message, SYSTEM_PROMPT, provider_override, model_override)
 
     def compact_capsules(self, provider: Optional[str] = None, model: Optional[str] = None) -> int:
         task_capsules_path = self.config.capsules_file
@@ -114,7 +88,7 @@ class MemoryCompactor:
         nodes_path = self.config.memory_dir / "nodes.jsonl"
         edges_path = self.config.memory_dir / "edges.jsonl"
 
-        if not task_capsules_path.exists():
+        if not self.storage.exists(task_capsules_path):
             print(f"Error: task_capsules.jsonl not found at {task_capsules_path}", file=sys.stderr)
             return 1
 
@@ -331,9 +305,9 @@ class MemoryCompactor:
 
         # Trigger lifecycle transitions and manifest compilation via classes
         from app.services.memory_os.lifecycle import LifecycleManager
-        
+
         print("Running lifecycle transition validations...")
-        lifecycle = LifecycleManager(self.config)
+        lifecycle = LifecycleManager(self.config, self.storage)
         lifecycle.transition(validator="memos_compactor")
         lifecycle.manifest()
 
@@ -349,7 +323,7 @@ class MemoryCompactor:
             import subprocess
             # Rebuild snapshot relative to config
             compact_memory_script = self.config.root_dir / "scripts" / "compact_memory.py"
-            if compact_memory_script.exists():
+            if self.storage.exists(compact_memory_script):
                 subprocess.run([sys.executable, str(compact_memory_script), "--write"], check=True)
         except Exception as exc:
             print(f"Warning: snapshot rebuild failed: {exc}", file=sys.stderr)
@@ -358,7 +332,7 @@ class MemoryCompactor:
 
     def archive_compacted_capsules(self, keep_recent: int = 5) -> None:
         task_capsules_path = self.config.capsules_file
-        if not task_capsules_path.exists():
+        if not self.storage.exists(task_capsules_path):
             return
 
         archive_path = task_capsules_path.parent / "archived_task_capsules.jsonl"
@@ -369,7 +343,7 @@ class MemoryCompactor:
         # 2. Get compacted timestamps from events
         events_path = self.config.memory_dir / "events.jsonl"
         compacted_timestamps = set()
-        if events_path.exists():
+        if self.storage.exists(events_path):
             events = self._load_jsonl(events_path)
             for ev in events:
                 if ev.get("event") == "memory.task_capsules.compacted":
@@ -392,7 +366,7 @@ class MemoryCompactor:
 
         # 4. Read existing archived timestamps to avoid duplicates
         archived_timestamps = set()
-        if archive_path.exists():
+        if self.storage.exists(archive_path):
             archived = self._load_jsonl(archive_path)
             for cap in archived:
                 ts = cap.get("timestamp")
@@ -401,25 +375,21 @@ class MemoryCompactor:
 
         # 5. Append newly compacted ones to archived_task_capsules.jsonl
         archive_append_count = 0
-        archive_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(archive_path, "a", encoding="utf-8") as f:
-            for cap in compacted:
-                ts = cap.get("timestamp")
-                if ts not in archived_timestamps:
-                    f.write(json.dumps(cap) + "\n")
-                    archive_append_count += 1
+        for cap in compacted:
+            ts = cap.get("timestamp")
+            if ts not in archived_timestamps:
+                self.storage.append_jsonl(archive_path, cap)
+                archive_append_count += 1
 
         if archive_append_count > 0:
             print(f"INFO: Archived {archive_append_count} compacted capsules to {archive_path.name}")
 
         # 6. Keep all uncompacted + last `keep_recent` compacted in task_capsules.jsonl
         retained_compacted = compacted[-keep_recent:] if len(compacted) > keep_recent else compacted
-        
+
         def get_ts(c):
             return c.get("timestamp", "")
-            
+
         final_capsules = sorted(uncompacted + retained_compacted, key=get_ts)
 
-        with open(task_capsules_path, "w", encoding="utf-8") as f:
-            for cap in final_capsules:
-                f.write(json.dumps(cap) + "\n")
+        self.storage.save_jsonl(task_capsules_path, final_capsules)

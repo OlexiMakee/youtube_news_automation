@@ -4,51 +4,33 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Set, Any, Tuple, Optional
 
+from app.services.memory_os.interfaces import IMemosConfig, IMemoryStorage
 from app.services.memory_os.config import MemosConfig
+from app.services.memory_os.storage import FileSystemMemoryStorage
 
 class LifecycleManager:
     """Manages the lifecycle operations of Memory OS files (propose, transition, manifest, prune)."""
 
-    def __init__(self, config: Optional[MemosConfig] = None):
+    def __init__(self, config: Optional[IMemosConfig] = None, storage: Optional[IMemoryStorage] = None):
         self.config = config or MemosConfig()
+        self.storage = storage or FileSystemMemoryStorage()
 
     def _sha256_file(self, path: Path) -> str:
-        if not path.exists():
-            return ""
-        h = hashlib.sha256()
-        with open(path, "rb") as f:
-            while chunk := f.read(8192):
-                h.update(chunk)
-        return h.hexdigest()
+        return self.storage.get_sha256(path)
 
     def _load_jsonl(self, path: Path) -> List[Dict[str, Any]]:
-        if not path.exists():
-            return []
-        items = []
-        with open(path, "r", encoding="utf-8") as f:
-            for line in f:
-                if line.strip():
-                    try:
-                        items.append(json.loads(line))
-                    except json.JSONDecodeError:
-                        continue
-        return items
+        return self.storage.load_jsonl(path)
 
     def _write_jsonl(self, path: Path, items: List[Dict[str, Any]]) -> None:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        with open(path, "w", encoding="utf-8") as f:
-            for item in items:
-                f.write(json.dumps(item) + "\n")
+        self.storage.save_jsonl(path, items)
 
     def _append_jsonl(self, path: Path, item: Dict[str, Any]) -> None:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        with open(path, "a", encoding="utf-8") as f:
-            f.write(json.dumps(item) + "\n")
+        self.storage.append_jsonl(path, item)
 
     def _validate_evidence(self, evidence_list: List[str]) -> bool:
         for item in evidence_list:
             if not item.startswith("http"):
-                if not (self.config.root_dir / item).exists():
+                if not self.storage.exists(self.config.root_dir / item):
                     return False
         return True
 
@@ -222,9 +204,7 @@ class LifecycleManager:
         }
 
         manifest_path = self.config.memory_dir / "manifest.json"
-        manifest_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(manifest_path, "w", encoding="utf-8") as f:
-            json.dump(manifest_data, f, indent=2)
+        self.storage.save_json(manifest_path, manifest_data)
 
         try:
             rel_manifest = manifest_path.relative_to(self.config.root_dir)

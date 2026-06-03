@@ -53,7 +53,7 @@ graph TD
 
 ## 3. Memory OS & RAG Architecture
 
-Memory OS serves two distinct purposes: accelerating product development and enabling end-user dashboard customization.
+Memory OS serves as an agent-centric RAG and developer context tool. The visual metrics dashboard is deprioritized; instead, a detailed CLI-first interface (optimized for agent context injection) is the primary target. For advanced visual monitoring or configuration, external tools (e.g. Open WebUI) or advanced CLI utilities (like Claude Code) are preferred over proprietary dashboard UI widgets.
 
 ### 3.1 Developer Memory OS (Dev-OS)
 To bypass LLM attention bottlenecks and optimize token budgets for development, Dev-OS uses a 3-layer schema:

@@ -174,7 +174,16 @@ export const translations = {
         workflow_moderately_economical: "Помірно економний",
         workflow_medium: "Середній",
         workflow_fast: "Швидкий",
-        workflow_ultra_fast: "Надшвидкий"
+        workflow_ultra_fast: "Надшвидкий",
+        widget_title_cost_quota: "Витрати та ліміти",
+        lbl_total_cost: "Загальні витрати",
+        lbl_total_tokens: "Всього токенів",
+        lbl_total_runs: "Кількість запитів",
+        lbl_success_rate: "Успішність",
+        lbl_error_count: "Помилки",
+        lbl_time_range: "Період",
+        lbl_tab_llm_costs: "Витрати LLM",
+        lbl_tab_system_load: "Навантаження"
     },
     en: {
         lbl_workspace_layout: "Workspace Layout:",
@@ -350,7 +359,16 @@ export const translations = {
         workflow_moderately_economical: "Moderately Economical",
         workflow_medium: "Medium",
         workflow_fast: "Fast",
-        workflow_ultra_fast: "Ultra Fast"
+        workflow_ultra_fast: "Ultra Fast",
+        widget_title_cost_quota: "Cost & Quotas",
+        lbl_total_cost: "Total Cost",
+        lbl_total_tokens: "Total Tokens",
+        lbl_total_runs: "Total Queries",
+        lbl_success_rate: "Success Rate",
+        lbl_error_count: "Errors",
+        lbl_time_range: "Range",
+        lbl_tab_llm_costs: "LLM Costs",
+        lbl_tab_system_load: "System Load"
     },
     es: {
         lbl_workspace_layout: "Diseño del espacio de trabajo:",
@@ -520,7 +538,16 @@ export const translations = {
         workflow_moderately_economical: "Moderadamente Económico",
         workflow_medium: "Medio",
         workflow_fast: "Rápido",
-        workflow_ultra_fast: "Ultra Rápido"
+        workflow_ultra_fast: "Ultra Rápido",
+        widget_title_cost_quota: "Costos y Cuotas",
+        lbl_total_cost: "Costo Total",
+        lbl_total_tokens: "Tokens Totales",
+        lbl_total_runs: "Consultas Totales",
+        lbl_success_rate: "Tasa de Éxito",
+        lbl_error_count: "Errores",
+        lbl_time_range: "Rango",
+        lbl_tab_llm_costs: "Costos LLM",
+        lbl_tab_system_load: "Carga del Sistema"
     },
     pt: {
         lbl_workspace_layout: "Layout do espaço de trabalho:",
@@ -690,7 +717,16 @@ export const translations = {
         workflow_moderately_economical: "Moderadamente Econômico",
         workflow_medium: "Médio",
         workflow_fast: "Rápido",
-        workflow_ultra_fast: "Ultra Rápido"
+        workflow_ultra_fast: "Ultra Rápido",
+        widget_title_cost_quota: "Custos e Cotas",
+        lbl_total_cost: "Custo Total",
+        lbl_total_tokens: "Total de Tokens",
+        lbl_total_runs: "Total de Consultas",
+        lbl_success_rate: "Taxa de Sucesso",
+        lbl_error_count: "Erros",
+        lbl_time_range: "Período",
+        lbl_tab_llm_costs: "Custos de LLM",
+        lbl_tab_system_load: "Carga do Sistema"
     },
     tr: {
         lbl_workspace_layout: "Çalışma Alanı Düzeni:",
@@ -860,6 +896,15 @@ export const translations = {
         workflow_moderately_economical: "Orta Ekonomik",
         workflow_medium: "Orta",
         workflow_fast: "Hızlı",
-        workflow_ultra_fast: "Çok Hızlı"
+        workflow_ultra_fast: "Çok Hızlı",
+        widget_title_cost_quota: "Maliyet ve Kotalar",
+        lbl_total_cost: "Toplam Maliyet",
+        lbl_total_tokens: "Toplam Token",
+        lbl_total_runs: "Toplam Sorgu",
+        lbl_success_rate: "Başarı Oranı",
+        lbl_error_count: "Hatalar",
+        lbl_time_range: "Aralık",
+        lbl_tab_llm_costs: "LLM Maliyetleri",
+        lbl_tab_system_load: "Sistem Yükü"
     }
 };

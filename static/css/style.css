@@ -3299,6 +3299,74 @@ body.chat-drawer-open #chat-toggle-btn {
     40% { opacity: 1; }
 }
 
+.chat-bubble-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+    justify-content: flex-end;
+    opacity: 0.3;
+    transition: opacity 0.2s ease;
+}
+
+.chat-bubble.bot:hover .chat-bubble-actions {
+    opacity: 1.0;
+}
+
+.chat-bubble-action-btn {
+    background: none;
+    border: none;
+    color: var(--text-color);
+    cursor: pointer;
+    font-size: 11px;
+    padding: 2px 4px;
+    border-radius: 4px;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.chat-bubble-action-btn:hover {
+    background-color: rgba(128, 128, 128, 0.15);
+    color: var(--accent-color);
+}
+
+.chat-bubble-action-btn.active {
+    color: var(--accent-color);
+}
+
+.chat-feedback-comment-input {
+    display: flex;
+    gap: 6px;
+    margin-top: 6px;
+    width: 100%;
+}
+
+.chat-feedback-comment-input input {
+    flex-grow: 1;
+    font-size: 11px;
+    padding: 4px 6px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background-color: var(--card-bg);
+    color: var(--text-color);
+}
+
+.chat-feedback-comment-input button {
+    background-color: var(--accent-color);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-size: 11px;
+    cursor: pointer;
+}
+
+.chat-feedback-saved-indicator {
+    font-size: 10px;
+    color: var(--accent-color);
+    margin-top: 4px;
+    display: block;
+    text-align: right;
+}
+
 /* Markdown parsing typography styling */
 .chat-bubble.bot p {
     margin: 0 0 8px 0;

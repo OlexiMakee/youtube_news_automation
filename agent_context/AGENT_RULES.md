@@ -77,6 +77,8 @@ Do not store raw code chunks in vector memory by default. Prefer structural poin
 ```
 
 - **Strict Isolation**: Never mix Developer Memory OS (codebase structure, task capsules, code symbols) with User-Facing Memory OS (analytical dashboard summaries, news facts, user rules). Dev-OS is for agent coding assistance; User-OS is for product-level user personalization.
+- **CLI/Agent-Centric Priority**: Memory OS is primarily an agent assistance tool. Visual dashboard panels are deprioritized. Optimize for CLI-first design (like `memos.py` commands) and LLM-readable RAG context.
+
 
 
 ## Testing

@@ -231,6 +231,24 @@ Format: short English bullets only. Keep durable facts.
 - Integrated the interactive budget constraint optimizer, workflow dropdowns, cost/delay labels, and recommendation hints under Scraping Proposals in the Operator panel with multi-language translation.
 - Refactored and renamed the `news_scraper` namespace to the generic `scraper` namespace across all code modules, scripts, blueprints, entry points, configuration files, and unit test suites for SOLID compliance.
 - Pushed all refactoring and Phase 1 commits to GitHub under the release tag `v1.0.0-phase1-solid` after purging a temporary large file from local history.
+- Corrected outdated `news_scraper` references to `scraper` in `memory/nodes.jsonl` evidence fields to restore memos validation success.
+- Implemented User-Facing Memory OS likes/dislikes and optional comment feedback loop for streaming co-editor interactions, saving insights to isolated SQLite `data/memory_os.db` database.
+- Added client-side chat feedback controls (Thumbs-Up, Thumbs-Down, export to Markdown, and comment input fields) to bot message bubbles in the chat drawer.
+- Verified route and database persistence integration using a dedicated unit test suite (`scratch/test_chat_feedback.py`) and ran audit to automatically verify and transition the related proposals to done.
+- Refactored Memory OS modules (compactor, lifecycle, validator, search) to conform with the SOLID Dependency Inversion Principle (DIP) by introducing IMemosConfig, IMemoryStorage, and ILlmProviderService abstract base classes, decoupling core logic from direct filesystem calls and concrete LLM factories. Created FileSystemMemoryStorage and DefaultLlmProviderService concrete implementations, and verified in-memory isolation using new test_memory_os_dip.py unit tests.
+
+## 2026-06-03
+- Registered `minified-stats`, `entity-timeline`, `system-status`, and `cost-quota` in `WIDGET_TYPES` in `app/services/widgets.py` to support layout database persistence.
+- Added `timeRange` widget parameter support and sanitization on the backend.
+- Implemented `/api/admin/quota-metrics` and `/api/admin/system-metrics` admin-gated REST API endpoints to fetch aggregated LLM run stats (tokens, cost, errors) and recent host metrics.
+- Added entitlement gating for all 7 widget types inside the `widgets_registry` route.
+- Added the `cost-quota` widget button to the drag-and-drop palette in `templates/index.html`.
+- Registered localized translations for the Cost & Quota widget across UA, EN, ES, PT, and TR.
+- Implemented `CostQuotaDashboardWidget` in `static/js/widgets.js` with dual tabs for LLM costs bar chart and system load line chart (CPU/RAM).
+- Wrote integration tests in `scratch/test_quota_dashboard.py` and verified all 230 tests pass successfully.
+- Extended the main `scripts/memos.py` CLI with `search`, `user-memory` (list, add, delete, search), and `context` commands for unified agent-centric memory management.
+- Updated `SystemPromptBuilder` to query User-OS memories and inject them into system prompts in clean YAML format, applying a strict filter to exclude developer codebase metadata (guaranteeing zero codebase leakage).
+- Added comprehensive unit tests in `scratch/test_memos_cli_extensions.py` achieving 100% code coverage across new subcommands and prompt filtering rules.
 
 ## Locked Decisions
 - Local SQLite remains primary.

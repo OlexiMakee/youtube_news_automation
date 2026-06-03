@@ -1,51 +1,28 @@
 import json
 from pathlib import Path
 from typing import List, Dict, Set, Any, Optional
+from app.services.memory_os.interfaces import IMemosConfig, IMemoryStorage
 from app.services.memory_os.config import MemosConfig
+from app.services.memory_os.storage import FileSystemMemoryStorage
 
 class MemorySearcher:
     """Queries Memory OS nodes, codebase symbols, and traverses graph relations."""
 
-    def __init__(self, config: Optional[MemosConfig] = None):
+    def __init__(self, config: Optional[IMemosConfig] = None, storage: Optional[IMemoryStorage] = None):
         self.config = config or MemosConfig()
+        self.storage = storage or FileSystemMemoryStorage()
 
     def _load_nodes(self) -> List[Dict[str, Any]]:
         nodes_file = self.config.memory_dir / "nodes.jsonl"
-        if not nodes_file.exists():
-            return []
-        nodes = []
-        with open(nodes_file, "r", encoding="utf-8") as f:
-            for line in f:
-                if line.strip():
-                    try:
-                        nodes.append(json.loads(line))
-                    except json.JSONDecodeError:
-                        continue
-        return nodes
+        return self.storage.load_jsonl(nodes_file)
 
     def _load_edges(self) -> List[Dict[str, Any]]:
         edges_file = self.config.memory_dir / "edges.jsonl"
-        if not edges_file.exists():
-            return []
-        edges = []
-        with open(edges_file, "r", encoding="utf-8") as f:
-            for line in f:
-                if line.strip():
-                    try:
-                        edges.append(json.loads(line))
-                    except json.JSONDecodeError:
-                        continue
-        return edges
+        return self.storage.load_jsonl(edges_file)
 
     def _load_snapshot(self) -> Dict[str, Any]:
         snapshot_file = self.config.snapshot_file
-        if not snapshot_file.exists():
-            return {}
-        try:
-            with open(snapshot_file, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception:
-            return {}
+        return self.storage.load_json(snapshot_file)
 
     def traverse_graph(self, start_node_ids: Set[str], depth: int, 
                        nodes_by_id: Dict[str, Dict[str, Any]], edges: List[Dict[str, Any]]) -> Set[str]:

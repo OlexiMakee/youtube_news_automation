@@ -16,6 +16,9 @@ from app.services.memory_os.validator import MemoryValidator
 from app.services.memory_os.compactor import MemoryCompactor
 from app.services.memory_os.lifecycle import LifecycleManager
 from app.services.memory_os.search import MemorySearcher
+from app.services.memory_os.interfaces import IMemosConfig, IMemoryStorage, ILlmProviderService
+from app.services.memory_os.storage import FileSystemMemoryStorage
+from app.services.memory_os.llm_service import DefaultLlmProviderService
 
 __all__ = [
     "MemoryOS",
@@ -35,4 +38,9 @@ __all__ = [
     "MemoryCompactor",
     "LifecycleManager",
     "MemorySearcher",
+    "IMemosConfig",
+    "IMemoryStorage",
+    "ILlmProviderService",
+    "FileSystemMemoryStorage",
+    "DefaultLlmProviderService",
 ]

@@ -230,4 +230,39 @@ class SystemPromptBuilder:
         if role == "admin":
             system_prompt += f"\n\n=== ПОТОЧНИЙ СТАН ДАШБОРДУ ===\n{db_context}"
 
+        # Fetch and inject User-Facing memories (User-OS)
+        try:
+            from app.services.memory_os import MemoryOS
+            memory_os = MemoryOS()
+            memories = memory_os.get_memories(limit=20)
+            if memories:
+                yaml_lines = []
+                for mem in memories:
+                    # STRICT SAFETY FILTER: Zero Codebase Leakage
+                    mem_id = mem.get("id") or ""
+                    mem_type = mem.get("type") or ""
+                    if mem_id.startswith("file:") or mem_type == "code_file":
+                        continue
+                    
+                    yaml_lines.append(f"- id: {mem_id}")
+                    yaml_lines.append(f"  type: {mem_type}")
+                    if mem.get("summary"):
+                        yaml_lines.append(f"  summary: {mem['summary']}")
+                    yaml_lines.append(f"  importance: {mem.get('importance', 0.0)}")
+                    
+                    content = mem.get("content", "").strip()
+                    if "\n" in content:
+                        yaml_lines.append("  content: |")
+                        for line in content.splitlines():
+                            yaml_lines.append(f"    {line}")
+                    else:
+                        yaml_lines.append(f"  content: {content}")
+                
+                if yaml_lines:
+                    yaml_block = "\n".join(yaml_lines)
+                    system_prompt += f"\n\n=== USER MEMORIES (MEMOS) ===\n{yaml_block}"
+        except Exception as e:
+            import sys
+            print(f"[SystemPromptBuilder] failed to inject user memories: {e}", file=sys.stderr)
+
         return system_prompt

@@ -21,7 +21,8 @@ from app.services.memory_os import (
     MemoryValidator,
     MemoryCompactor,
     LifecycleManager,
-    MemorySearcher
+    MemorySearcher,
+    MemoryOS
 )
 from scripts.memory.audit_memos import audit, to_markdown
 
@@ -265,6 +266,148 @@ def cmd_compact(args: argparse.Namespace) -> int:
     compactor = MemoryCompactor(config)
     return compactor.compact_capsules(provider=args.provider, model=args.model)
 
+def cmd_search(args: argparse.Namespace) -> int:
+    root = Path(args.root).resolve()
+    config_path = args.config or os.environ.get("MEMOS_CONFIG_PATH")
+    config = MemosConfig(config_path)
+    searcher = MemorySearcher(config)
+
+    matches = searcher.search_memory(args.query, args.depth)
+
+    if args.json:
+        print(json.dumps(matches, indent=2))
+    else:
+        nodes = [m for m in matches if m["type"] != "code_file"]
+        code_files = [m for m in matches if m["type"] == "code_file"]
+
+        if not nodes and not code_files:
+            print(f"No matches found for query '{args.query}'")
+            return 0
+
+        if nodes:
+            print(f"Found {len(nodes)} matched memory nodes:")
+            for node in nodes:
+                print(f"\n[{node['id']}] ({node['type']})")
+                print(f"  Summary: {node['summary']}")
+                print(f"  Status: {node['status']} | Trust: {node['trust']}")
+                if node.get("evidence"):
+                    print(f"  Evidence: {', '.join(node['evidence'])}")
+
+        if code_files:
+            if nodes:
+                print("\n" + "="*50 + "\n")
+            print(f"Found {len(code_files)} matched codebase files:")
+            for item in code_files:
+                print(f"\n[{item['id']}] ({item['layer']}) - Rank {item['rank']} ({item['match_type']})")
+                if item.get("classes"):
+                    print(f"  Classes: {', '.join(item['classes'])}")
+                if item.get("functions"):
+                    print(f"  Functions: {', '.join(item['functions'])}")
+                if item.get("routes"):
+                    print(f"  Routes: {', '.join(item['routes'])}")
+                if item.get("dependencies"):
+                    print(f"  Dependencies: {', '.join(item['dependencies'])}")
+                if item.get("headings"):
+                    print(f"  Headings: {', '.join(item['headings'])}")
+                preview = item["summary"][:240]
+                print(f"  Preview: {preview}...")
+    return 0
+
+def cmd_user_memory(args: argparse.Namespace) -> int:
+    db_path = str(Path(args.root).resolve() / "data" / "memory_os.db")
+    memory_os = MemoryOS(db_path=db_path)
+
+    if args.action == "list":
+        memories = memory_os.get_memories(limit=args.limit)
+        if not memories:
+            print("No user memories found.")
+            return 0
+        print(f"Found {len(memories)} user memories:")
+        for mem in memories:
+            print(f"\n- ID: {mem['id']}")
+            print(f"  Type: {mem['type']}")
+            if mem.get('summary'):
+                print(f"  Summary: {mem['summary']}")
+            print(f"  Importance: {mem['importance']}")
+            print(f"  Content: {mem['content']}")
+            print(f"  Timestamp: {datetime.fromtimestamp(mem['timestamp']).isoformat()}")
+            
+    elif args.action == "add":
+        if not args.id or not args.type or not args.content:
+            print("Error: --id, --type, and --content are required to add/update user memory.", file=sys.stderr)
+            return 1
+        memory_os.add_or_update_memory(
+            memory_id=args.id,
+            mem_type=args.type,
+            content=args.content,
+            summary=args.summary,
+            importance=args.importance,
+            timestamp=args.timestamp
+        )
+        print(f"Successfully added/updated user memory '{args.id}'")
+        
+    elif args.action == "delete":
+        if not args.id:
+            print("Error: --id is required to delete a user memory.", file=sys.stderr)
+            return 1
+        conn = memory_os.get_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM memories WHERE id = ?", (args.id,))
+            conn.commit()
+            if cursor.rowcount > 0:
+                print(f"Successfully deleted user memory '{args.id}'")
+            else:
+                print(f"User memory '{args.id}' not found.")
+        finally:
+            conn.close()
+            
+    elif args.action == "search":
+        if not args.query:
+            print("Error: --query is required to search user memories.", file=sys.stderr)
+            return 1
+        conn = memory_os.get_connection()
+        try:
+            cursor = conn.cursor()
+            q = f"%{args.query}%"
+            cursor.execute(
+                "SELECT id, type, content, summary, importance, timestamp FROM memories "
+                "WHERE id LIKE ? OR content LIKE ? OR summary LIKE ? "
+                "ORDER BY importance DESC, timestamp DESC LIMIT ?",
+                (q, q, q, args.limit)
+            )
+            rows = [dict(r) for r in cursor.fetchall()]
+            if not rows:
+                print(f"No user memories match query '{args.query}'")
+                return 0
+            print(f"Found {len(rows)} matching user memories:")
+            for mem in rows:
+                print(f"\n- ID: {mem['id']}")
+                print(f"  Type: {mem['type']}")
+                if mem.get('summary'):
+                    print(f"  Summary: {mem['summary']}")
+                print(f"  Importance: {mem['importance']}")
+                print(f"  Content: {mem['content']}")
+        finally:
+            conn.close()
+            
+    return 0
+
+def cmd_context(args: argparse.Namespace) -> int:
+    from app.services.prompt_builder import SystemPromptBuilder, DashboardContextBuilder
+    channel_ids = [c.strip() for c in args.channels.split(",")] if args.channels else None
+    
+    db_context = DashboardContextBuilder.build(
+        channel_ids=channel_ids,
+        start_date=args.start_date,
+        end_date=args.end_date,
+        limit=args.limit
+    )
+    
+    system_prompt = SystemPromptBuilder.build(db_context, role=args.role)
+    print(system_prompt)
+    return 0
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Memos project-local Memory OS CLI.")
     parser.add_argument("--root", default=str(ROOT), help="Project root")
@@ -321,6 +464,41 @@ def build_parser() -> argparse.ArgumentParser:
     compact_parser.add_argument("--provider", help="Optional provider override (gemini, openrouter, openai)")
     compact_parser.add_argument("--model", help="Optional model override")
     compact_parser.set_defaults(func=cmd_compact)
+
+    search_parser = subparsers.add_parser(
+        "search",
+        help="Query Memory OS nodes, codebase symbols, and traverse relations."
+    )
+    search_parser.add_argument("query", help="Keyword query or exact symbol.")
+    search_parser.add_argument("--depth", type=int, default=1, help="Graph traversal recursion depth.")
+    search_parser.add_argument("--json", action="store_true", help="Output raw JSON instead of human-readable text.")
+    search_parser.set_defaults(func=cmd_search)
+
+    user_mem_parser = subparsers.add_parser(
+        "user-memory",
+        help="Manage User-Facing Memory OS memories."
+    )
+    user_mem_parser.add_argument("action", choices={"list", "add", "delete", "search"}, help="Action to perform")
+    user_mem_parser.add_argument("--id", help="Memory ID (required for add/delete)")
+    user_mem_parser.add_argument("--type", help="Memory type, e.g. fact, preference, alert_rule (required for add)")
+    user_mem_parser.add_argument("--content", help="Memory text content (required for add)")
+    user_mem_parser.add_argument("--summary", help="Short summary/title (optional)")
+    user_mem_parser.add_argument("--importance", type=float, default=0.0, help="Importance score [0.0..1.0] (optional)")
+    user_mem_parser.add_argument("--timestamp", type=int, help="Unix timestamp (optional)")
+    user_mem_parser.add_argument("--query", help="Search query string (required for search)")
+    user_mem_parser.add_argument("--limit", type=int, default=50, help="Max memories to return")
+    user_mem_parser.set_defaults(func=cmd_user_memory)
+
+    context_parser = subparsers.add_parser(
+        "context",
+        help="Compile and display system prompt context."
+    )
+    context_parser.add_argument("--role", default="admin", choices={"admin", "user"}, help="User role")
+    context_parser.add_argument("--channels", help="Comma-separated list of channel IDs to filter context")
+    context_parser.add_argument("--start-date", help="Start date (YYYY-MM-DD)")
+    context_parser.add_argument("--end-date", help="End date (YYYY-MM-DD)")
+    context_parser.add_argument("--limit", type=int, default=10, help="Max top videos to include")
+    context_parser.set_defaults(func=cmd_context)
 
     return parser
 

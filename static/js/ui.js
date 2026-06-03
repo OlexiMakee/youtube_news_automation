@@ -2645,9 +2645,161 @@ function _appendChatBubble(containerEl, role, content) {
         bubble.innerText = content;
     } else {
         _renderChatMarkdown(bubble, content);
+        _appendBotBubbleActions(bubble);
     }
     containerEl.appendChild(bubble);
     return bubble;
+}
+
+function _appendBotBubbleActions(bubble) {
+    if (!bubble || bubble.querySelector(".chat-bubble-actions")) return;
+
+    const actions = document.createElement("div");
+    actions.className = "chat-bubble-actions";
+    
+    // Thumbs up (Like)
+    const likeBtn = document.createElement("button");
+    likeBtn.className = "chat-bubble-action-btn like-btn";
+    likeBtn.type = "button";
+    likeBtn.title = "Like & remember";
+    likeBtn.innerHTML = '<i class="fa-regular fa-thumbs-up"></i>';
+    
+    // Thumbs down (Dislike)
+    const dislikeBtn = document.createElement("button");
+    dislikeBtn.className = "chat-bubble-action-btn dislike-btn";
+    dislikeBtn.type = "button";
+    dislikeBtn.title = "Dislike";
+    dislikeBtn.innerHTML = '<i class="fa-regular fa-thumbs-down"></i>';
+
+    // Download MD
+    const downloadBtn = document.createElement("button");
+    downloadBtn.className = "chat-bubble-action-btn download-btn";
+    downloadBtn.type = "button";
+    downloadBtn.title = "Download interaction (.md)";
+    downloadBtn.innerHTML = '<i class="fa-regular fa-floppy-disk"></i>';
+
+    actions.appendChild(likeBtn);
+    actions.appendChild(dislikeBtn);
+    actions.appendChild(downloadBtn);
+    bubble.appendChild(actions);
+
+    // Click handler for Like
+    likeBtn.addEventListener("click", () => _handleFeedbackClick(bubble, "like", likeBtn, dislikeBtn));
+    
+    // Click handler for Dislike
+    dislikeBtn.addEventListener("click", () => _handleFeedbackClick(bubble, "dislike", dislikeBtn, likeBtn));
+
+    // Click handler for Download
+    downloadBtn.addEventListener("click", () => _handleDownloadInteraction(bubble));
+}
+
+function _getPreviousUserBubbleContent(bubble) {
+    let prev = bubble.previousElementSibling;
+    while (prev) {
+        if (prev.classList.contains("user")) {
+            return prev.dataset.raw || prev.innerText || "";
+        }
+        prev = prev.previousElementSibling;
+    }
+    return "";
+}
+
+async function _handleFeedbackClick(bubble, type, clickedBtn, otherBtn) {
+    if (clickedBtn.classList.contains("active")) return;
+    
+    clickedBtn.classList.add("active");
+    clickedBtn.innerHTML = `<i class="fa-solid fa-thumbs-${type === 'like' ? 'up' : 'down'}"></i>`;
+    otherBtn.classList.remove("active");
+    otherBtn.innerHTML = `<i class="fa-regular fa-thumbs-${type === 'like' ? 'down' : 'up'}"></i>`;
+
+    let commentInput = bubble.querySelector(".chat-feedback-comment-input");
+    if (!commentInput) {
+        commentInput = document.createElement("div");
+        commentInput.className = "chat-feedback-comment-input";
+        commentInput.innerHTML = `
+            <input type="text" placeholder="Додати коментар (необов'язково)...">
+            <button type="button">Зберегти</button>
+        `;
+        bubble.appendChild(commentInput);
+        
+        const input = commentInput.querySelector("input");
+        const saveBtn = commentInput.querySelector("button");
+
+        const submitFeedback = async (commentText) => {
+            const promptText = _getPreviousUserBubbleContent(bubble);
+            const responseText = bubble.dataset.raw || bubble.innerText || "";
+            const providerId = bubble.dataset.provider || state.agentProvider || "gemini";
+            const modelId = bubble.dataset.model || _getSelectedModel() || "gemini-2.5-flash";
+
+            try {
+                const payload = {
+                    feedback_type: type,
+                    provider_id: providerId,
+                    model_id: modelId,
+                    prompt_text: promptText,
+                    response_text: responseText,
+                    comment: commentText,
+                    latency_ms: 0
+                };
+                await adminFetch("/api/chat/feedback", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+                
+                commentInput.remove();
+                
+                const savedIndicator = document.createElement("span");
+                savedIndicator.className = "chat-feedback-saved-indicator";
+                savedIndicator.innerText = "Збережено";
+                bubble.appendChild(savedIndicator);
+                setTimeout(() => savedIndicator.remove(), 2000);
+            } catch (err) {
+                console.error("[feedback] failed:", err);
+            }
+        };
+
+        input.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                submitFeedback(input.value.trim());
+            }
+        });
+
+        saveBtn.addEventListener("click", () => {
+            submitFeedback(input.value.trim());
+        });
+
+        input.focus();
+    }
+}
+
+function _handleDownloadInteraction(bubble) {
+    const promptText = _getPreviousUserBubbleContent(bubble);
+    const responseText = bubble.dataset.raw || bubble.innerText || "";
+    const providerId = bubble.dataset.provider || state.agentProvider || "gemini";
+    const modelId = bubble.dataset.model || _getSelectedModel() || "gemini-2.5-flash";
+    const timestamp = new Date().toLocaleString();
+
+    const mdContent = `# Chat Interaction - ${timestamp}
+Mode: ${modelId} (${providerId})
+
+## User Input
+${promptText}
+
+## Model Response
+${responseText}
+`;
+
+    const blob = new Blob([mdContent], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `chat-interaction-${new Date().toISOString().slice(0,10)}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
 }
 
 /** Streams a response from /api/agent/chat/stream, appending tokens to botDiv */
@@ -2708,6 +2860,7 @@ async function _streamBotMessage(message, containerEl, contextOverride = null, h
                     botDiv.classList.remove("streaming");
                     _renderChatMarkdown(botDiv, accumulatedText);
                     botDiv.dataset.raw = accumulatedText;
+                    _appendBotBubbleActions(botDiv);
                     window.chatUIManager?.saveHistory();
                     return;
                 }
@@ -2722,6 +2875,8 @@ async function _streamBotMessage(message, containerEl, contextOverride = null, h
                         return;
                     }
                     if (obj.provider || obj.model) {
+                        if (obj.provider) botDiv.dataset.provider = obj.provider;
+                        if (obj.model) botDiv.dataset.model = obj.model;
                         void _syncActiveModelFromStream(obj.provider, obj.model);
                     }
                     if (obj.text) {
@@ -2741,6 +2896,9 @@ async function _streamBotMessage(message, containerEl, contextOverride = null, h
         }
     } finally {
         botDiv.classList.remove("streaming");
+        if (!botDiv.classList.contains("error") && accumulatedText) {
+            _appendBotBubbleActions(botDiv);
+        }
         window.chatUIManager?.saveHistory();
     }
 }

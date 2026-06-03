@@ -3,7 +3,9 @@ import os
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 
-class MemosConfig:
+from app.services.memory_os.interfaces import IMemosConfig
+
+class MemosConfig(IMemosConfig):
     """Manages the configuration and paths for Memory OS."""
 
     def __init__(self, config_path: Optional[str] = None):

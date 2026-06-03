@@ -1622,6 +1622,388 @@ class SystemStatusIndicatorWidget extends BaseWidget {
     }
 }
 
+class CostQuotaDashboardWidget extends BaseWidget {
+    constructor(workspace, config = {}) {
+        super(workspace, { ...config, type: 'cost-quota' });
+        this.timeRange = config.timeRange || '24h';
+        this.activeTab = 'llm'; // 'llm' or 'system'
+        this.quotaChart = null;
+        this.systemChart = null;
+    }
+
+    afterMount() {
+        this.element.innerHTML = `
+            <button class="widget-remove-btn" type="button" title="Remove widget" style="width:24px; height:24px; border-radius:4px; font-size:11px;">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <div class="card-header dashboard-card-header widget-card-header" style="flex-wrap: wrap; gap: 8px;">
+                <div class="card-header-left" style="display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-coins" style="color:var(--accent-color); font-size:14px;"></i>
+                    <span class="card-title" style="font-size:13px; font-weight:700;" data-i18n="widget_title_cost_quota">Cost & Quotas</span>
+                </div>
+                <div class="card-header-right" style="display: flex; align-items: center; gap: 8px; margin-left: auto;">
+                    <span style="font-size: 11px; font-weight: 500;" data-i18n="lbl_time_range">Range</span>
+                    <select class="control-select class-time-range-select" style="padding: 4px 8px; font-size: 11px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); font-weight: 600;">
+                        <option value="24h">24h</option>
+                        <option value="7d">7d</option>
+                        <option value="30d">30d</option>
+                        <option value="all">All</option>
+                    </select>
+                </div>
+            </div>
+            <div class="card-body" style="padding: 8px 12px; display: flex; flex-direction: column; gap: 8px; height: calc(100% - 45px); min-height: 250px;">
+                <!-- Tab headers -->
+                <div class="widget-tabs" style="display: flex; border-bottom: 1px solid var(--border-color); padding-bottom: 4px; gap: 12px;">
+                    <button type="button" class="widget-tab-btn class-tab-llm active" style="background: none; border: none; font-size: 11px; font-weight: 700; color: var(--accent-color); cursor: pointer; padding: 2px 4px; border-bottom: 2px solid var(--accent-color);" data-i18n="lbl_tab_llm_costs">LLM Costs</button>
+                    <button type="button" class="widget-tab-btn class-tab-system" style="background: none; border: none; font-size: 11px; font-weight: 700; color: var(--text-muted); cursor: pointer; padding: 2px 4px;" data-i18n="lbl_tab_system_load">System Load</button>
+                </div>
+
+                <!-- Tab 1: LLM Content -->
+                <div class="class-panel-llm" style="display: flex; flex-direction: column; gap: 8px; flex: 1;">
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px;">
+                        <div style="background: var(--bg-secondary-color); padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-color);">
+                            <div style="font-size: 10px; color: var(--text-muted);" data-i18n="lbl_total_cost">Total Cost</div>
+                            <div class="class-total-cost" style="font-size: 14px; font-weight: 800; color: var(--accent-color);">$0.0000</div>
+                        </div>
+                        <div style="background: var(--bg-secondary-color); padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-color);">
+                            <div style="font-size: 10px; color: var(--text-muted);" data-i18n="lbl_total_tokens">Total Tokens</div>
+                            <div class="class-total-tokens" style="font-size: 14px; font-weight: 800; color: var(--text-color);">0</div>
+                        </div>
+                        <div style="background: var(--bg-secondary-color); padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-color);">
+                            <div style="font-size: 10px; color: var(--text-muted);" data-i18n="lbl_total_runs">Total Queries</div>
+                            <div class="class-total-runs" style="font-size: 14px; font-weight: 800; color: var(--text-color);">0</div>
+                        </div>
+                        <div style="background: var(--bg-secondary-color); padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-color);">
+                            <div style="font-size: 10px; color: var(--text-muted);" data-i18n="lbl_success_rate">Success Rate</div>
+                            <div class="class-success-rate" style="font-size: 14px; font-weight: 800; color: var(--green-color);">0%</div>
+                        </div>
+                    </div>
+                    <div style="position: relative; flex: 1; min-height: 120px; width: 100%;">
+                        <canvas class="class-quota-chart" style="width: 100%; height: 100%; max-height: 140px;"></canvas>
+                    </div>
+                </div>
+
+                <!-- Tab 2: System Content -->
+                <div class="class-panel-system" style="display: none; flex-direction: column; gap: 8px; flex: 1;">
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;">
+                        <div style="background: var(--bg-secondary-color); padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border-color); text-align: center;">
+                            <div style="font-size: 9px; color: var(--text-muted);">CPU</div>
+                            <div class="class-system-cpu" style="font-size: 12px; font-weight: 800; color: var(--accent-color);">0%</div>
+                        </div>
+                        <div style="background: var(--bg-secondary-color); padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border-color); text-align: center;">
+                            <div style="font-size: 9px; color: var(--text-muted);">RAM</div>
+                            <div class="class-system-ram" style="font-size: 12px; font-weight: 800; color: var(--text-color);">0 MB</div>
+                        </div>
+                        <div style="background: var(--bg-secondary-color); padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border-color); text-align: center;">
+                            <div style="font-size: 9px; color: var(--text-muted);">Sessions</div>
+                            <div class="class-system-sessions" style="font-size: 12px; font-weight: 800; color: var(--text-color);">0</div>
+                        </div>
+                    </div>
+                    <div style="position: relative; flex: 1; min-height: 120px; width: 100%;">
+                        <canvas class="class-system-chart" style="width: 100%; height: 100%; max-height: 140px;"></canvas>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Bind events
+        this.element.querySelector('.widget-remove-btn').addEventListener('click', () => {
+            this.workspace.removeWidget(this.id);
+        });
+
+        const rangeSelect = this.element.querySelector('.class-time-range-select');
+        rangeSelect.value = this.timeRange;
+        rangeSelect.addEventListener('change', () => {
+            this.timeRange = rangeSelect.value;
+            this.load();
+            this.workspace.save();
+        });
+
+        // Tab Switching
+        const btnLlm = this.element.querySelector('.class-tab-llm');
+        const btnSys = this.element.querySelector('.class-tab-system');
+        const panelLlm = this.element.querySelector('.class-panel-llm');
+        const panelSys = this.element.querySelector('.class-panel-system');
+
+        btnLlm.addEventListener('click', () => {
+            this.activeTab = 'llm';
+            btnLlm.style.color = 'var(--accent-color)';
+            btnLlm.style.borderBottom = '2px solid var(--accent-color)';
+            btnSys.style.color = 'var(--text-muted)';
+            btnSys.style.borderBottom = 'none';
+            panelLlm.style.display = 'flex';
+            panelSys.style.display = 'none';
+            this.load();
+        });
+
+        btnSys.addEventListener('click', () => {
+            this.activeTab = 'system';
+            btnSys.style.color = 'var(--accent-color)';
+            btnSys.style.borderBottom = '2px solid var(--accent-color)';
+            btnLlm.style.color = 'var(--text-muted)';
+            btnLlm.style.borderBottom = 'none';
+            panelSys.style.display = 'flex';
+            panelLlm.style.display = 'none';
+            this.load();
+        });
+
+        // Localize initial titles/attributes
+        if (window.localizeHtml) {
+            window.localizeHtml(this.element);
+        }
+
+        this.load();
+    }
+
+    async load() {
+        if (this.activeTab === 'llm') {
+            await this.loadLlmMetrics();
+        } else {
+            await this.loadSystemMetrics();
+        }
+    }
+
+    async loadLlmMetrics() {
+        try {
+            const res = await adminFetchSilent(`/api/admin/quota-metrics?time_range=${this.timeRange}`);
+            if (!res.ok) throw new Error('API failure');
+            const data = await res.json();
+            
+            const summary = data.summary || {};
+            const breakdown = data.model_breakdown || [];
+
+            // Update DOM text
+            const totalCost = summary.total_cost !== undefined ? Number(summary.total_cost) : 0;
+            const totalTokens = (summary.total_input_tokens || 0) + (summary.total_output_tokens || 0);
+            const totalRuns = summary.total_runs || 0;
+            const successCount = summary.success_count || 0;
+            const errorCount = summary.error_count || 0;
+            
+            let successRate = 100;
+            if (totalRuns > 0) {
+                successRate = Math.round((successCount / totalRuns) * 100);
+            }
+
+            const costEl = this.element.querySelector('.class-total-cost');
+            const tokensEl = this.element.querySelector('.class-total-tokens');
+            const runsEl = this.element.querySelector('.class-total-runs');
+            const successEl = this.element.querySelector('.class-success-rate');
+
+            if (costEl) costEl.textContent = `$${totalCost.toFixed(4)}`;
+            if (tokensEl) tokensEl.textContent = totalTokens.toLocaleString();
+            if (runsEl) runsEl.textContent = totalRuns.toLocaleString();
+            if (successEl) {
+                successEl.textContent = `${successRate}%`;
+                if (errorCount > 0) {
+                    successEl.style.color = 'var(--red-color)';
+                } else {
+                    successEl.style.color = 'var(--green-color)';
+                }
+            }
+
+            // Draw Chart.js horizontal bar chart
+            const canvas = this.element.querySelector('.class-quota-chart');
+            if (!canvas) return;
+
+            if (this.quotaChart) {
+                this.quotaChart.destroy();
+                this.quotaChart = null;
+            }
+
+            // Prepare chart data
+            const labels = breakdown.map(item => item.model_id.replace(/^openrouter\/(?:free\/)?/, ''));
+            const costs = breakdown.map(item => item.cost);
+
+            const isDark = ["dark-black", "dark-blue"].includes(state.currentTheme);
+            const gridColor = isDark ? "#334155" : "#e2e8f0";
+            const labelColor = isDark ? "#94a3b8" : "#5f6368";
+
+            const ctx = canvas.getContext('2d');
+            this.quotaChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: state.currentLang === 'ua' ? 'Вартість ($)' : 'Cost ($)',
+                        data: costs,
+                        backgroundColor: '#38bdf8',
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => {
+                                    const item = breakdown[context.dataIndex];
+                                    return [
+                                        `Cost: $${item.cost.toFixed(4)}`,
+                                        `Runs: ${item.run_count}`,
+                                        `In/Out Tokens: ${item.input_tokens}/${item.output_tokens}`
+                                    ];
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: gridColor },
+                            ticks: { color: labelColor, font: { size: 9 } }
+                        },
+                        y: {
+                            grid: { display: false },
+                            ticks: { color: labelColor, font: { size: 9 }, autoSkip: false }
+                        }
+                    }
+                }
+            });
+
+        } catch (error) {
+            console.error('Failed to load LLM quota metrics:', error);
+        }
+    }
+
+    async loadSystemMetrics() {
+        try {
+            const res = await adminFetchSilent(`/api/admin/system-metrics?limit=30`);
+            if (!res.ok) throw new Error('API failure');
+            const data = await res.json();
+            const metrics = data.metrics || [];
+
+            // Update stats from the last sample
+            if (metrics.length > 0) {
+                const last = metrics[metrics.length - 1];
+                const cpuEl = this.element.querySelector('.class-system-cpu');
+                const ramEl = this.element.querySelector('.class-system-ram');
+                const sesEl = this.element.querySelector('.class-system-sessions');
+
+                if (cpuEl) cpuEl.textContent = `${last.cpu_percent.toFixed(1)}%`;
+                if (ramEl) ramEl.textContent = `${Math.round(last.ram_mb_used)} MB`;
+                if (sesEl) sesEl.textContent = last.http_sessions_active || 0;
+            }
+
+            // Draw line chart for CPU and RAM
+            const canvas = this.element.querySelector('.class-system-chart');
+            if (!canvas) return;
+
+            if (this.systemChart) {
+                this.systemChart.destroy();
+                this.systemChart = null;
+            }
+
+            // Labels are timestamps formatted (e.g. HH:MM:SS)
+            const labels = metrics.map(m => {
+                const parts = m.timestamp.split('T');
+                if (parts.length > 1) {
+                    return parts[1].substring(0, 8);
+                }
+                return m.timestamp;
+            });
+            const cpuData = metrics.map(m => m.cpu_percent);
+            const ramData = metrics.map(m => m.ram_mb_used);
+
+            const isDark = ["dark-black", "dark-blue"].includes(state.currentTheme);
+            const gridColor = isDark ? "#334155" : "#e2e8f0";
+            const labelColor = isDark ? "#94a3b8" : "#5f6368";
+
+            const ctx = canvas.getContext('2d');
+            this.systemChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'CPU (%)',
+                            data: cpuData,
+                            borderColor: '#38bdf8',
+                            backgroundColor: 'transparent',
+                            borderWidth: 1.5,
+                            pointRadius: 0,
+                            tension: 0.2,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'RAM (MB)',
+                            data: ramData,
+                            borderColor: '#a855f7',
+                            backgroundColor: 'transparent',
+                            borderWidth: 1.5,
+                            pointRadius: 0,
+                            tension: 0.2,
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: { boxWidth: 8, font: { size: 9 }, color: labelColor }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: gridColor },
+                            ticks: { display: false } // Hide labels to keep clean
+                        },
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            grid: { color: gridColor },
+                            ticks: { color: '#38bdf8', font: { size: 9 } }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            grid: { drawOnChartArea: false },
+                            ticks: { color: '#a855f7', font: { size: 9 } }
+                        }
+                    }
+                }
+            });
+
+        } catch (error) {
+            console.error('Failed to load system metrics:', error);
+        }
+    }
+
+    toJSON() {
+        return {
+            id: this.id,
+            type: this.type,
+            width: this.width,
+            height: this.height,
+            collapsed: this.collapsed,
+            timeRange: this.timeRange
+        };
+    }
+
+    destroy() {
+        if (this.quotaChart) {
+            this.quotaChart.destroy();
+            this.quotaChart = null;
+        }
+        if (this.systemChart) {
+            this.systemChart.destroy();
+            this.systemChart = null;
+        }
+        super.destroy();
+    }
+
+    serializeForSummary() {
+        return `Widget: Cost & Quotas\nRange: ${this.timeRange}`;
+    }
+}
+
 export class DashboardWorkspace {
     constructor(root) {
         this.root = root;
@@ -1798,6 +2180,8 @@ export class DashboardWorkspace {
             widget = new EntityTimelineTracksWidget(this, config);
         } else if (type === 'system-status') {
             widget = new SystemStatusIndicatorWidget(this, config);
+        } else if (type === 'cost-quota') {
+            widget = new CostQuotaDashboardWidget(this, config);
         } else {
             return null;
         }
@@ -1875,7 +2259,8 @@ export class DashboardWorkspace {
                 item.type === 'daily-brief' ||
                 item.type === 'minified-stats' ||
                 item.type === 'entity-timeline' ||
-                item.type === 'system-status'
+                item.type === 'system-status' ||
+                item.type === 'cost-quota'
             ))
             .forEach(item => this.addWidget(item.type, item, { skipSave: true }));
         this.isRestoring = false;

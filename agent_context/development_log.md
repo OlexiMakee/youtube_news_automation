@@ -230,6 +230,7 @@ Format: short English bullets only. Keep durable facts.
 - Added `GET /api/scraper/workflows` endpoint and custom configuration body support in the proposal approval handler.
 - Integrated the interactive budget constraint optimizer, workflow dropdowns, cost/delay labels, and recommendation hints under Scraping Proposals in the Operator panel with multi-language translation.
 - Refactored and renamed the `news_scraper` namespace to the generic `scraper` namespace across all code modules, scripts, blueprints, entry points, configuration files, and unit test suites for SOLID compliance.
+- Pushed all refactoring and Phase 1 commits to GitHub under the release tag `v1.0.0-phase1-solid` after purging a temporary large file from local history.
 
 ## Locked Decisions
 - Local SQLite remains primary.

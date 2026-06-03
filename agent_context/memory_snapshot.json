@@ -7,7 +7,7 @@
     },
     "skipped": 2
   },
-  "generated_at": "2026-06-03T22:48:52",
+  "generated_at": "2026-06-03T22:57:48",
   "items": [
     {
       "meta": {
@@ -117,7 +117,7 @@
     },
     {
       "meta": {
-        "bytes": 30208,
+        "bytes": 31060,
         "file": "agent_context/development_log.md",
         "headings": [
           "Development Log",
@@ -135,13 +135,13 @@
           "Open Work"
         ],
         "layer": "meta-layer",
-        "sha256_16": "0999985dac36a78b"
+        "sha256_16": "1a0b1d3b0a218f65"
       },
       "vector_text": "agent_context/development_log.md Development Log 2026-05-27 2026-05-28 2026-05-29 2026-05-30 2026-05-31 2026-06-01 2026-06-02 2026-06-02 2026-06-03 2026-06-03 Locked Decisions Open Work # Development Log Format: short English bullets only. Keep durable facts. ## 2026-05-27 - Built Flask dashboard MVP: stats, channels, charts, video table, modal, exports, actions. - Added 4 themes and UA/EN i18n. - Added video detail scraping and MP4 download flow. ## 2026-05-28 - Added SQLite indexes for channel/date/views/likes/comments/sync queries. - Ref"
     },
     {
       "meta": {
-        "bytes": 8696,
+        "bytes": 10813,
         "file": "agent_context/task_capsules.jsonl",
         "layer": "meta-layer",
         "recent_rows": [
@@ -176,13 +176,13 @@
             "type": "unknown"
           }
         ],
-        "row_count": 8,
-        "sha256_16": "2b2b04a4fba88992",
+        "row_count": 10,
+        "sha256_16": "6d11079189018d63",
         "status_counts": {
-          "active": 8
+          "active": 10
         },
         "type_counts": {
-          "unknown": 8
+          "unknown": 10
         }
       },
       "vector_text": "agent_context/task_capsules.jsonl {\"timestamp\": \"2026-06-03T14:59:00Z\", \"workflow\": \"memos\", \"step_score\": 3, \"step_name\": \"tiny\", \"task\": \"Clarified Owner Intervention and Expertise Authority\", \"files_modified\": [\"agent_context/AGENT_RULES.md\", \"strategy.md\", \"agent_context/task_capsules.jsonl\", \"agent_context/HANDSHAKE.md\", \"agent_context/development_log.md\"], \"hurdles_regression\": \"None.\""
@@ -260,7 +260,7 @@
     },
     {
       "meta": {
-        "bytes": 9993,
+        "bytes": 10071,
         "file": "agent_context/GLOBAL_ROADMAP.md",
         "headings": [
           "Global Roadmap: Governed Autonomous Intelligence Workspace",
@@ -276,18 +276,18 @@
           "Memory OS Operations"
         ],
         "layer": "meta-layer",
-        "sha256_16": "483c1bbaeeeccadf"
+        "sha256_16": "3b80ba82d8abc3a0"
       },
       "vector_text": "agent_context/GLOBAL_ROADMAP.md Global Roadmap: Governed Autonomous Intelligence Workspace Strategic Phases Phase 0: Strategy & Category Alignment Phase 1: Editorial MVP Phase 2: Dense Workspace & Entity Tracking Phase 3: Evidence & OSINT Mode Phase 4: Controlled Automation Phase 5: Enterprise Hardening Code Refactoring & Memory OS SOLID Cleanups Memory OS Operations # Global Roadmap: Governed Autonomous Intelligence Workspace Status: reformed on 2026-06-02 based on the autonomous_intelligence_hub_strategy_v3.md GTM directive and deep-research-report.md memory model. --- ## Strategic Phases ### Phase 0: Strategy & Category Alignment - [x] Rename category to **Governed Autonomous Intelligence Workspace** across "
     },
     {
       "meta": {
-        "bytes": 156525,
+        "bytes": 156862,
         "file": "agent_context/memory_snapshot.json",
         "layer": "meta-layer",
-        "sha256_16": "2cfe178fd65cda76"
+        "sha256_16": "d55cff15a5ff6f92"
       },
-      "vector_text": "agent_context/memory_snapshot.json { \"counts\": { \"items\": 132, \"layers\": { \"domain-layer\": 99, \"meta-layer\": 33 }, \"skipped\": 2 }, \"generated_at\": \"2026-06-03T22:12:21\", \"items\": [ { \"meta\": { \"bytes\": 2144, \"file\": \"README.md\", \"headings\": [ \"Governed Autonomous Intelligence Workspace\", \"Start\", \"Read Order\", \"Current Architecture\", \"Main Paths\", \"Locked Rules\" ], \"layer\": \"meta-layer\", \"sha"
+      "vector_text": "agent_context/memory_snapshot.json { \"counts\": { \"items\": 132, \"layers\": { \"domain-layer\": 99, \"meta-layer\": 33 }, \"skipped\": 2 }, \"generated_at\": \"2026-06-03T22:48:52\", \"items\": [ { \"meta\": { \"bytes\": 2144, \"file\": \"README.md\", \"headings\": [ \"Governed Autonomous Intelligence Workspace\", \"Start\", \"Read Order\", \"Current Architecture\", \"Main Paths\", \"Locked Rules\" ], \"layer\": \"meta-layer\", \"sha"
     },
     {
       "meta": {
@@ -584,7 +584,7 @@
     },
     {
       "meta": {
-        "bytes": 3276,
+        "bytes": 3553,
         "classes": [],
         "dependencies": [
           "app.services.briefs",
@@ -607,15 +607,16 @@
           "/api/briefs/<int:brief_id> [\"GET\"]",
           "/api/briefs/<int:brief_id>/export [\"POST\"]"
         ],
-        "sha256_16": "e2ce928310ea77cc"
+        "sha256_16": "860fc02a94e900af"
       },
       "vector_text": "app/routes/briefs.py generate_brief:17 get_briefs:42 get_brief:53 export_brief:68 \"\"\"Brief routes for Phase 1 Editorial MVP. Endpoints for brief listing, generation, and formatting exports. \"\"\" from flask import Blueprint, jsonify, request, Response from app.services.briefs import BriefsService from app.services.governance import GovernanceMigrationRequired from app.services.rbac import require_admin as _admin_required from app.state impo"
     },
     {
       "meta": {
-        "bytes": 2998,
+        "bytes": 3328,
         "classes": [],
         "dependencies": [
+          "app.services.governance",
           "app.services.memory_os.scraper_orchestrator",
           "app.services.rbac",
           "app.state",
@@ -627,8 +628,8 @@
         "functions": [
           "get_scraper_proposals:13",
           "approve_scraper_proposal:22",
-          "get_scraper_workflows:37",
-          "get_scraper_tasks:71"
+          "get_scraper_workflows:45",
+          "get_scraper_tasks:79"
         ],
         "layer": "domain-layer",
         "routes": [
@@ -637,9 +638,9 @@
           "/api/scraper/workflows [\"GET\"]",
           "/api/scraper/tasks [\"GET\"]"
         ],
-        "sha256_16": "b40be67b86156615"
+        "sha256_16": "23100dd51697e0b6"
       },
-      "vector_text": "app/routes/scraper.py get_scraper_proposals:13 approve_scraper_proposal:22 get_scraper_workflows:37 get_scraper_tasks:71 \"\"\"Scraper routes for managing scraping proposals and background tasks.\"\"\" import os from flask import Blueprint, jsonify, request from app.services.rbac import require_admin as _admin_required from app.services.memory_os.scraper_orchestrator import ScraperOrchestrator from app.state import root_dir scraper_bp = Blueprint(\"scraper\", __name__) @scraper_bp.rou"
+      "vector_text": "app/routes/scraper.py get_scraper_proposals:13 approve_scraper_proposal:22 get_scraper_workflows:45 get_scraper_tasks:79 \"\"\"Scraper routes for managing scraping proposals and background tasks.\"\"\" import os from flask import Blueprint, jsonify, request from app.services.rbac import require_admin as _admin_required from app.services.memory_os.scraper_orchestrator import ScraperOrchestrator from app.state import root_dir scraper_bp = Blueprint(\"scraper\", __name__) @scraper_bp.rou"
     },
     {
       "meta": {
@@ -912,9 +913,10 @@
     },
     {
       "meta": {
-        "bytes": 24246,
+        "bytes": 24710,
         "classes": [],
         "dependencies": [
+          "app.services.governance",
           "app.services.rbac",
           "app.state",
           "csv",
@@ -939,14 +941,14 @@
           "get_videos:17",
           "get_video_by_id:147",
           "export_videos:172",
-          "scrape_video_details_route:231",
-          "ocr_thumbnails_batch_route:380",
-          "get_video_formats:434",
-          "download_video_route:479",
-          "get_video_transcript_route:548",
-          "process_batch:387",
-          "run_tokenization:352",
-          "sub_priority:601"
+          "scrape_video_details_route:246",
+          "ocr_thumbnails_batch_route:395",
+          "get_video_formats:449",
+          "download_video_route:494",
+          "get_video_transcript_route:563",
+          "process_batch:402",
+          "run_tokenization:367",
+          "sub_priority:616"
         ],
         "layer": "domain-layer",
         "routes": [
@@ -959,9 +961,9 @@
           "/api/videos/<video_id>/download ['GET']",
           "/api/videos/<video_id>/transcript ['GET']"
         ],
-        "sha256_16": "b30200a8cc944d06"
+        "sha256_16": "1c5f80a6a0ace843"
       },
-      "vector_text": "app/routes/videos.py get_videos:17 get_video_by_id:147 export_videos:172 scrape_video_details_route:231 ocr_thumbnails_batch_route:380 get_video_formats:434 download_video_route:479 get_video_transcript_route:548 process_batch:387 run_tokenization:352 sub_priority:601 import os import sys import time import json import csv from io import StringIO from datetime import datetime from flask import Blueprint, jsonify, request, send_file, make_response from scraper.db_client import DatabaseClient from app.services.rbac import require_admin as _admin_required from app.state import get_sqlite_conn, root_dir videos_bp = Blueprint("
+      "vector_text": "app/routes/videos.py get_videos:17 get_video_by_id:147 export_videos:172 scrape_video_details_route:246 ocr_thumbnails_batch_route:395 get_video_formats:449 download_video_route:494 get_video_transcript_route:563 process_batch:402 run_tokenization:367 sub_priority:616 import os import sys import time import json import csv from io import StringIO from datetime import datetime from flask import Blueprint, jsonify, request, send_file, make_response from scraper.db_client import DatabaseClient from app.services.rbac import require_admin as _admin_required from app.state import get_sqlite_conn, root_dir videos_bp = Blueprint("
     },
     {
       "meta": {
@@ -1093,7 +1095,7 @@
     },
     {
       "meta": {
-        "bytes": 2510,
+        "bytes": 2777,
         "classes": [],
         "dependencies": [
           "app.services.governance",
@@ -1108,12 +1110,12 @@
           "encrypt_secret:24",
           "decrypt_secret:29",
           "store_credential:34",
-          "get_decrypted_credential:57"
+          "get_decrypted_credential:66"
         ],
         "layer": "domain-layer",
-        "sha256_16": "48e5afa1ed27828d"
+        "sha256_16": "695ea201d4bc18d8"
       },
-      "vector_text": "app/services/credentials.py _resolve_master_key:9 encrypt_[REDACTED] decrypt_[REDACTED] store_credential:34 get_decrypted_credential:57 import os from pathlib import Path from typing import Optional from cryptography.fernet import Fernet from app.services.governance import _connect KEY_FILE_NAME = \"secrets_master.key\" def _resolve_master_key(root_dir: str) -> str: \"\"\"Resolve encryption master key: 1) Env var 2) local file 3) auto-generate.\"\"\" key = os.environ.get(\"SOURCES_ENCRYPTION_KEY\") if"
+      "vector_text": "app/services/credentials.py _resolve_master_key:9 encrypt_[REDACTED] decrypt_[REDACTED] store_credential:34 get_decrypted_credential:66 import os from pathlib import Path from typing import Optional from cryptography.fernet import Fernet from app.services.governance import _connect KEY_FILE_NAME = \"secrets_master.key\" def _resolve_master_key(root_dir: str) -> str: \"\"\"Resolve encryption master key: 1) Env var 2) local file 3) auto-generate.\"\"\" key = os.environ.get(\"SOURCES_ENCRYPTION_KEY\") if"
     },
     {
       "meta": {
@@ -1445,7 +1447,7 @@
     },
     {
       "meta": {
-        "bytes": 33291,
+        "bytes": 34723,
         "classes": [
           "GovernanceMigrationRequired:54"
         ],
@@ -1453,9 +1455,11 @@
           "__future__",
           "app.services.credentials",
           "datetime",
+          "json",
           "pathlib",
           "scraper.connectors",
           "sqlite3",
+          "sys",
           "typing"
         ],
         "file": "app/services/governance.py",
@@ -1486,12 +1490,13 @@
           "_persist_ingestion_result:723",
           "_source_record_preview:789",
           "create_source:806",
-          "delete_source:848"
+          "delete_source:856",
+          "add_audit_event:880"
         ],
         "layer": "domain-layer",
-        "sha256_16": "dfee1e35f820c4a9"
+        "sha256_16": "649425106fffd13b"
       },
-      "vector_text": "app/services/governance.py db_path_for_root:58 _initialize_schema:62 _connect:236 _table_exists:251 _object_names:259 _applied_migrations:271 registry_ready:278 registry_readiness:292 policy_summary:333 _require_registry:341 _clean_text:349 validate_source_payload:358 _rows_to_dicts:407 connector_metadata:411 list_sources:416 _safe_limit:433 list_connector_runs:441 list_source_records:465 list_audit_events:511 list_evidence_links:530 list_source_credential_status:592 run_source_ingestion:618 _connector_context_from_payload:671 _persist_ingestion_result:723 _source_record_preview:789 create_source:806 delete_source:848 GovernanceMigrationRequired:54 \"\"\"Governance registry helpers for source policy and evidence s"
+      "vector_text": "app/services/governance.py db_path_for_root:58 _initialize_schema:62 _connect:236 _table_exists:251 _object_names:259 _applied_migrations:271 registry_ready:278 registry_readiness:292 policy_summary:333 _require_registry:341 _clean_text:349 validate_source_payload:358 _rows_to_dicts:407 connector_metadata:411 list_sources:416 _safe_limit:433 list_connector_runs:441 list_source_records:465 list_audit_events:511 list_evidence_links:530 list_source_credential_status:592 run_source_ingestion:618 _connector_context_from_payload:671 _persist_ingestion_result:723 _source_record_preview:789 create_source:806 delete_source:856 add_audit_event:880 GovernanceMigrationRequired:54 \"\"\"Governance registry helpers for source p"
     },
     {
       "meta": {

@@ -832,6 +832,14 @@ def create_source(root_dir: str, payload: Dict[str, Any]) -> Dict[str, Any]:
         conn.commit()
         source_id = cursor.lastrowid
 
+        add_audit_event(
+            root_dir=root_dir,
+            action="source.created",
+            object_type="source",
+            object_id=source_id,
+            metadata={"type": clean["type"], "name": clean["name"], "policy_tier": clean["policy_tier"]}
+        )
+
         secret_value = payload.get("credentials")
         if secret_value:
             from app.services.credentials import store_credential
@@ -850,11 +858,42 @@ def delete_source(root_dir: str, source_id: int) -> bool:
     conn = _connect(root_dir)
     try:
         _require_registry(conn)
-        row = conn.execute("SELECT 1 FROM sources WHERE id = ?", (source_id,)).fetchone()
+        row = conn.execute("SELECT type, name FROM sources WHERE id = ?", (source_id,)).fetchone()
         if not row:
             return False
+        source_type = row["type"]
+        source_name = row["name"]
         conn.execute("DELETE FROM sources WHERE id = ?", (source_id,))
         conn.commit()
+
+        add_audit_event(
+            root_dir=root_dir,
+            action="source.deleted",
+            object_type="source",
+            object_id=source_id,
+            metadata={"type": source_type, "name": source_name}
+        )
         return True
+    finally:
+        conn.close()
+
+def add_audit_event(root_dir: str, action: str, object_type: str, object_id: Any, 
+                    metadata: Optional[Dict[str, Any]] = None, actor_id: Optional[int] = None) -> None:
+    """Insert a new record into audit_events in governance.db."""
+    import json
+    metadata_json = json.dumps(metadata) if metadata else None
+    conn = _connect(root_dir)
+    try:
+        conn.execute(
+            """
+            INSERT INTO audit_events (actor_id, action, object_type, object_id, metadata_json)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (actor_id, action, object_type, str(object_id) if object_id is not None else None, metadata_json)
+        )
+        conn.commit()
+    except Exception as e:
+        import sys
+        print(f"[add_audit_event] failed: {e}", file=sys.stderr)
     finally:
         conn.close()

@@ -48,7 +48,7 @@ Status: reformed on 2026-06-02 based on the autonomous_intelligence_hub_strategy
 - [ ] **Artifact Store**: Cache raw source data (HTML pages, video thumbnails, descriptions) with immutability hashes.
 - [ ] **Timestamp & Hash Verification**: Cryptographically timestamp exported summaries.
 - [ ] **Evidence Bundle Export**: Zip raw artifacts, screenshots, and logs into a single downloadable proof zip.
-- [ ] **Audit Logging**: Write critical user actions (source modifications, export triggers) to SQLite `audit_events`.
+- [x] **Audit Logging**: Write critical user actions (source modifications, export triggers, credentials modifications, and scraper proposal approvals) to SQLite `audit_events` in `governance.db`.
 - [ ] **Retention Locks**: Implement auto-purge rules for high-risk Tier E scraper caches.
 - [ ] **Tri-View (Graph, Timeline, Table)**: Toggle workspace views between raw tables, chronologies, and entity connection maps.
 

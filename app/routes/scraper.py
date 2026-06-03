@@ -29,6 +29,14 @@ def approve_scraper_proposal(proposal_id):
     else:
         task_id = orchestrator.approve_proposal(proposal_id)
     if task_id:
+        from app.services.governance import add_audit_event
+        add_audit_event(
+            root_dir=root_dir,
+            action="scraper_proposal.approved",
+            object_type="scraper_proposal",
+            object_id=proposal_id,
+            metadata={"task_id": task_id, "custom_config": body is not None}
+        )
         return jsonify({"ok": True, "task_id": task_id})
     return jsonify({"error": "Proposal not found or already approved/processed."}), 404
 

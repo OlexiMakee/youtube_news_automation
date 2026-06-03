@@ -73,6 +73,16 @@ def export_brief(brief_id):
 
     try:
         exported_content = BriefsService.export_brief(root_dir, brief_id, export_format)
+
+        from app.services.governance import add_audit_event
+        add_audit_event(
+            root_dir=root_dir,
+            action="brief.exported",
+            object_type="brief",
+            object_id=brief_id,
+            metadata={"format": export_format}
+        )
+
         mimetype = "text/plain"
         if export_format == "html":
             mimetype = "text/html"

@@ -206,6 +206,21 @@ def export_videos():
         
         if not exported_paths:
             return jsonify({"error": "No data matched the export filters."}), 404
+
+        from app.services.governance import add_audit_event
+        add_audit_event(
+            root_dir=root_dir,
+            action="video_data.exported",
+            object_type="videos",
+            object_id=None,
+            metadata={
+                "format": format_choice,
+                "channel_id": channel_id,
+                "search": search,
+                "start_date": start_date,
+                "end_date": end_date
+            }
+        )
             
         file_to_send = exported_paths[0]
         

@@ -50,6 +50,15 @@ def store_credential(source_id: int, secret_value: str, root_dir: str) -> bool:
             (source_id, ciphertext, 1, "not_required")
         )
         conn.commit()
+
+        from app.services.governance import add_audit_event
+        add_audit_event(
+            root_dir=root_dir,
+            action="credential.stored",
+            object_type="source",
+            object_id=source_id,
+            metadata={"byok": 1}
+        )
         return True
     finally:
         conn.close()

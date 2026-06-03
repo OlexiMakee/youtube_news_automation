@@ -249,6 +249,8 @@ Format: short English bullets only. Keep durable facts.
 - Extended the main `scripts/memos.py` CLI with `search`, `user-memory` (list, add, delete, search), and `context` commands for unified agent-centric memory management.
 - Updated `SystemPromptBuilder` to query User-OS memories and inject them into system prompts in clean YAML format, applying a strict filter to exclude developer codebase metadata (guaranteeing zero codebase leakage).
 - Added comprehensive unit tests in `scratch/test_memos_cli_extensions.py` achieving 100% code coverage across new subcommands and prompt filtering rules.
+- Implemented Phase 3 Audit Logging tracking critical source creation, deletion, credentials storage, briefs/videos exports, and scraper proposal approvals inside SQLite `audit_events`. Added unit/integration test coverage, resolving test process hijacking during db_exporter imports (all 239 tests passing).
+
 
 ## Locked Decisions
 - Local SQLite remains primary.

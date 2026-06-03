@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>News Research Automation | Dashboard</title>
+    <title>Governed Autonomous Intelligence Workspace | Dashboard</title>
     <!-- FontAwesome icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Main Stylesheet -->
@@ -25,31 +25,51 @@
                 <i class="fa-solid fa-bars"></i>
             </button>
             <ul class="sidebar-section-tabs" aria-label="Workspace tabs">
-                <li class="top-section-tab active" data-tab="analytics-tab">
+                <li class="top-section-tab active" id="menu-item-analytics" data-tab="analytics-tab">
                     <a href="#" onclick="switchSection('analytics-tab', this)">
                         <i class="fa-solid fa-chart-line"></i>
-                        <span>Data</span>
+                        <span data-i18n="menu_dashboard">Analysis</span>
                     </a>
                 </li>
-                <li class="top-section-tab" data-tab="terminal-tab">
+                <li class="top-section-tab" id="menu-item-terminal" data-tab="terminal-tab" data-role-min="admin">
                     <a href="#" onclick="switchSection('terminal-tab', this)">
                         <i class="fa-solid fa-terminal"></i>
-                        <span>Terminal</span>
+                        <span data-i18n="menu_terminal">Administration</span>
                     </a>
                 </li>
             </ul>
         </div>
-        <div class="sidebar-widget-library">
+        <div class="sidebar-widget-library" data-role-min="analyst">
             <div class="sidebar-section-title">Widgets</div>
             <div class="widget-palette" aria-label="Widget palette">
                 <button class="widget-template" type="button" draggable="true" data-widget-type="channel-analytics" title="Drag channel analytics widget">
                     <i class="fa-solid fa-chart-simple"></i>
                     <span>Channel</span>
                 </button>
+                <button class="widget-template" type="button" draggable="true" data-widget-type="anomaly-alerts" title="Drag anomaly alerts widget">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    <span>Anomalies</span>
+                </button>
+                <button class="widget-template" type="button" draggable="true" data-widget-type="daily-brief" title="Drag daily briefs widget">
+                    <i class="fa-solid fa-file-invoice"></i>
+                    <span data-i18n="widget_title_daily_brief">Daily Briefs</span>
+                </button>
+                <button class="widget-template" type="button" draggable="true" data-widget-type="minified-stats" title="Drag mini stats widget">
+                    <i class="fa-solid fa-table-cells-large"></i>
+                    <span data-i18n="widget_title_minified_stats">Mini Stats</span>
+                </button>
+                <button class="widget-template" type="button" draggable="true" data-widget-type="entity-timeline" title="Drag entity timeline widget">
+                    <i class="fa-solid fa-timeline"></i>
+                    <span data-i18n="widget_title_entity_timeline">Entity Timeline</span>
+                </button>
+                <button class="widget-template" type="button" draggable="true" data-widget-type="system-status" title="Drag system status widget">
+                    <i class="fa-solid fa-server"></i>
+                    <span data-i18n="widget_title_system_status">System Status</span>
+                </button>
             </div>
         </div>
 
-        <div class="sidebar-proposals" data-code-src="templates/index.html:sidebar-proposals">
+        <div class="sidebar-proposals" data-role-min="admin" data-code-src="templates/index.html:sidebar-proposals">
             <div class="sidebar-proposals-head">
                 <div>
                     <div class="sidebar-section-title">Inbox</div>
@@ -76,10 +96,13 @@
             <div class="settings-group">
                 <label class="settings-label" data-i18n="theme_label">Тема</label>
                 <select class="sidebar-select" id="theme-selector" onchange="changeTheme(this.value)">
-                    <option value="light" data-i18n="theme_light">Light (White)</option>
-                    <option value="sepia" data-i18n="theme_sepia">Light (Sepia)</option>
-                    <option value="dark-black" data-i18n="theme_dark_black">Dark (Black)</option>
-                    <option value="dark-blue" data-i18n="theme_dark_blue">Dark (Blue)</option>
+                    <option value="light" style="background-color: #ffffff; color: #202124;" data-i18n="theme_light">Light (White)</option>
+                    <option value="sepia" style="background-color: #fdf6e3; color: #433422;" data-i18n="theme_sepia">Light (Sepia)</option>
+                    <option value="grey-warm" style="background-color: #f5f5f0; color: #3e2723;" data-i18n="theme_grey_warm">Grey (Warm)</option>
+                    <option value="grey" style="background-color: #eeeeee; color: #212121;" data-i18n="theme_grey">Shades of Grey</option>
+                    <option value="grey-cold" style="background-color: #eceff1; color: #263238;" data-i18n="theme_grey_cold">Grey (Cold)</option>
+                    <option value="dark-blue" style="background-color: #1e293b; color: #f8fafc;" data-i18n="theme_dark_blue">Dark (Blue)</option>
+                    <option value="dark-black" style="background-color: #121216; color: #f1f3f4;" data-i18n="theme_dark_black">Dark (Black)</option>
                 </select>
             </div>
             <div class="settings-group">
@@ -87,12 +110,15 @@
                 <select class="sidebar-select" id="lang-selector" onchange="changeLanguage(this.value)">
                     <option value="ua">Українська 🇺🇦</option>
                     <option value="en">English 🇬🇧</option>
+                    <option value="es">Español 🇪🇸</option>
+                    <option value="pt">Português 🇵🇹</option>
+                    <option value="tr">Türkçe 🇹🇷</option>
                 </select>
             </div>
         </div>
 
         <div class="sidebar-footer">
-            <p>&copy; 2026 YouTube News Automation</p>
+            <p>&copy; 2026 Governed Autonomous Intelligence Workspace</p>
         </div>
     </aside>
     <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="closeSidebar()" aria-hidden="true"></div>
@@ -106,21 +132,6 @@
                     <i class="fa-solid fa-bars"></i>
                 </button>
 
-                <ul class="top-section-tabs" aria-label="Workspace tabs">
-                    <li class="top-section-tab active" id="menu-item-analytics" data-tab="analytics-tab">
-                        <a href="#" onclick="switchSection('analytics-tab', this)">
-                            <i class="fa-solid fa-chart-line"></i>
-                            <span data-i18n="menu_dashboard">Data</span>
-                        </a>
-                    </li>
-                    <li class="top-section-tab" id="menu-item-terminal" data-tab="terminal-tab">
-                        <a href="#" onclick="switchSection('terminal-tab', this)">
-                            <i class="fa-solid fa-terminal"></i>
-                            <span data-i18n="menu_terminal">Terminal</span>
-                        </a>
-                    </li>
-                </ul>
-                
                 <!-- TOP FILTER BAR -->
                 <div class="top-filter-bar" id="top-filter-bar">
                     <!-- Date Inputs "Від" / "До" -->
@@ -129,6 +140,16 @@
                         <input type="date" class="input-date-compact" id="filter-start-date" onchange="applyFilters()">
                         <span class="date-label-inline" data-i18n="lbl_to">До</span>
                         <input type="date" class="input-date-compact" id="filter-end-date" onchange="applyFilters()">
+                        <div class="date-range-slider" id="date-range-slider" aria-label="Date range slider">
+                            <div class="date-range-slider-track">
+                                <input type="range" id="date-range-start" aria-label="Start date slider">
+                                <input type="range" id="date-range-end" aria-label="End date slider">
+                            </div>
+                            <div class="date-range-slider-values">
+                                <span id="date-range-start-label">-</span>
+                                <span id="date-range-end-label">-</span>
+                            </div>
+                        </div>
                     </div>
                     
                     <!-- Quick Date Range Presets -->
@@ -159,6 +180,14 @@
                     
                     <!-- VISUALIZATIONS (ABOVE TABLE) -->
                     <div class="dashboards-container">
+                        <!-- Layout Preset Selector Toolbar -->
+                        <div class="layouts-toolbar" id="layouts-toolbar" style="display:flex; align-items:center; gap:8px; margin-bottom:10px; padding:6px 12px; background:var(--card-bg); border:1px solid var(--border-color); border-radius:6px; font-size:11px;" data-role-min="analyst">
+                            <span style="font-weight:700; color:var(--text-color);" data-i18n="lbl_workspace_layout">Workspace Layout:</span>
+                            <select id="layout-preset-selector" class="control-select" style="padding:4px 8px; font-size:11px; font-weight:600; min-width:120px;"></select>
+                            <button id="btn-save-layout" class="btn-primary" style="padding:4px 8px; font-size:11px;" data-i18n="btn_save_layout">Save</button>
+                            <button id="btn-new-layout" class="btn-secondary" style="padding:4px 8px; font-size:11px;" data-i18n="btn_new_layout">New Preset</button>
+                            <button id="btn-delete-layout" class="btn-dropdown-action" style="padding:4px 8px; font-size:11px; color:var(--danger-color); border-color:var(--danger-color);" data-i18n="btn_delete_layout">Delete</button>
+                        </div>
                         <div class="dashboard-workspace" id="dashboard-workspace">
                         <div class="card dashboard-column-card dashboard-widget legacy-dashboard-widget" id="card-visualizations-container">
                             <div class="card-header dashboard-card-header">
@@ -277,6 +306,175 @@
                         <span class="stat-sub" id="neon-status-msg" style="word-break: break-all;">-</span>
                     </div>
                 </section>
+
+                <div class="card operator-runtime-panel" id="operator-runtime-panel">
+                    <div class="operator-runtime-header">
+                        <div>
+                            <span class="card-title">Operator Runtime</span>
+                            <span class="stat-sub">Source policy and registry readiness</span>
+                        </div>
+                        <button class="btn-reset-compact" type="button" onclick="loadOperatorRuntimePanel()" title="Refresh Operator Runtime">
+                            <i class="fa-solid fa-rotate"></i>
+                        </button>
+                    </div>
+                    <div class="operator-runtime-status">
+                        <span class="task-badge idle" id="operator-registry-badge">Checking</span>
+                        <span class="stat-sub" id="operator-registry-message">-</span>
+                    </div>
+                    <div class="operator-runtime-grid">
+                        <section class="operator-runtime-section">
+                            <div class="operator-section-title">Source Policy Tiers</div>
+                            <div class="operator-tier-grid" id="operator-policy-tiers">
+                                <div class="operator-empty">Not loaded</div>
+                            </div>
+                        </section>
+                        <section class="operator-runtime-section">
+                            <div class="operator-section-title">Migration Readiness</div>
+                            <div class="operator-source-list" id="operator-migration-readiness">
+                                <div class="operator-empty">Not loaded</div>
+                            </div>
+                        </section>
+                        <section class="operator-runtime-section">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <div class="operator-section-title" style="margin: 0;">Source Registry</div>
+                                <button class="btn-primary" onclick="openAddSourceModal()" style="padding: 4px 8px; font-size: 10px; font-weight: 600;">+ Add</button>
+                            </div>
+                            <div class="operator-source-list" id="operator-source-list">
+                                <div class="operator-empty">Not loaded</div>
+                            </div>
+                        </section>
+                        <section class="operator-runtime-section operator-runtime-section-wide operator-ingestion-console" id="operator-ingest-console">
+                            <div class="operator-ingest-header">
+                                <div>
+                                    <div class="operator-section-title" style="margin: 0;">Ingestion Console</div>
+                                    <span class="operator-source-meta" id="operator-ingest-help">Select a governed source, preview normalized records, then persist intentionally.</span>
+                                </div>
+                                <div class="operator-ingest-actions">
+                                    <button class="btn-secondary" id="operator-ingest-preview" type="button" onclick="runIngestionPreview()">
+                                        <i class="fa-solid fa-eye"></i>
+                                        Preview
+                                    </button>
+                                    <button class="btn-primary" id="operator-ingest-persist" type="button" onclick="runIngestionPersist()">
+                                        <i class="fa-solid fa-database"></i>
+                                        Persist
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="operator-ingest-controls">
+                                <label class="operator-ingest-field">
+                                    <span>Source</span>
+                                    <select id="operator-ingest-source" class="control-select" onchange="prepareIngestSource(this.value, { focus: false, preserveInput: true })">
+                                        <option value="">Not loaded</option>
+                                    </select>
+                                </label>
+                                <label class="operator-ingest-field">
+                                    <span>Manual Format</span>
+                                    <select id="operator-ingest-format" class="control-select">
+                                        <option value="json">JSON</option>
+                                        <option value="csv">CSV</option>
+                                    </select>
+                                </label>
+                                <label class="operator-ingest-field">
+                                    <span>Preview Limit</span>
+                                    <input id="operator-ingest-limit" class="control-select" type="number" min="1" max="100" value="20" />
+                                </label>
+                                <label class="operator-ingest-tier-e">
+                                    <input id="operator-ingest-allow-tier-e" type="checkbox" />
+                                    <span>Allow Tier E custom scraper</span>
+                                </label>
+                            </div>
+                            <textarea id="operator-ingest-input" class="operator-ingest-input" rows="7" spellcheck="false" placeholder="Optional connector input appears here after selecting a source."></textarea>
+                            <div class="operator-ingest-result" id="operator-ingest-result">
+                                <div class="operator-empty">No ingestion run yet.</div>
+                            </div>
+                        </section>
+                        <section class="operator-runtime-section">
+                            <div class="operator-section-title">Connector Runs</div>
+                            <div class="operator-source-list" id="operator-connector-runs">
+                                <div class="operator-empty">Not loaded</div>
+                            </div>
+                        </section>
+                        <section class="operator-runtime-section">
+                            <div class="operator-section-title">Source Records</div>
+                            <div class="operator-source-list" id="operator-source-records">
+                                <div class="operator-empty">Not loaded</div>
+                            </div>
+                        </section>
+                        <section class="operator-runtime-section">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; gap: 8px;">
+                                <div class="operator-section-title" style="margin: 0;">Data Method Review</div>
+                                <div style="display: flex; gap: 8px;">
+                                    <button class="btn-primary" id="operator-run-method-review" type="button" onclick="runDataMethodReview()" style="padding: 4px 8px; font-size: 10px; font-weight: 600;">
+                                        <i class="fa-solid fa-chart-line"></i>
+                                        Run
+                                    </button>
+                                    <button class="btn-primary" id="operator-generate-method-proposals" type="button" onclick="generateMethodProposals()" style="padding: 4px 8px; font-size: 10px; font-weight: 600;">
+                                        <i class="fa-solid fa-lightbulb"></i>
+                                        Proposals
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="operator-source-list" id="operator-data-method-review">
+                                <div class="operator-empty">Not loaded</div>
+                            </div>
+                        </section>
+                        <section class="operator-runtime-section">
+                            <div class="operator-section-title">Audit Events</div>
+                            <div class="operator-source-list" id="operator-audit-events">
+                                <div class="operator-empty">Not loaded</div>
+                            </div>
+                        </section>
+                        <section class="operator-runtime-section">
+                            <div class="operator-section-title">Evidence Links</div>
+                            <div class="operator-source-list" id="operator-evidence-links">
+                                <div class="operator-empty">Not loaded</div>
+                            </div>
+                        </section>
+                        <section class="operator-runtime-section">
+                            <div class="operator-section-title">Credential Status</div>
+                            <div class="operator-source-list" id="operator-credential-status">
+                                <div class="operator-empty">Not loaded</div>
+                            </div>
+                        </section>
+                    </div>
+                </div>
+
+                <!-- Editorial Briefs Section -->
+                <div class="card" id="editorial-briefs-card" style="margin-bottom: 24px; padding: 16px; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px;">
+                    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-bottom: 15px;">
+                        <h3 style="margin: 0; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; color: var(--text-color);">
+                            <i class="fa-solid fa-file-invoice" style="color: var(--yellow-color);"></i>
+                            <span data-i18n="editorial_briefs">Editorial Briefs</span>
+                        </h3>
+                    </div>
+                    
+                    <div style="display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end; background: var(--bg-hover); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color);">
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <label style="font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;" data-i18n="briefs_date">Date</label>
+                            <input type="date" id="brief-date-picker" class="control-select" style="padding: 6px; font-size: 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); font-weight: 600;" />
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 4px; min-width: 200px;">
+                            <label style="font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;" data-i18n="briefs_sources">Sources</label>
+                            <select id="brief-sources-selector" class="control-select" style="padding: 6px; font-size: 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); font-weight: 600; width: 100%;">
+                                <option value="" data-i18n="briefs_all_sources">All Sources</option>
+                            </select>
+                        </div>
+                        <button class="btn-primary" id="btn-generate-brief" data-role-min="analyst" onclick="generateDailyBrief()" style="padding: 8px 16px; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i>
+                            <span data-i18n="btn_generate_brief">Generate Brief</span>
+                        </button>
+                        <span class="task-badge idle" id="brief-badge" style="font-size: 9px; padding: 2px 6px; display: none;"></span>
+                    </div>
+
+                    <div style="margin-top: 20px;">
+                        <h4 style="margin: 0 0 10px 0; font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;" data-i18n="briefs_history">Briefs History</h4>
+                        <div id="briefs-history-container">
+                            <div class="operator-source-list" id="briefs-history-list">
+                                <div class="operator-empty" data-i18n="briefs_empty">No briefs generated yet.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 
                 <div class="terminal-container-wrapper">
                     <!-- Left: script buttons panel -->
@@ -496,13 +694,21 @@
                                 <i class="fa-brands fa-youtube"></i>
                                 <span data-i18n="modal_watch_yt">Watch on YouTube</span>
                             </a>
-                            <button id="mv-modal-download-btn" onclick="downloadVideoFromModal()" class="btn-secondary" style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+                            <button id="mv-modal-download-btn" data-role-min="admin" onclick="downloadVideoFromModal()" class="btn-secondary" style="display: flex; align-items: center; justify-content: center; gap: 6px;">
                                 <i class="fa-solid fa-download"></i>
                                 <span id="mv-modal-download-text" data-i18n="modal_download_mp4">Download MP4</span>
                             </button>
-                            <button id="mv-modal-scrape-btn" onclick="scrapeDetailsFromModal()" class="btn-secondary" style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+                            <button id="mv-modal-scrape-btn" data-role-min="admin" onclick="scrapeDetailsFromModal()" class="btn-secondary" style="display: flex; align-items: center; justify-content: center; gap: 6px;">
                                 <i class="fa-solid fa-arrows-spin"></i>
                                 <span id="mv-modal-scrape-text" data-i18n="modal_scrape_details">Scrape Full Info</span>
+                            </button>
+                            <button id="mv-modal-transcript-btn" data-role-min="admin" onclick="getTranscriptFromModal()" class="btn-secondary" style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+                                <i class="fa-solid fa-file-audio"></i>
+                                <span id="mv-modal-transcript-text" data-i18n="modal_extract_transcript">Extract Transcript</span>
+                            </button>
+                            <button id="mv-modal-assistant-btn" data-role-min="analyst" onclick="summarizeCurrentScreen()" class="btn-warning" style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i>
+                                <span id="mv-modal-assistant-text" data-i18n="modal_ask_assistant">Assistant</span>
                             </button>
                         </div>
 
@@ -515,7 +721,7 @@
                             <div id="mv-download-quality-options" style="display: flex; flex-direction: column; gap: 6px;">
                                 <!-- Will be populated dynamically -->
                             </div>
-                            <button id="mv-dl-confirm-btn" onclick="startVideoDownload()" class="btn-primary" style="padding: 8px; font-size: 11px; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                            <button id="mv-dl-confirm-btn" data-role-min="admin" onclick="startVideoDownload()" class="btn-primary" style="padding: 8px; font-size: 11px; display: flex; align-items: center; justify-content: center; gap: 6px;">
                                 <i class="fa-solid fa-download"></i>
                                 <span data-i18n="modal_dl_start">Завантажити</span>
                             </button>
@@ -555,6 +761,9 @@
                         
                         <div class="modal-section-title" data-i18n="modal_description">Description</div>
                         <div class="modal-description-box" id="mv-modal-description">No description.</div>
+                        
+                        <div class="modal-section-title" id="mv-modal-transcript-title" style="display: none;" data-i18n="modal_transcript">Transcript</div>
+                        <div class="modal-description-box" id="mv-modal-transcript-box" style="display: none;"></div>
                         
                         <div class="modal-section-title" id="mv-modal-chart-title" style="display: none;" data-i18n="modal_views_trend">Views Dynamics</div>
                         <div class="modal-chart-wrapper" id="mv-modal-chart-container" style="display: none; height: 130px; position: relative; margin-top: 6px;">
@@ -635,6 +844,122 @@
         </div>
     </div>
 
+    <!-- Brief Details Modal -->
+    <div id="brief-details-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-backdrop" onclick="closeBriefModal()"></div>
+        <div class="modal-card" style="max-width: 700px;">
+            <div class="modal-card-header">
+                <span class="modal-card-title" id="brief-modal-title" data-i18n="brief_details_title">Brief Details</span>
+                <button class="modal-close-btn" onclick="closeBriefModal()">&times;</button>
+            </div>
+            <div class="modal-card-body" style="display: flex; flex-direction: column; gap: 16px;">
+                <div class="brief-modal-actions">
+                    <button class="btn-primary" onclick="copyBriefMarkdownFromModal()" style="padding: 6px 12px; font-size: 11px; display: flex; align-items: center; gap: 4px;">
+                        <i class="fa-solid fa-copy"></i>
+                        <span data-i18n="btn_copy_brief">Copy Brief</span>
+                    </button>
+                    <button class="btn-secondary" onclick="exportBriefFromModal('markdown')" style="padding: 6px 12px; font-size: 11px; display: flex; align-items: center; gap: 4px;">
+                        <i class="fa-solid fa-file-arrow-down"></i> Markdown
+                    </button>
+                    <button class="btn-secondary" onclick="exportBriefFromModal('html')" style="padding: 6px 12px; font-size: 11px; display: flex; align-items: center; gap: 4px;">
+                        <i class="fa-solid fa-file-code"></i> HTML
+                    </button>
+                    <button class="btn-secondary" onclick="exportBriefFromModal('pdf')" style="padding: 6px 12px; font-size: 11px; display: flex; align-items: center; gap: 4px;">
+                        <i class="fa-solid fa-file-pdf"></i> PDF
+                    </button>
+                </div>
+                <div class="brief-copy-status" id="brief-copy-status" hidden></div>
+                <div>
+                    <h4 style="margin: 0 0 8px 0; font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;" data-i18n="brief_content_label">Content</h4>
+                    <div id="brief-modal-content-container" style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; font-size: 13px; color: var(--text-color); max-height: 250px; overflow-y: auto; white-space: pre-wrap; font-family: inherit; line-height: 1.5;">
+                        Loading...
+                    </div>
+                </div>
+                <div>
+                    <h4 style="margin: 0 0 8px 0; font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;" data-i18n="brief_evidence_label">Source Reference & Claims</h4>
+                    <div id="brief-modal-evidence-container" style="max-height: 180px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+                        <!-- Claims will be inserted here dynamically -->
+                    </div>
+                </div>
+                <div style="margin-top: 8px; display: flex;">
+                    <button type="button" class="btn-secondary" onclick="closeBriefModal()" style="flex: 1; padding: 10px;" data-i18n="btn_close">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Source Modal -->
+    <div id="add-source-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-backdrop" onclick="closeAddSourceModal()"></div>
+        <div class="modal-card" style="max-width: 500px;">
+            <div class="modal-card-header">
+                <span class="modal-card-title" data-i18n="modal_add_source_title">Add Governed Source</span>
+                <button class="modal-close-btn" onclick="closeAddSourceModal()">&times;</button>
+            </div>
+            <div class="modal-card-body">
+                <form id="add-source-form" onsubmit="submitAddSource(event)">
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                        <div>
+                            <label class="stat-label" style="font-size: 11px; display: block; margin-bottom: 4px;" data-i18n="lbl_source_name">Source Name *</label>
+                            <input type="text" class="input-search" id="as-name" required placeholder="My RSS Feed" style="width: 100%; padding: 8px; box-sizing: border-box;">
+                        </div>
+                        <div style="display: flex; gap: 10px;">
+                            <div style="flex: 1;">
+                                <label class="stat-label" style="font-size: 11px; display: block; margin-bottom: 4px;" data-i18n="lbl_source_type">Type *</label>
+                                <select id="as-type" class="control-select" style="width: 100%; padding: 8px;" required>
+                                    <option value="youtube">YouTube</option>
+                                    <option value="rss">RSS Feed</option>
+                                    <option value="manual">Manual Upload</option>
+                                </select>
+                            </div>
+                            <div style="flex: 1;">
+                                <label class="stat-label" style="font-size: 11px; display: block; margin-bottom: 4px;" data-i18n="lbl_source_tier">Policy Tier *</label>
+                                <select id="as-tier" class="control-select" style="width: 100%; padding: 8px;" required>
+                                    <option value="A">Tier A (Official API)</option>
+                                    <option value="B">Tier B (Licensed feed)</option>
+                                    <option value="C">Tier C (Owned / User-provided)</option>
+                                    <option value="D">Tier D (Managed Vendor)</option>
+                                    <option value="E">Tier E (Custom Scraper)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 10px;">
+                            <div style="flex: 1;">
+                                <label class="stat-label" style="font-size: 11px; display: block; margin-bottom: 4px;" data-i18n="lbl_source_status">Status *</label>
+                                <select id="as-status" class="control-select" style="width: 100%; padding: 8px;" required>
+                                    <option value="pending">Pending</option>
+                                    <option value="active" selected>Active</option>
+                                    <option value="paused">Paused</option>
+                                </select>
+                            </div>
+                            <div style="flex: 1;">
+                                <label class="stat-label" style="font-size: 11px; display: block; margin-bottom: 4px;" data-i18n="lbl_source_retention">Retention (Days)</label>
+                                <input type="number" class="input-search" id="as-retention" min="0" placeholder="e.g. 30" style="width: 100%; padding: 8px; box-sizing: border-box;">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="stat-label" style="font-size: 11px; display: block; margin-bottom: 4px;" data-i18n="lbl_source_credentials">Credentials / Secret API Key</label>
+                            <input type="password" class="input-search" id="as-credentials" placeholder="Secure API token / secret" style="width: 100%; padding: 8px; box-sizing: border-box;">
+                        </div>
+                        <div>
+                            <label class="stat-label" style="font-size: 11px; display: block; margin-bottom: 4px;" data-i18n="lbl_source_url">Source URL</label>
+                            <input type="url" class="input-search" id="as-url" placeholder="https://example.com/feed" style="width: 100%; padding: 8px; box-sizing: border-box;">
+                        </div>
+                        <div>
+                            <label class="stat-label" style="font-size: 11px; display: block; margin-bottom: 4px;" data-i18n="lbl_source_notes">Policy / Operational Notes</label>
+                            <textarea class="input-search" id="as-notes" rows="2" placeholder="Audit logs or governance exceptions..." style="width: 100%; padding: 8px; box-sizing: border-box; font-family: inherit; font-size: 12px; resize: vertical;"></textarea>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 24px; display: flex; gap: 12px;">
+                         <button type="button" class="btn-secondary" onclick="closeAddSourceModal()" style="flex: 1; padding: 10px;" data-i18n="btn_cancel">Cancel</button>
+                         <button type="submit" class="btn-primary" style="flex: 1; padding: 10px;" data-i18n="btn_submit">Submit</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- Summarize / AI Chat Controls -->
     <button class="chat-toggle-btn summarize-btn" onclick="summarizeCurrentScreen()" id="chat-toggle-btn" title="Додати поточний екран у чат">
         <i class="fa-solid fa-wand-magic-sparkles" id="chat-toggle-icon"></i>
@@ -647,7 +972,7 @@
         <div class="chat-resizer" id="chat-resizer"></div>
         <div class="chat-header">
             <div class="chat-header-actions chat-header-actions-left">
-                <button class="chat-header-btn" onclick="clearChatHistory()" id="chat-clear-btn" title="Очистити історію">
+            <button class="chat-header-btn" data-role-min="analyst" onclick="clearChatHistory()" id="chat-clear-btn" title="Очистити історію">
                     <i class="fa-solid fa-trash-can"></i>
                 </button>
             </div>
@@ -664,7 +989,7 @@
         
         <!-- Role Tabs -->
         <div class="chat-tabs" style="display: flex; border-bottom: 1px solid var(--border-color); background: var(--bg-hover);">
-            <button class="chat-tab-btn active" onclick="switchAgentRole('admin')" id="chat-tab-admin" style="flex: 1; padding: 10px; border: none; background: none; color: var(--text-color); font-size: 11px; font-weight: 600; cursor: pointer; border-bottom: 2px solid var(--accent-color); transition: all 0.2s;">
+            <button class="chat-tab-btn active" data-role-min="admin" onclick="switchAgentRole('admin')" id="chat-tab-admin" style="flex: 1; padding: 10px; border: none; background: none; color: var(--text-color); font-size: 11px; font-weight: 600; cursor: pointer; border-bottom: 2px solid var(--accent-color); transition: all 0.2s;">
                 <i class="fa-solid fa-brain" style="margin-right: 4px;"></i> Аналітик (Admin)
             </button>
             <button class="chat-tab-btn" onclick="switchAgentRole('user')" id="chat-tab-user" style="flex: 1; padding: 10px; border: none; background: none; color: var(--text-muted); font-size: 11px; font-weight: 600; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s;">
@@ -673,7 +998,7 @@
         </div>
 
         <!-- Model selector bar -->
-        <div class="chat-model-bar" id="chat-model-bar" style="padding: 10px 15px; border-bottom: 1px solid var(--border-color); background: var(--bg-hover); display: flex; flex-direction: column; gap: 8px;">
+        <div class="chat-model-bar" id="chat-model-bar" data-role-min="analyst" style="padding: 10px 15px; border-bottom: 1px solid var(--border-color); background: var(--bg-hover); display: flex; flex-direction: column; gap: 8px;">
             <div style="display: flex; gap: 10px; align-items: center; width: 100%;">
                 <div style="flex: 1; display: flex; flex-direction: column; gap: 4px;">
                     <label class="chat-model-label" for="chat-provider-select" style="font-size: 10px; font-weight: 600; text-transform: uppercase; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">

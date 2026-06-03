@@ -28,6 +28,7 @@ import {
     closeVideoModal, 
     downloadVideoFromModal, 
     scrapeDetailsFromModal, 
+    getTranscriptFromModal, 
     hideDownloadQualityPanel,
     startVideoDownload, 
     toggleViewsDropdown, 
@@ -51,9 +52,23 @@ import {
     initChatResizer,
     loadProposalInbox,
     updateProposalStatus,
-    initProposalInbox
+    initProposalInbox,
+    loadOperatorRuntimePanel,
+    initOperatorRuntimePanel,
+    runDataMethodReview,
+    generateMethodProposals,
+    openAddSourceModal,
+    closeAddSourceModal,
+    submitAddSource,
+    deleteSource,
+    prepareIngestSource,
+    runIngest,
+    runIngestionPreview,
+    runIngestionPersist,
+    applyEntitlementsUI,
+    applyRoleVisibility
 } from './ui.js';
-import { 
+import {
     loadStats, 
     loadChannelStatsHeader, 
     loadChannels, 
@@ -61,7 +76,8 @@ import {
     triggerAction, 
     checkProcessStatus, 
     loadChartsData, 
-    applyFilters 
+    applyFilters,
+    loadEntitlements
 } from './api.js';
 import { 
     initChartUI, 
@@ -81,6 +97,120 @@ import {
     toggleDropdown 
 } from './terminal.js';
 import { initDashboardWorkspace } from './widgets.js';
+import { loadBriefs, loadBriefSources } from './briefs.js';
+
+const DATE_SLIDER_FLOOR = "2022-02-24";
+let dateSliderApplyTimer = null;
+
+function dateToDay(value) {
+    const parsed = Date.parse(`${value}T00:00:00Z`);
+    if (Number.isNaN(parsed)) return null;
+    return Math.floor(parsed / 86400000);
+}
+
+function dayToDate(day) {
+    return new Date(day * 86400000).toISOString().split("T")[0];
+}
+
+function clearQuickDateSelection() {
+    state.activeQuickDate = null;
+    document.querySelectorAll(".quick-date-btn, .quick-date-btn-compact").forEach(btn => {
+        btn.classList.remove("active");
+    });
+}
+
+function updateDateRangeSliderLabels() {
+    const startInput = document.getElementById("filter-start-date");
+    const endInput = document.getElementById("filter-end-date");
+    const startLabel = document.getElementById("date-range-start-label");
+    const endLabel = document.getElementById("date-range-end-label");
+    if (startLabel) startLabel.textContent = startInput?.value || "-";
+    if (endLabel) endLabel.textContent = endInput?.value || "-";
+}
+
+export function syncDateRangeSliderFromInputs() {
+    const startInput = document.getElementById("filter-start-date");
+    const endInput = document.getElementById("filter-end-date");
+    const startSlider = document.getElementById("date-range-start");
+    const endSlider = document.getElementById("date-range-end");
+    if (!startInput || !endInput || !startSlider || !endSlider) return;
+
+    const todayDay = dateToDay(new Date().toISOString().split("T")[0]);
+    const floorDay = dateToDay(DATE_SLIDER_FLOOR);
+    const startDay = dateToDay(startInput.value) ?? floorDay;
+    const endDay = dateToDay(endInput.value) ?? todayDay;
+    const minDay = Math.min(floorDay, startDay, endDay);
+    const maxDay = Math.max(todayDay, startDay, endDay);
+
+    [startSlider, endSlider].forEach(slider => {
+        slider.min = String(minDay);
+        slider.max = String(maxDay);
+        slider.step = "1";
+    });
+    startSlider.value = String(Math.min(startDay, endDay));
+    endSlider.value = String(Math.max(startDay, endDay));
+    updateDateRangeSliderLabels();
+}
+
+function applyDateRangeFromSlider(source) {
+    const startInput = document.getElementById("filter-start-date");
+    const endInput = document.getElementById("filter-end-date");
+    const startSlider = document.getElementById("date-range-start");
+    const endSlider = document.getElementById("date-range-end");
+    if (!startInput || !endInput || !startSlider || !endSlider) return;
+
+    let startDay = Number(startSlider.value);
+    let endDay = Number(endSlider.value);
+    if (startDay > endDay) {
+        if (source === "end") {
+            startDay = endDay;
+            startSlider.value = String(startDay);
+        } else {
+            endDay = startDay;
+            endSlider.value = String(endDay);
+        }
+    }
+
+    startInput.value = dayToDate(startDay);
+    endInput.value = dayToDate(endDay);
+    clearQuickDateSelection();
+    updateDateRangeSliderLabels();
+}
+
+function scheduleDateSliderApply() {
+    clearTimeout(dateSliderApplyTimer);
+    dateSliderApplyTimer = setTimeout(() => {
+        applyFilters();
+        window.dashboardWorkspace?.refreshAll();
+    }, 250);
+}
+
+function initDateRangeSlider() {
+    const startInput = document.getElementById("filter-start-date");
+    const endInput = document.getElementById("filter-end-date");
+    const startSlider = document.getElementById("date-range-start");
+    const endSlider = document.getElementById("date-range-end");
+    if (!startInput || !endInput || !startSlider || !endSlider) return;
+
+    syncDateRangeSliderFromInputs();
+    [startInput, endInput].forEach(input => {
+        input.addEventListener("change", () => {
+            clearQuickDateSelection();
+            syncDateRangeSliderFromInputs();
+            window.dashboardWorkspace?.refreshAll();
+        });
+    });
+    startSlider.addEventListener("input", () => {
+        applyDateRangeFromSlider("start");
+        scheduleDateSliderApply();
+    });
+    endSlider.addEventListener("input", () => {
+        applyDateRangeFromSlider("end");
+        scheduleDateSliderApply();
+    });
+    startSlider.addEventListener("change", scheduleDateSliderApply);
+    endSlider.addEventListener("change", scheduleDateSliderApply);
+}
 
 // Bind all functions to window to satisfy HTML inline event handlers
 window.changeLanguage = changeLanguage;
@@ -111,6 +241,7 @@ window.openVideoModal = openVideoModal;
 window.closeVideoModal = closeVideoModal;
 window.downloadVideoFromModal = downloadVideoFromModal;
 window.scrapeDetailsFromModal = scrapeDetailsFromModal;
+window.getTranscriptFromModal = getTranscriptFromModal;
 window.hideDownloadQualityPanel = hideDownloadQualityPanel;
 window.startVideoDownload = startVideoDownload;
 window.toggleViewsDropdown = toggleViewsDropdown;
@@ -135,6 +266,20 @@ window.initChatResizer = initChatResizer;
 window.loadProposalInbox = loadProposalInbox;
 window.updateProposalStatus = updateProposalStatus;
 window.initProposalInbox = initProposalInbox;
+window.loadOperatorRuntimePanel = loadOperatorRuntimePanel;
+window.initOperatorRuntimePanel = initOperatorRuntimePanel;
+window.runDataMethodReview = runDataMethodReview;
+window.generateMethodProposals = generateMethodProposals;
+window.openAddSourceModal = openAddSourceModal;
+window.closeAddSourceModal = closeAddSourceModal;
+window.submitAddSource = submitAddSource;
+window.deleteSource = deleteSource;
+window.prepareIngestSource = prepareIngestSource;
+window.runIngest = runIngest;
+window.runIngestionPreview = runIngestionPreview;
+window.runIngestionPersist = runIngestionPersist;
+window.applyRoleVisibility = applyRoleVisibility;
+window.syncDateRangeSliderFromInputs = syncDateRangeSliderFromInputs;
 
 window.loadStats = loadStats;
 window.loadChannelStatsHeader = loadChannelStatsHeader;
@@ -187,8 +332,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     changeTheme(state.currentTheme);
     changeLanguage(state.currentLang);
     
-    // Restore sidebar overlay visibility. Default collapsed so the workspace never shifts or starts covered.
-    document.body.classList.toggle("sidebar-collapsed", localStorage.getItem("sidebar_collapsed") !== "0");
+    // Force sidebar collapsed by default on startup so the workspace never shifts or starts covered.
+    closeSidebar();
     
     // Build chart buttons/dropdown from CHART_DEFS
     initChartUI();
@@ -215,6 +360,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const fmt = (d) => d.toISOString().split('T')[0];
     document.getElementById("filter-start-date").value = fmt(startDate);
     document.getElementById("filter-end-date").value = fmt(now);
+    initDateRangeSlider();
     
     // Highlight active quick-date button for 6m
     state.activeQuickDate = "6m";
@@ -223,8 +369,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // Load initial data
     loadStats();
+    await loadEntitlements();
+    applyEntitlementsUI();
+    applyRoleVisibility();
     await loadChannels();   // will trigger loadChannelStatsHeader, loadChartsData, and loadVideos
     initDashboardWorkspace();
+    loadBriefs();
+    loadBriefSources();
     
     // Start polling status
     checkProcessStatus();
@@ -245,8 +396,18 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
     }
     
-    // Click outside to close custom dropdowns
+    // Click outside to close custom elements
     document.addEventListener("click", (e) => {
+        // Close sidebar on click outside
+        if (!document.body.classList.contains("sidebar-collapsed")) {
+            const sidebar = document.getElementById("sidebar");
+            const isClickInsideSidebar = sidebar && sidebar.contains(e.target);
+            const isClickOnToggle = e.target.closest('.sidebar-brand-toggle') || e.target.closest('.top-bar-menu-toggle');
+            if (!isClickInsideSidebar && !isClickOnToggle) {
+                closeSidebar();
+            }
+        }
+
         // channels dropdown
         const channelsBtn = document.getElementById("channels-dropdown-btn");
         const channelsMenu = document.getElementById("channels-dropdown-menu");

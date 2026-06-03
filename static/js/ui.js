@@ -17,6 +17,7 @@ import {
     renderModalViewsChart 
 } from './charts.js';
 import { initTerminal } from './terminal.js';
+import { adminFetch, adminFetchSilent, openAdminUrl } from './auth.js';
 
 function escapeHtml(value) {
     return String(value ?? "")
@@ -31,7 +32,7 @@ function escapeHtml(value) {
 export function changeLanguage(lang) {
     state.currentLang = lang;
     localStorage.setItem("app_lang", lang);
-    
+
     // Translate elements with data-i18n attribute
     document.querySelectorAll("[data-i18n]").forEach(elem => {
         const key = elem.getAttribute("data-i18n");
@@ -39,7 +40,7 @@ export function changeLanguage(lang) {
             elem.innerText = translations[lang][key];
         }
     });
-    
+
     // Translate placeholders
     document.querySelectorAll("[data-i18n-placeholder]").forEach(elem => {
         const key = elem.getAttribute("data-i18n-placeholder");
@@ -70,6 +71,85 @@ export function changeTheme(theme) {
     if (state.chartRawData) {
         renderActiveChart();
     }
+}
+
+const ROLE_LEVELS = {
+    reader: 1,
+    analyst: 2,
+    admin: 3,
+    master_admin: 3
+};
+
+function normalizeUiRole(role, authStatus = state.authStatus) {
+    const clean = String(role || authStatus?.role || state.userRole || "reader").toLowerCase();
+    if (authStatus?.admin || clean === "admin" || clean === "master_admin") return "admin";
+    if (clean === "analyst") return "analyst";
+    return "reader";
+}
+
+export function applyRoleVisibility() {
+    const role = normalizeUiRole(state.userRole);
+    const currentLevel = ROLE_LEVELS[role] || ROLE_LEVELS.reader;
+    state.userRole = role;
+    document.body?.setAttribute("data-user-role", role);
+
+    document.querySelectorAll("[data-role-min]").forEach(element => {
+        const required = String(element.getAttribute("data-role-min") || "reader").toLowerCase();
+        const requiredLevel = ROLE_LEVELS[required] || ROLE_LEVELS.reader;
+        element.hidden = currentLevel < requiredLevel;
+        if (element.hidden) {
+            if (!element.dataset.originalDisplay && element.style.display !== 'none') {
+                element.dataset.originalDisplay = element.style.display;
+            }
+            element.style.setProperty('display', 'none', 'important');
+        } else {
+            if (element.dataset.originalDisplay !== undefined) {
+                element.style.display = element.dataset.originalDisplay;
+            } else {
+                element.style.removeProperty('display');
+            }
+        }
+    });
+
+    const terminalTab = document.getElementById("menu-item-terminal");
+    if (terminalTab?.hidden && state.currentSection === "terminal-tab") {
+        switchSection("analytics-tab", document.getElementById("menu-item-analytics")?.querySelector("a"));
+    }
+
+    const adminChatTab = document.getElementById("chat-tab-admin");
+    if (adminChatTab?.hidden && state.agentRole === "admin") {
+        switchAgentRole("user");
+    }
+}
+
+// PROGRESSIVE ENTITLEMENTS UI GATING
+export function applyEntitlementsUI() {
+    const entitlements = state.entitlements || {};
+    
+    // Gate the Administration tab (requires operator_runtime)
+    const terminalTab = document.getElementById("menu-item-terminal");
+    if (terminalTab) {
+        terminalTab.style.display = entitlements.operator_runtime ? "block" : "none";
+    }
+
+    // Gate the widgets in the sidebar palette
+    const widgetsPalette = document.querySelector(".widget-palette");
+    if (widgetsPalette) {
+        const channelWidgetBtn = widgetsPalette.querySelector('.widget-template[data-widget-type="channel-analytics"]');
+        if (channelWidgetBtn) {
+            channelWidgetBtn.style.display = entitlements.ready_workspace ? "flex" : "none";
+        }
+        const anomalyWidgetBtn = widgetsPalette.querySelector('.widget-template[data-widget-type="anomaly-alerts"]');
+        if (anomalyWidgetBtn) {
+            anomalyWidgetBtn.style.display = entitlements.dense_workspace ? "flex" : "none";
+        }
+        const briefWidgetBtn = widgetsPalette.querySelector('.widget-template[data-widget-type="daily-brief"]');
+        if (briefWidgetBtn) {
+            briefWidgetBtn.style.display = entitlements.ready_workspace ? "flex" : "none";
+        }
+    }
+
+    applyRoleVisibility();
 }
 
 // SECTION TOGGLER (For real tab switching)
@@ -107,12 +187,25 @@ export function switchSection(tabId, element) {
         }
     }
     
+    // Toggle proposals inbox visibility based on section (Terminal/Administration only)
+    const sidebarProposals = document.querySelector(".sidebar-proposals");
+    if (sidebarProposals) {
+        if (tabId === "terminal-tab") {
+            sidebarProposals.style.display = "";
+        } else {
+            sidebarProposals.style.display = "none";
+        }
+    }
+
     // Show active tab content
     if (tabId === "analytics-tab") {
         document.getElementById("section-data-analytics").classList.add("active");
     } else if (tabId === "terminal-tab") {
         document.getElementById("section-terminal").classList.add("active");
+        initOperatorRuntimePanel();
         initTerminal();
+        window.loadBriefs?.();
+        window.loadBriefSources?.();
     }
     
     // Close sidebar on mobile
@@ -190,7 +283,7 @@ export async function loadProposalInbox(status = null) {
     if (filter && filter.value !== selectedStatus) filter.value = selectedStatus;
 
     try {
-        const res = await fetch(`/api/proposals?status=${encodeURIComponent(selectedStatus)}`);
+        const res = await adminFetch(`/api/proposals?status=${encodeURIComponent(selectedStatus)}`);
         const data = await res.json();
         if (!res.ok || data.error) {
             throw new Error(data.error || `HTTP ${res.status}`);
@@ -207,7 +300,7 @@ export async function loadProposalInbox(status = null) {
 export async function updateProposalStatus(id, status) {
     if (!id || !status) return;
     try {
-        const res = await fetch("/api/proposals/status", {
+        const res = await adminFetch("/api/proposals/status", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ id, status, note: "Updated from sidebar inbox" })
@@ -232,6 +325,658 @@ export function initProposalInbox() {
         updateProposalStatus(btn.dataset.proposalId, btn.dataset.proposalStatus);
     });
     loadProposalInbox();
+}
+
+function _formatPolicyAction(action) {
+    return String(action || "-").replace(/_/g, " ");
+}
+
+function _safeExternalUrl(value) {
+    try {
+        const url = new URL(String(value || ""), window.location.origin);
+        if (url.protocol === "http:" || url.protocol === "https:") {
+            return url.href;
+        }
+    } catch {
+        return "";
+    }
+    return "";
+}
+
+function _setOperatorStatus(kind, label, message) {
+    const badge = document.getElementById("operator-registry-badge");
+    const messageEl = document.getElementById("operator-registry-message");
+    if (badge) {
+        badge.className = `task-badge ${kind}`;
+        badge.textContent = label;
+    }
+    if (messageEl) {
+        messageEl.textContent = message || "-";
+    }
+}
+
+function _renderPolicyTiers(policyTiers) {
+    const target = document.getElementById("operator-policy-tiers");
+    if (!target) return;
+
+    const entries = Object.entries(policyTiers || {}).sort(([left], [right]) => left.localeCompare(right));
+    if (!entries.length) {
+        target.innerHTML = `<div class="operator-empty">No policy tiers returned.</div>`;
+        return;
+    }
+
+    target.innerHTML = entries.map(([tier, meta]) => {
+        const action = meta?.default_action || "";
+        const label = meta?.label || "Unlabeled tier";
+        const blockedClass = tier === "X" || action === "blocked" ? " blocked" : "";
+        return `
+            <article class="operator-tier-card${blockedClass}">
+                <div class="operator-tier-head">
+                    <span>Tier ${escapeHtml(tier)}</span>
+                    <span>${escapeHtml(_formatPolicyAction(action))}</span>
+                </div>
+                <div class="operator-tier-label">${escapeHtml(label)}</div>
+            </article>
+        `;
+    }).join("");
+}
+
+let operatorSourceCache = [];
+let operatorConnectorCache = {};
+
+function _operatorText(key, fallback) {
+    return translations[state.currentLang]?.[key] || fallback;
+}
+
+function _operatorSources(data) {
+    return Array.isArray(data?.sources) ? data.sources : [];
+}
+
+function _findOperatorSource(sourceId) {
+    const id = String(sourceId || "");
+    return operatorSourceCache.find(source => String(source.id) === id) || null;
+}
+
+function _connectorHelp(source) {
+    if (!source) return "Select a governed source, preview normalized records, then persist intentionally.";
+    const type = source.type || "unknown";
+    if (type === "manual") {
+        return "Manual source: paste JSON records/items or CSV rows with title, url, and published_at.";
+    }
+    if (type === "rss") {
+        return "RSS source: paste RSS/Atom XML for a deterministic preview, paste a URL to fetch, or leave empty to use source_url.";
+    }
+    if (type === "youtube") {
+        return "YouTube source: optional JSON input such as {\"limit\":25,\"date_after\":\"2026-01-01\"}. Tier E requires explicit approval.";
+    }
+    return `${type} source: connector input is optional unless the backend reports it as required.`;
+}
+
+function _renderConnectorSummary(source) {
+    if (!source) return "";
+    const meta = operatorConnectorCache[source.type] || {};
+    const policy = meta.default_policy_tier || source.policy_tier || "-";
+    const recordType = meta.record_type || "-";
+    const liveWrites = meta.writes_live_database ? "yes" : "no";
+    return `Connector: ${source.type || "-"} | Default tier: ${policy} | Record type: ${recordType} | Live DB writes: ${liveWrites}`;
+}
+
+function _renderSourceRegistry(data) {
+    const target = document.getElementById("operator-source-list");
+    if (!target) return;
+
+    if (!data?.registry_ready) {
+        target.innerHTML = `
+            <div class="operator-empty">
+                ${escapeHtml(data?.message || "Governance registry migration is pending.")}
+            </div>
+        `;
+        return;
+    }
+
+    const sources = data.sources || [];
+    if (!sources.length) {
+        target.innerHTML = `<div class="operator-empty">Registry ready. No sources registered.</div>`;
+        return;
+    }
+
+    target.innerHTML = sources.map(source => {
+        const safeUrl = _safeExternalUrl(source.source_url);
+        const sourceUrl = safeUrl
+            ? `<a href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(source.source_url)}</a>`
+            : "No source URL";
+        return `
+            <article class="operator-source-row" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                <div style="flex: 1;">
+                    <div class="operator-source-main">
+                        <strong>${escapeHtml(source.name || "Untitled source")}</strong>
+                        <span class="operator-source-meta">${escapeHtml(source.type || "unknown")} | Tier ${escapeHtml(source.policy_tier || "-")} | ${escapeHtml(source.status || "-")}</span>
+                    </div>
+                    <div class="operator-source-url">${sourceUrl}</div>
+                </div>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <button class="btn-primary" id="btn-ingest-${source.id}" onclick="prepareIngestSource(${source.id})" style="padding: 4px 8px; font-size: 10px; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                        <i class="fa-solid fa-play"></i>
+                        <span id="txt-ingest-${source.id}">${escapeHtml(_operatorText("btn_prepare_ingest", "Prepare"))}</span>
+                    </button>
+                    <button class="btn-secondary" onclick="deleteSource(${source.id})" style="padding: 4px 8px; font-size: 10px; color: var(--danger-color, #ff4d4d); border-color: var(--danger-color, #ff4d4d); cursor: pointer; display: flex; align-items: center; justify-content: center; width: 28px; height: 28px;">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                </div>
+            </article>
+        `;
+    }).join("");
+}
+
+function _renderIngestionConsole(sourcesData, connectorsData) {
+    const consoleEl = document.getElementById("operator-ingest-console");
+    const select = document.getElementById("operator-ingest-source");
+    const result = document.getElementById("operator-ingest-result");
+    if (!consoleEl || !select) return;
+
+    operatorSourceCache = _operatorSources(sourcesData);
+    operatorConnectorCache = connectorsData?.connectors || {};
+
+    if (!sourcesData?.registry_ready) {
+        select.innerHTML = `<option value="">Registry pending</option>`;
+        select.disabled = true;
+        if (result) result.innerHTML = `<div class="operator-empty">${escapeHtml(sourcesData?.message || "Source registry is pending.")}</div>`;
+        return;
+    }
+
+    if (!operatorSourceCache.length) {
+        select.innerHTML = `<option value="">No sources registered</option>`;
+        select.disabled = true;
+        if (result) result.innerHTML = `<div class="operator-empty">Add a governed source before running ingestion.</div>`;
+        return;
+    }
+
+    const previous = select.value;
+    select.disabled = false;
+    select.innerHTML = operatorSourceCache.map(source => {
+        const label = `${source.name || "Untitled source"} (${source.type || "unknown"} | Tier ${source.policy_tier || "-"})`;
+        return `<option value="${escapeHtml(source.id)}">${escapeHtml(label)}</option>`;
+    }).join("");
+    if (previous && operatorSourceCache.some(source => String(source.id) === previous)) {
+        select.value = previous;
+    }
+    if (!select.value) {
+        select.value = String(operatorSourceCache[0].id);
+    }
+    prepareIngestSource(select.value, { focus: false, preserveInput: true });
+}
+
+function _summarizeMissing(items) {
+    const values = items || [];
+    if (!values.length) return "None";
+    const shown = values.slice(0, 4).join(", ");
+    const remaining = values.length - 4;
+    return remaining > 0 ? `${shown} +${remaining} more` : shown;
+}
+
+function _renderMigrationReadiness(data) {
+    const target = document.getElementById("operator-migration-readiness");
+    if (!target) return;
+
+    if (!data?.database_present) {
+        target.innerHTML = `<div class="operator-empty">Local database file not found.</div>`;
+        return;
+    }
+
+    const status = data.registry_ready ? "Ready" : "Pending";
+    const migrationState = data.migration_applied ? "migration logged" : "migration not logged";
+    target.innerHTML = `
+        <article class="operator-source-row">
+            <div class="operator-source-main">
+                <strong>${escapeHtml(status)}</strong>
+                <span class="operator-source-meta">${escapeHtml(data.migration_version || "governance migration")} | ${escapeHtml(migrationState)}</span>
+            </div>
+            <div class="operator-source-url">Dry run only</div>
+        </article>
+        <article class="operator-source-row">
+            <div class="operator-source-main">
+                <strong>Missing tables</strong>
+                <span class="operator-source-meta">${escapeHtml(_summarizeMissing(data.missing_tables))}</span>
+            </div>
+        </article>
+        <article class="operator-source-row">
+            <div class="operator-source-main">
+                <strong>Missing indexes</strong>
+                <span class="operator-source-meta">${escapeHtml(_summarizeMissing(data.missing_indexes))}</span>
+            </div>
+        </article>
+    `;
+}
+
+function _renderConnectorRuns(data) {
+    const target = document.getElementById("operator-connector-runs");
+    if (!target) return;
+
+    if (!data?.registry_ready) {
+        target.innerHTML = `
+            <div class="operator-empty">
+                ${escapeHtml(data?.message || "Connector run registry is pending.")}
+            </div>
+        `;
+        return;
+    }
+
+    const runs = data.connector_runs || [];
+    if (!runs.length) {
+        target.innerHTML = `<div class="operator-empty">Registry ready. No connector runs recorded.</div>`;
+        return;
+    }
+
+    target.innerHTML = runs.map(run => `
+        <article class="operator-source-row">
+            <div class="operator-source-main">
+                <strong>${escapeHtml(run.job_type || "connector job")}</strong>
+                <span class="operator-source-meta">${escapeHtml(run.source_name || "No source")} | ${escapeHtml(run.status || "-")} | ${escapeHtml(run.created_at || "-")}</span>
+            </div>
+            <div class="operator-source-url">
+                Seen ${escapeHtml(run.records_seen ?? 0)} | New ${escapeHtml(run.records_created ?? 0)}
+            </div>
+        </article>
+    `).join("");
+}
+
+function _renderSourceRecords(data) {
+    const target = document.getElementById("operator-source-records");
+    if (!target) return;
+
+    if (!data?.registry_ready) {
+        target.innerHTML = `
+            <div class="operator-empty">
+                ${escapeHtml(data?.message || "Source record registry is pending.")}
+            </div>
+        `;
+        return;
+    }
+
+    const records = data.source_records || [];
+    if (!records.length) {
+        target.innerHTML = `<div class="operator-empty">Registry ready. No source records ingested.</div>`;
+        return;
+    }
+
+    target.innerHTML = records.map(record => {
+        const safeUrl = _safeExternalUrl(record.url);
+        const title = record.title || record.external_record_id || "Untitled record";
+        const recordUrl = safeUrl
+            ? `<a href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(record.url)}</a>`
+            : "No URL";
+        return `
+            <article class="operator-source-row">
+                <div class="operator-source-main">
+                    <strong>${escapeHtml(title)}</strong>
+                    <span class="operator-source-meta">${escapeHtml(record.source_name || "No source")} | ${escapeHtml(record.record_type || "-")} | ${escapeHtml(record.published_at || record.captured_at || "-")}</span>
+                    <span class="operator-source-meta">Hash: ${record.has_content_hash ? "present" : "missing"}</span>
+                </div>
+                <div class="operator-source-url">${recordUrl}</div>
+            </article>
+        `;
+    }).join("");
+}
+
+function _formatPercent(value) {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) return "-";
+    return `${Math.round(parsed * 100)}%`;
+}
+
+function _formatMetric(value, digits = 2) {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) return "-";
+    if (Math.abs(parsed) >= 100) return parsed.toFixed(0);
+    return parsed.toFixed(digits).replace(/\.?0+$/, "");
+}
+
+function _formatRecommendation(value) {
+    return String(value || "unknown").replace(/_/g, " ");
+}
+
+function _renderDataMethodReview(payload) {
+    const target = document.getElementById("operator-data-method-review");
+    if (!target) return;
+
+    const data = payload?.review || payload || {};
+    if (!data.log_exists) {
+        target.innerHTML = `
+            <div class="operator-empty">
+                No method experiment log found. Run ingestion experiments with method logging before ranking.
+            </div>
+        `;
+        return;
+    }
+
+    const methods = data.ranked_methods || [];
+    if (!methods.length) {
+        target.innerHTML = `
+            <div class="operator-empty">
+                ${escapeHtml(data.total_runs ?? 0)} runs logged. No methods meet the current review threshold.
+            </div>
+        `;
+        return;
+    }
+
+    const topMethods = methods.slice(0, 4).map(method => `
+        <article class="operator-source-row operator-method-row">
+            <div class="operator-source-main">
+                <strong>${escapeHtml(method.method_id || "unknown_method")}</strong>
+                <span class="operator-source-meta">
+                    ${escapeHtml(method.source_type || "unknown")} | ${escapeHtml(_formatRecommendation(method.recommendation))} | last ${escapeHtml(method.last_seen || "-")}
+                </span>
+                <span class="operator-source-meta">
+                    Runs ${escapeHtml(method.runs ?? 0)} | Success ${escapeHtml(_formatPercent(method.success_rate))} | Records/sec ${escapeHtml(_formatMetric(method.avg_records_per_second))}
+                </span>
+            </div>
+            <div class="operator-source-url">
+                Score ${escapeHtml(_formatMetric(method.score, 4))}
+            </div>
+        </article>
+    `).join("");
+
+    const insight = (data.insights || [])[0];
+    const insightHtml = insight ? `
+        <article class="operator-source-row">
+            <div class="operator-source-main">
+                <strong>${escapeHtml(_formatRecommendation(insight.type))}</strong>
+                <span class="operator-source-meta">${escapeHtml(insight.message || "")}</span>
+            </div>
+        </article>
+    ` : "";
+
+    target.innerHTML = `
+        <article class="operator-source-row">
+            <div class="operator-source-main">
+                <strong>${escapeHtml(data.method_count ?? methods.length)} ranked methods</strong>
+                <span class="operator-source-meta">${escapeHtml(data.total_runs ?? 0)} runs | generated ${escapeHtml(data.generated_at || "-")}</span>
+            </div>
+        </article>
+        ${topMethods}
+        ${insightHtml}
+    `;
+}
+
+export async function runDataMethodReview() {
+    const button = document.getElementById("operator-run-method-review");
+    const previousHtml = button?.innerHTML;
+    if (button) {
+        button.disabled = true;
+        button.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Run`;
+    }
+
+    try {
+        const response = await adminFetch("/api/analytics/data-methods/review", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({min_runs: 1})
+        });
+        const payload = await response.json();
+        if (!response.ok || payload.error) {
+            throw new Error(payload.error || `Method review failed: HTTP ${response.status}`);
+        }
+        _renderDataMethodReview(payload);
+        _setOperatorStatus("active", "Review saved", "Data method review snapshot written.");
+    } catch (err) {
+        const target = document.getElementById("operator-data-method-review");
+        if (target) {
+            target.innerHTML = `<div class="operator-empty">${escapeHtml(err.message || "Data method review unavailable.")}</div>`;
+        }
+        _setOperatorStatus("error", "Error", err.message || "Unable to run data method review.");
+    } finally {
+        if (button) {
+            button.disabled = false;
+            button.innerHTML = previousHtml || `<i class="fa-solid fa-chart-line"></i> Run`;
+        }
+    }
+}
+
+export async function generateMethodProposals() {
+    const button = document.getElementById("operator-generate-method-proposals");
+    const previousHtml = button?.innerHTML;
+    if (button) {
+        button.disabled = true;
+        button.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Proposals`;
+    }
+
+    try {
+        const response = await adminFetch("/api/analytics/data-methods/proposals", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"}
+        });
+        const payload = await response.json();
+        if (!response.ok || payload.error) {
+            throw new Error(payload.error || `Failed to generate proposals: HTTP ${response.status}`);
+        }
+        
+        const count = payload.created_count ?? 0;
+        const msg = `${count} proposals generated (skipped ${payload.skipped_existing_count ?? 0} existing).`;
+        _setOperatorStatus("active", "Proposals generated", msg);
+        
+        if (typeof loadProposalInbox === 'function') {
+            loadProposalInbox();
+        }
+    } catch (err) {
+        _setOperatorStatus("error", "Error", err.message || "Unable to generate method proposals.");
+    } finally {
+        if (button) {
+            button.disabled = false;
+            button.innerHTML = previousHtml || `<i class="fa-solid fa-lightbulb"></i> Proposals`;
+        }
+    }
+}
+
+function _renderAuditEvents(data) {
+    const target = document.getElementById("operator-audit-events");
+    if (!target) return;
+
+    if (!data?.registry_ready) {
+        target.innerHTML = `
+            <div class="operator-empty">
+                ${escapeHtml(data?.message || "Audit event registry is pending.")}
+            </div>
+        `;
+        return;
+    }
+
+    const events = data.audit_events || [];
+    if (!events.length) {
+        target.innerHTML = `<div class="operator-empty">Registry ready. No audit events recorded.</div>`;
+        return;
+    }
+
+    target.innerHTML = events.map(event => {
+        const metadataFlag = event.has_metadata ? "metadata retained server-side" : "no metadata";
+        return `
+            <article class="operator-source-row">
+                <div class="operator-source-main">
+                    <strong>${escapeHtml(event.action || "audit event")}</strong>
+                    <span class="operator-source-meta">${escapeHtml(event.object_type || "-")} | ${escapeHtml(event.object_id || "-")} | ${escapeHtml(event.created_at || "-")}</span>
+                </div>
+                <div class="operator-source-url">${escapeHtml(metadataFlag)}</div>
+            </article>
+        `;
+    }).join("");
+}
+
+function _renderEvidenceLinks(data) {
+    const target = document.getElementById("operator-evidence-links");
+    if (!target) return;
+
+    if (!data?.registry_ready) {
+        target.innerHTML = `
+            <div class="operator-empty">
+                ${escapeHtml(data?.message || "Evidence link registry is pending.")}
+            </div>
+        `;
+        return;
+    }
+
+    const links = data.evidence_links || [];
+    if (!links.length) {
+        target.innerHTML = `<div class="operator-empty">Registry ready. No evidence links recorded.</div>`;
+        return;
+    }
+
+    target.innerHTML = links.map(link => {
+        const targetTitle = link.video_title || link.source_record_title || link.source_record_url || "No evidence target";
+        const confidence = link.confidence == null ? "-" : Number(link.confidence).toFixed(2);
+        return `
+            <article class="operator-source-row">
+                <div class="operator-source-main">
+                    <strong>${escapeHtml(link.claim_preview || "Untitled claim")}</strong>
+                    <span class="operator-source-meta">${escapeHtml(link.ai_output_title || "AI output")} | ${escapeHtml(link.source_name || "No source")} | confidence ${escapeHtml(confidence)}</span>
+                    <span class="operator-source-meta">${escapeHtml(link.evidence_preview || targetTitle)}</span>
+                </div>
+            </article>
+        `;
+    }).join("");
+}
+
+function _renderCredentialStatus(data) {
+    const target = document.getElementById("operator-credential-status");
+    if (!target) return;
+
+    if (!data?.registry_ready) {
+        target.innerHTML = `
+            <div class="operator-empty">
+                ${escapeHtml(data?.message || "Credential registry is pending.")}
+            </div>
+        `;
+        return;
+    }
+
+    const credentials = data.source_credentials || [];
+    if (!credentials.length) {
+        target.innerHTML = `<div class="operator-empty">Registry ready. No source credentials registered.</div>`;
+        return;
+    }
+
+    target.innerHTML = credentials.map(credential => {
+        const secretState = credential.has_secret_ref ? "reference present" : "reference missing";
+        const byok = credential.byok ? "BYOK" : "managed";
+        const expiry = credential.expires_at || "no expiry";
+        return `
+            <article class="operator-source-row">
+                <div class="operator-source-main">
+                    <strong>${escapeHtml(credential.source_name || "No source")}</strong>
+                    <span class="operator-source-meta">${escapeHtml(credential.rotation_status || "unknown")} | ${escapeHtml(byok)} | ${escapeHtml(secretState)}</span>
+                    <span class="operator-source-meta">Expires: ${escapeHtml(expiry)}</span>
+                </div>
+            </article>
+        `;
+    }).join("");
+}
+
+export async function loadOperatorRuntimePanel() {
+    const panel = document.getElementById("operator-runtime-panel");
+    if (!panel) return;
+
+    _setOperatorStatus("idle", "Checking", "Loading governance policy...");
+
+    try {
+        const policyRes = await adminFetch("/api/governance/policy");
+        const policy = await policyRes.json();
+        if (!policyRes.ok || policy.error) {
+            throw new Error(policy.error || `Policy request failed: HTTP ${policyRes.status}`);
+        }
+
+        const [readinessRes, sourcesRes, connectorsRes, runsRes, recordsRes, dataMethodsRes, eventsRes, evidenceRes, credentialsRes] = await Promise.all([
+            adminFetch("/api/governance/readiness"),
+            adminFetch("/api/sources"),
+            adminFetch("/api/source-connectors"),
+            adminFetch("/api/connector-runs?limit=5"),
+            adminFetch("/api/source-records?limit=8"),
+            adminFetch("/api/analytics/data-methods?min_runs=1"),
+            adminFetch("/api/audit-events?limit=5"),
+            adminFetch("/api/evidence-links?limit=5"),
+            adminFetch("/api/source-credentials/status?limit=5")
+        ]);
+        const readiness = await readinessRes.json();
+        const sources = await sourcesRes.json();
+        const connectors = await connectorsRes.json();
+        const runs = await runsRes.json();
+        const records = await recordsRes.json();
+        const dataMethods = await dataMethodsRes.json();
+        const events = await eventsRes.json();
+        const evidence = await evidenceRes.json();
+        const credentials = await credentialsRes.json();
+        if (!readinessRes.ok || readiness.error) {
+            throw new Error(readiness.error || `Readiness request failed: HTTP ${readinessRes.status}`);
+        }
+        if (!sourcesRes.ok || sources.error) {
+            throw new Error(sources.error || `Source registry request failed: HTTP ${sourcesRes.status}`);
+        }
+        if (!connectorsRes.ok || connectors.error) {
+            throw new Error(connectors.error || `Connector metadata request failed: HTTP ${connectorsRes.status}`);
+        }
+        if (!runsRes.ok || runs.error) {
+            throw new Error(runs.error || `Connector runs request failed: HTTP ${runsRes.status}`);
+        }
+        if (!recordsRes.ok || records.error) {
+            throw new Error(records.error || `Source records request failed: HTTP ${recordsRes.status}`);
+        }
+        if (!dataMethodsRes.ok || dataMethods.error) {
+            throw new Error(dataMethods.error || `Data methods request failed: HTTP ${dataMethodsRes.status}`);
+        }
+        if (!eventsRes.ok || events.error) {
+            throw new Error(events.error || `Audit events request failed: HTTP ${eventsRes.status}`);
+        }
+        if (!evidenceRes.ok || evidence.error) {
+            throw new Error(evidence.error || `Evidence links request failed: HTTP ${evidenceRes.status}`);
+        }
+        if (!credentialsRes.ok || credentials.error) {
+            throw new Error(credentials.error || `Credential status request failed: HTTP ${credentialsRes.status}`);
+        }
+
+        _renderPolicyTiers(policy.policy_tiers);
+        _renderMigrationReadiness(readiness);
+        _renderSourceRegistry(sources);
+        _renderIngestionConsole(sources, connectors);
+        _renderConnectorRuns(runs);
+        _renderSourceRecords(records);
+        _renderDataMethodReview(dataMethods);
+        _renderAuditEvents(events);
+        _renderEvidenceLinks(evidence);
+        _renderCredentialStatus(credentials);
+
+        const ready = Boolean(readiness.registry_ready && policy.registry_ready && sources.registry_ready && runs.registry_ready && records.registry_ready && events.registry_ready && evidence.registry_ready && credentials.registry_ready);
+        if (ready) {
+            _setOperatorStatus("active", "Ready", "Governance registry tables and indexes are available.");
+        } else {
+            _setOperatorStatus("idle", "Pending", sources.message || "Governance registry migration is pending or incomplete. Live DB unchanged.");
+        }
+    } catch (err) {
+        _setOperatorStatus("error", "Error", err.message || "Unable to load Operator Runtime status.");
+        const tiers = document.getElementById("operator-policy-tiers");
+        const readiness = document.getElementById("operator-migration-readiness");
+        const sources = document.getElementById("operator-source-list");
+        const runs = document.getElementById("operator-connector-runs");
+        const records = document.getElementById("operator-source-records");
+        const dataMethods = document.getElementById("operator-data-method-review");
+        const events = document.getElementById("operator-audit-events");
+        const evidence = document.getElementById("operator-evidence-links");
+        const credentials = document.getElementById("operator-credential-status");
+        const ingest = document.getElementById("operator-ingest-result");
+        if (tiers) tiers.innerHTML = `<div class="operator-empty">${escapeHtml(err.message || "Unable to load policy tiers.")}</div>`;
+        if (readiness) readiness.innerHTML = `<div class="operator-empty">Migration readiness unavailable.</div>`;
+        if (sources) sources.innerHTML = `<div class="operator-empty">Source registry unavailable.</div>`;
+        if (ingest) ingest.innerHTML = `<div class="operator-empty">Ingestion console unavailable.</div>`;
+        if (runs) runs.innerHTML = `<div class="operator-empty">Connector runs unavailable.</div>`;
+        if (records) records.innerHTML = `<div class="operator-empty">Source records unavailable.</div>`;
+        if (dataMethods) dataMethods.innerHTML = `<div class="operator-empty">Data method review unavailable.</div>`;
+        if (events) events.innerHTML = `<div class="operator-empty">Audit events unavailable.</div>`;
+        if (evidence) evidence.innerHTML = `<div class="operator-empty">Evidence links unavailable.</div>`;
+        if (credentials) credentials.innerHTML = `<div class="operator-empty">Credential status unavailable.</div>`;
+    }
+}
+
+export function initOperatorRuntimePanel() {
+    const panel = document.getElementById("operator-runtime-panel");
+    if (!panel || panel.dataset.loaded === "true") return;
+    panel.dataset.loaded = "true";
+    loadOperatorRuntimePanel();
 }
 
 export function toggleChannelsDropdown(event) {
@@ -432,7 +1177,7 @@ export function renderTable(videos) {
         .map(v => v.video_id);
         
     if (ocrQueue.length > 0) {
-        fetch("/api/videos/ocr_thumbnails", {
+        adminFetchSilent("/api/videos/ocr_thumbnails", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ video_ids: ocrQueue })
@@ -472,6 +1217,7 @@ export function resetFilters() {
     const fmt = (d) => d.toISOString().split('T')[0];
     document.getElementById("filter-start-date").value = fmt(startDate);
     document.getElementById("filter-end-date").value = fmt(now);
+    window.syncDateRangeSliderFromInputs?.();
     
     // Highlight active quick-date button for 6m
     state.activeQuickDate = "6m";
@@ -518,6 +1264,7 @@ export function setDateRange(preset) {
     const fmt = (d) => d.toISOString().split('T')[0];
     document.getElementById("filter-start-date").value = fmt(startDate);
     document.getElementById("filter-end-date").value = fmt(now);
+    window.syncDateRangeSliderFromInputs?.();
     
     // Highlight active quick-date button
     state.activeQuickDate = preset;
@@ -659,7 +1406,7 @@ export function exportData(format, event) {
         format: format
     });
     
-    window.location.href = `/api/videos/export?${params.toString()}`;
+    void openAdminUrl(`/api/videos/export?${params.toString()}`);
 }
 
 // VIDEO DETAILS MODAL WINDOW & API
@@ -697,6 +1444,23 @@ export function openVideoModal(video) {
     const scrapeText = document.getElementById("mv-modal-scrape-text");
     scrapeBtn.disabled = false;
     scrapeText.innerText = translations[state.currentLang].modal_scrape_details || "Scrape Details";
+    
+    // Reset transcript UI state
+    const transcriptBtn = document.getElementById("mv-modal-transcript-btn");
+    const transcriptText = document.getElementById("mv-modal-transcript-text");
+    if (transcriptBtn && transcriptText) {
+        transcriptBtn.disabled = false;
+        transcriptText.innerText = translations[state.currentLang].modal_extract_transcript || "Extract Transcript";
+    }
+    const transcriptTitle = document.getElementById("mv-modal-transcript-title");
+    const transcriptBox = document.getElementById("mv-modal-transcript-box");
+    if (transcriptTitle) {
+        transcriptTitle.style.display = "none";
+    }
+    if (transcriptBox) {
+        transcriptBox.style.display = "none";
+        transcriptBox.innerText = "";
+    }
     
     // Render views growth chart if database history is available
     let history = [];
@@ -744,6 +1508,23 @@ export function closeVideoModal() {
     
     state.activeModalVideoId = null;
     
+    // Reset transcript UI state
+    const transcriptBtn = document.getElementById("mv-modal-transcript-btn");
+    const transcriptText = document.getElementById("mv-modal-transcript-text");
+    if (transcriptBtn && transcriptText) {
+        transcriptBtn.disabled = false;
+        transcriptText.innerText = translations[state.currentLang].modal_extract_transcript || "Extract Transcript";
+    }
+    const transcriptTitle = document.getElementById("mv-modal-transcript-title");
+    const transcriptBox = document.getElementById("mv-modal-transcript-box");
+    if (transcriptTitle) {
+        transcriptTitle.style.display = "none";
+    }
+    if (transcriptBox) {
+        transcriptBox.style.display = "none";
+        transcriptBox.innerText = "";
+    }
+    
     // Reset download quality panel to default actions view
     hideDownloadQualityPanel();
 }
@@ -778,7 +1559,7 @@ export async function downloadVideoFromModal() {
     if (progressBar) progressBar.style.width = "0%";
     
     try {
-        const res = await fetch(`/api/videos/${state.activeModalVideoId}/formats`);
+        const res = await adminFetch(`/api/videos/${state.activeModalVideoId}/formats`);
         if (!res.ok) {
             throw new Error("Failed to load formats");
         }
@@ -886,7 +1667,7 @@ export async function startVideoDownload() {
     
     try {
         const downloadUrl = `/api/videos/${videoId}/download?quality=${quality}`;
-        const response = await fetch(downloadUrl);
+        const response = await adminFetch(downloadUrl);
         if (!response.ok) {
             const errData = await response.json();
             throw new Error(errData.error || "Failed to download");
@@ -947,7 +1728,7 @@ export async function scrapeDetailsFromModal(isAuto = false) {
     btn.disabled = true;
     
     try {
-        const res = await fetch(`/api/videos/${state.activeModalVideoId}/scrape_details`, {
+        const res = await adminFetch(`/api/videos/${state.activeModalVideoId}/scrape_details`, {
             method: 'POST'
         });
         const data = await res.json();
@@ -1006,6 +1787,42 @@ export async function scrapeDetailsFromModal(isAuto = false) {
     }
 }
 
+export async function getTranscriptFromModal() {
+    const btn = document.getElementById("mv-modal-transcript-btn");
+    const txt = document.getElementById("mv-modal-transcript-text");
+    if (!state.activeModalVideoId || btn.disabled) return;
+
+    const oldText = txt.innerText;
+    txt.innerText = translations[state.currentLang].modal_extracting_transcript || "Extracting...";
+    btn.disabled = true;
+
+    try {
+        const res = await adminFetch(`/api/videos/${state.activeModalVideoId}/transcript`);
+        const data = await res.json();
+
+        if (!res.ok) {
+            throw new Error(data.error || "Failed to extract transcript");
+        }
+
+        const transcriptTitle = document.getElementById("mv-modal-transcript-title");
+        const transcriptBox = document.getElementById("mv-modal-transcript-box");
+
+        if (transcriptBox) {
+            transcriptBox.innerText = data.transcript || "";
+            transcriptBox.style.display = "block";
+        }
+        if (transcriptTitle) {
+            transcriptTitle.style.display = "block";
+        }
+
+    } catch (err) {
+        alert(state.currentLang === 'ua' ? `Не вдалося отримати транскрипт: ${err.message}` : `Failed to extract transcript: ${err.message}`);
+    } finally {
+        if (btn) btn.disabled = false;
+        if (txt) txt.innerText = oldText;
+    }
+}
+
 // VIEWS UPDATE ACTIONS IN DATABASE EXPLORER
 export function toggleViewsDropdown(event) {
     if (event) {
@@ -1029,7 +1846,7 @@ export async function runViewsUpdate(period, event) {
     if (menu) menu.style.display = "none";
     
     try {
-        const res = await fetch("/api/action/update_views", {
+        const res = await adminFetch("/api/action/update_views", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ period: period })
@@ -1162,7 +1979,7 @@ export async function submitAddChannel(event) {
     switchSection("terminal-tab", document.getElementById("menu-item-terminal")?.querySelector("a"));
     
     try {
-        const res = await fetch("/api/action/add_channel", {
+        const res = await adminFetch("/api/action/add_channel", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -1262,6 +2079,21 @@ function _getChatContext() {
     };
 }
 
+function _formatAssistantFilterContext() {
+    const ctx = _getChatContext();
+    const selectedNames = (ctx.channel_ids || []).map(id => {
+        const channel = state.allChannels.find(ch => ch.channel_id === id);
+        return channel?.channel_name || id;
+    });
+    return [
+        "Поточний контекст фільтрів дашборду:",
+        `- Поточна дата/час: ${new Date().toLocaleString()}`,
+        `- Діапазон дат: ${ctx.start_date || "-"} → ${ctx.end_date || "-"}`,
+        `- Обрані канали: ${selectedNames.length ? selectedNames.join(", ") : "усі або не обрано"}`,
+        `- ID каналів: ${(ctx.channel_ids || []).join(", ") || "-"}`
+    ].join("\n");
+}
+
 /** Selected model id from the dropdown (empty = server default) */
 function _getSelectedModel() {
     const sel = document.getElementById("chat-model-select");
@@ -1291,7 +2123,7 @@ async function _syncActiveModelFromStream(provider, modelId) {
         localStorage.setItem(CHAT_STORAGE_PROVIDER, provider);
         const providerSel = document.getElementById("chat-provider-select");
         if (providerSel) providerSel.value = provider;
-        await _loadModels();
+        await _loadModels(false);
     }
     _setModelSelectorValue(modelId);
 }
@@ -1299,7 +2131,7 @@ async function _syncActiveModelFromStream(provider, modelId) {
 export async function changeChatProvider(provider) {
     state.agentProvider = provider;
     localStorage.setItem(CHAT_STORAGE_PROVIDER, provider);
-    await _loadModels();
+    await _loadModels(true);
     window.chatUIManager?.updateContextMeter();
 }
 
@@ -1328,7 +2160,7 @@ export function switchAgentRole(role) {
 }
 
 /** Loads model list from backend and populates the selector */
-async function _loadModels() {
+async function _loadModels(promptForAuth = false) {
     const sel = document.getElementById("chat-model-select");
     if (!sel) return;
     const providerSel = document.getElementById("chat-provider-select");
@@ -1343,7 +2175,9 @@ async function _loadModels() {
     }
     try {
         sel.disabled = true;
-        const res  = await fetch(`/api/agent/models?provider=${state.agentProvider}`);
+        const fetchModels = promptForAuth ? adminFetch : adminFetchSilent;
+        const res  = await fetchModels(`/api/agent/models?provider=${state.agentProvider}`);
+        if (res.status === 403) return;
         const data = await res.json();
         const models = (data.models || []).slice(0, 50);
         sel.innerHTML = "";
@@ -1527,7 +2361,7 @@ export async function clearChatHistory() {
     window.chatUIManager?.updateContextMeter();
 
     try {
-        await fetch("/api/chat/clear-context", {
+        await adminFetchSilent("/api/chat/clear-context", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ scope: "active_session" })
@@ -1589,7 +2423,7 @@ async function _streamBotMessage(message, containerEl, contextOverride = null, h
             payload.context_override = contextOverride;
         }
 
-        const res = await fetch("/api/agent/chat/stream", {
+        const res = await adminFetch("/api/agent/chat/stream", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload)
@@ -1675,7 +2509,7 @@ function _setChatDrawerOpenState(isOpen) {
 
 export function openChatDrawer() {
     _setChatDrawerOpenState(true);
-    _loadModels();
+    _loadModels(true);
 }
 
 export function closeChatDrawer() {
@@ -1895,16 +2729,20 @@ async function _requestAddScreenSummary() {
 }
 
 function _scrapeCurrentScreenText() {
+    let bodyText = "";
     if (state.activeModalVideoId) {
         const modal = document.getElementById("video-details-modal");
         if (modal && modal.style.display === "flex") {
-            return _scrapeVideoModalText();
+            bodyText = _scrapeVideoModalText();
         }
     }
-    if (state.currentSection === "terminal-tab") {
-        return _scrapeTerminalAndTableText();
+    if (!bodyText && state.currentSection === "terminal-tab") {
+        bodyText = _scrapeTerminalAndTableText();
     }
-    return _scrapeDashboardWidgetsText();
+    if (!bodyText) {
+        bodyText = _scrapeDashboardWidgetsText();
+    }
+    return [_formatAssistantFilterContext(), bodyText].filter(Boolean).join("\n\n---\n\n");
 }
 
 function _scrapeDashboardWidgetsText() {
@@ -2558,7 +3396,7 @@ export class ChatUIManager {
         if (!desc || !type) return;
 
         try {
-            await fetch("/api/proposals/submit", {
+            await adminFetch("/api/proposals/submit", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -2597,3 +3435,284 @@ export function initChatUIManager() {
 document.addEventListener("DOMContentLoaded", () => {
     initChatUIManager();
 });
+
+export function openAddSourceModal() {
+    const modal = document.getElementById("add-source-modal");
+    if (modal) modal.style.display = "flex";
+}
+
+export function closeAddSourceModal() {
+    const modal = document.getElementById("add-source-modal");
+    if (modal) {
+        modal.style.display = "none";
+        document.getElementById("add-source-form")?.reset();
+    }
+}
+
+export async function submitAddSource(event) {
+    event.preventDefault();
+    const name = document.getElementById("as-name")?.value;
+    const type = document.getElementById("as-type")?.value;
+    const policy_tier = document.getElementById("as-tier")?.value;
+    const status = document.getElementById("as-status")?.value;
+    const credentials = document.getElementById("as-credentials")?.value || null;
+    const source_url = document.getElementById("as-url")?.value || null;
+    const retention_days = document.getElementById("as-retention")?.value
+        ? parseInt(document.getElementById("as-retention").value, 10)
+        : null;
+    const policy_notes = document.getElementById("as-notes")?.value || null;
+
+    try {
+        const payload = { name, type, policy_tier, status, credentials, source_url, retention_days, policy_notes };
+        const res = await adminFetch("/api/sources", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) {
+            window.alert(data.error || "Failed to create source.");
+            return;
+        }
+
+        window.alert(state.currentLang === "ua" ? "Джерело успішно додано!" : "Source registered successfully!");
+        closeAddSourceModal();
+        loadOperatorRuntimePanel();
+        if (window.loadBriefSources) window.loadBriefSources();
+    } catch (err) {
+        console.error("Failed to add source:", err);
+        window.alert("Error connecting to server.");
+    }
+}
+
+export async function deleteSource(sourceId) {
+    const confirmMsg = state.currentLang === "ua"
+        ? "Ви впевнені, що хочете видалити це джерело?"
+        : "Are you sure you want to delete this source?";
+    if (!window.confirm(confirmMsg)) return;
+
+    try {
+        const res = await adminFetch(`/api/sources/${sourceId}`, {
+            method: "DELETE"
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) {
+            window.alert(data.error || "Failed to delete source.");
+            return;
+        }
+
+        window.alert(state.currentLang === "ua" ? "Джерело видалено!" : "Source deleted successfully!");
+        loadOperatorRuntimePanel();
+        if (window.loadBriefSources) window.loadBriefSources();
+    } catch (err) {
+        console.error("Failed to delete source:", err);
+        window.alert("Error connecting to server.");
+    }
+}
+
+export function prepareIngestSource(sourceId, options = {}) {
+    const select = document.getElementById("operator-ingest-source");
+    const input = document.getElementById("operator-ingest-input");
+    const format = document.getElementById("operator-ingest-format");
+    const help = document.getElementById("operator-ingest-help");
+    const result = document.getElementById("operator-ingest-result");
+    if (!select || !input) return false;
+
+    const source = _findOperatorSource(sourceId);
+    if (!source) return false;
+    select.value = String(source.id);
+    if (format) {
+        format.disabled = source.type !== "manual";
+        format.value = "json";
+    }
+    if (!options.preserveInput) {
+        input.value = "";
+    }
+    input.placeholder = _connectorHelp(source);
+    if (help) {
+        help.textContent = _renderConnectorSummary(source) || _connectorHelp(source);
+    }
+    if (result && !options.preserveInput) {
+        result.innerHTML = `<div class="operator-empty">${escapeHtml(_connectorHelp(source))}</div>`;
+    }
+    if (options.focus !== false) {
+        document.getElementById("operator-ingest-console")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        input.focus({ preventScroll: true });
+    }
+    return false;
+}
+
+function _ingestLimit() {
+    const el = document.getElementById("operator-ingest-limit");
+    const value = Number.parseInt(el?.value || "20", 10);
+    if (!Number.isFinite(value)) return 20;
+    return Math.max(1, Math.min(100, value));
+}
+
+function _parseOperatorJsonInput(raw) {
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+        throw new Error("Connector JSON input must be an object.");
+    }
+    return parsed;
+}
+
+function _buildIngestionPayload({ persist = false } = {}) {
+    const select = document.getElementById("operator-ingest-source");
+    const input = document.getElementById("operator-ingest-input");
+    const format = document.getElementById("operator-ingest-format");
+    const allowTierE = document.getElementById("operator-ingest-allow-tier-e");
+    const source = _findOperatorSource(select?.value);
+    if (!source) {
+        throw new Error("Select a registered source before running ingestion.");
+    }
+
+    const raw = (input?.value || "").trim();
+    const payload = {
+        source_id: source.id,
+        preview_limit: _ingestLimit(),
+        persist: Boolean(persist),
+    };
+    if (allowTierE?.checked) {
+        payload.allow_tier_e = true;
+    }
+
+    if (source.type === "manual") {
+        if (!raw) {
+            throw new Error("Manual ingestion requires JSON or CSV input.");
+        }
+        payload.input = {
+            text: raw,
+            fmt: format?.value || "json",
+        };
+        return payload;
+    }
+
+    if (source.type === "rss") {
+        if (raw) {
+            payload.input = raw.startsWith("<")
+                ? { xml_text: raw }
+                : { url: raw };
+        }
+        return payload;
+    }
+
+    if (source.type === "youtube") {
+        payload.input = raw ? _parseOperatorJsonInput(raw) : {};
+        if (!payload.input.limit) {
+            payload.input.limit = _ingestLimit();
+        }
+        return payload;
+    }
+
+    payload.input = raw ? _parseOperatorJsonInput(raw) : {};
+    return payload;
+}
+
+function _setIngestionBusy(isBusy, label = "Working...") {
+    const preview = document.getElementById("operator-ingest-preview");
+    const persist = document.getElementById("operator-ingest-persist");
+    const result = document.getElementById("operator-ingest-result");
+    [preview, persist].forEach(btn => {
+        if (btn) btn.disabled = isBusy;
+    });
+    if (isBusy && result) {
+        result.innerHTML = `<div class="operator-empty">${escapeHtml(label)}</div>`;
+    }
+}
+
+function _renderIngestionResult(data) {
+    const target = document.getElementById("operator-ingest-result");
+    if (!target) return;
+
+    const summary = data?.summary || {};
+    const records = data?.records || [];
+    const warnings = data?.warnings || [];
+    const rejected = data?.rejected || [];
+    const status = data?.persisted ? "Persisted" : "Dry-run preview";
+    const recordCards = records.length
+        ? records.slice(0, 10).map(record => `
+            <article class="operator-ingest-record">
+                <strong>${escapeHtml(record.title || "Untitled record")}</strong>
+                <span>${escapeHtml(record.url || "No URL")}</span>
+                <span>${escapeHtml(record.published_at || "No published date")}</span>
+            </article>
+        `).join("")
+        : `<div class="operator-empty">No normalized records returned.</div>`;
+    const warningBlock = warnings.length
+        ? `<div class="operator-ingest-warnings"><strong>Warnings:</strong> ${escapeHtml(warnings.join(" | "))}</div>`
+        : "";
+    const rejectedBlock = rejected.length
+        ? `<div class="operator-ingest-warnings"><strong>Rejected:</strong> ${escapeHtml(rejected.map(item => `#${item.row_number}: ${item.reason}`).join(" | "))}</div>`
+        : "";
+
+    target.innerHTML = `
+        <div class="operator-ingest-summary">
+            <span>${escapeHtml(status)}</span>
+            <span>Seen: ${escapeHtml(summary.records_seen ?? 0)}</span>
+            <span>Created: ${escapeHtml(summary.records_created ?? data?.records_created ?? 0)}</span>
+            <span>Failed: ${escapeHtml(summary.records_failed ?? 0)}</span>
+            <span>Run ID: ${escapeHtml(data?.connector_run_id || "-")}</span>
+        </div>
+        ${warningBlock}
+        ${rejectedBlock}
+        <div class="operator-ingest-records">${recordCards}</div>
+    `;
+}
+
+async function _runIngestion({ persist = false } = {}) {
+    let payload;
+    try {
+        payload = _buildIngestionPayload({ persist });
+    } catch (err) {
+        _renderIngestionResult({
+            summary: { records_seen: 0, records_created: 0, records_failed: 1 },
+            warnings: [err.message || "Invalid ingestion input."],
+            records: [],
+        });
+        return null;
+    }
+
+    _setIngestionBusy(true, persist ? "Persisting connector records..." : "Running dry-run preview...");
+    try {
+        const res = await adminFetch("/api/sources/ingest", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) {
+            throw new Error(data.error || `Ingestion failed: HTTP ${res.status}`);
+        }
+        _renderIngestionResult(data);
+        if (persist) {
+            loadOperatorRuntimePanel();
+            if (window.loadBriefSources) window.loadBriefSources();
+        }
+        return data;
+    } catch (err) {
+        console.error("Ingestion failed:", err);
+        _renderIngestionResult({
+            summary: { records_seen: 0, records_created: 0, records_failed: 1 },
+            warnings: [err.message || "Error connecting to server."],
+            records: [],
+        });
+        return null;
+    } finally {
+        _setIngestionBusy(false);
+    }
+}
+
+export async function runIngestionPreview() {
+    return _runIngestion({ persist: false });
+}
+
+export async function runIngestionPersist() {
+    return _runIngestion({ persist: true });
+}
+
+export async function runIngest(sourceId) {
+    prepareIngestSource(sourceId, { focus: true, preserveInput: true });
+    return runIngestionPreview();
+}

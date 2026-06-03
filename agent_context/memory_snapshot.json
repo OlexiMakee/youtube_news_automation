@@ -1,20 +1,20 @@
 {
   "counts": {
-    "items": 72,
+    "items": 120,
     "layers": {
-      "domain-layer": 48,
-      "meta-layer": 24
+      "domain-layer": 88,
+      "meta-layer": 32
     },
     "skipped": 2
   },
-  "generated_at": "2026-06-01T00:46:38",
+  "generated_at": "2026-06-03T16:11:05",
   "items": [
     {
       "meta": {
-        "bytes": 1884,
+        "bytes": 2156,
         "file": "README.md",
         "headings": [
-          "YouTube News Automation",
+          "Governed Autonomous Intelligence Workspace",
           "Start",
           "Read Order",
           "Current Architecture",
@@ -22,32 +22,80 @@
           "Locked Rules"
         ],
         "layer": "meta-layer",
-        "sha256_16": "7c7c65ab55860cef"
+        "sha256_16": "9b03a7ee15e64c1e"
       },
-      "vector_text": "README.md YouTube News Automation Start Read Order Current Architecture Main Paths Locked Rules # YouTube News Automation Status: local-first Flask dashboard moving toward v1.1 self-hosted team server. Stack: Python 3.9+, Flask, SQLite WAL, Neon sync, Chart.js/D3, ES modules. ## Start ```bash python web_app.py python scrape_multi.py --interactive python scripts/backup_db.py ``` Default URL: `http://127.0.0.1:5001`; the app may fall back to `5002`. ## R"
+      "vector_text": "README.md Governed Autonomous Intelligence Workspace Start Read Order Current Architecture Main Paths Locked Rules # Governed Autonomous Intelligence Workspace Status: local-first Flask dashboard moving toward v1.1 self-hosted team server. Stack: Python 3.9+, Flask, SQLite WAL, Neon sync, Chart.js/D3, ES modules. ## Start ```bash python web_app.py python scrape_multi.py --interactive python scripts/backup_db.py ``` Default URL: `http://127.0.0.1:5001`; the app may fall b"
     },
     {
       "meta": {
-        "bytes": 1853,
+        "bytes": 3487,
         "file": "INDEX.md",
         "headings": [
-          "Project Index",
+          "Governed Autonomous Intelligence Workspace Index",
           "Runtime",
           "Current Implemented State",
-          "Not Yet Implemented",
+          "Phase 0 Complete ✅",
+          "Phase 1 In Progress 🚀",
+          "Not Yet Implemented (Phase 2+)",
           "Planning"
         ],
         "layer": "meta-layer",
-        "sha256_16": "0c30c6827b9d5328"
+        "sha256_16": "64bb59d0a4800be1"
       },
-      "vector_text": "INDEX.md Project Index Runtime Current Implemented State Not Yet Implemented Planning # Project Index Purpose: compact map for agents. Prefer this plus `agent_context/CONTEXT.md`; avoid old broad scans. ## Runtime | Area | Files | |---|---| | Entry | `web_app.py`, `app/__init__.py` | | Routes | `app/routes/main.py`, `stats.py`, `videos.py`, `charts.py`, `actions.py` | | Shared state | `app/state.py` | | AI assistant | `app/services/agent.py`,"
+      "vector_text": "INDEX.md Governed Autonomous Intelligence Workspace Index Runtime Current Implemented State Phase 0 Complete ✅ Phase 1 In Progress 🚀 Not Yet Implemented (Phase 2+) Planning # Governed Autonomous Intelligence Workspace Index Purpose: compact map for agents. Prefer this plus `agent_context/CONTEXT.md`; avoid old broad scans. ## Runtime | Area | Files | |---|---| | Entry | `web_app.py`, `app/__init__.py` | | Routes | `app/routes/main.py`, `stats.py`, `videos.py`, `charts.py`, `actions.py` | | Shared state | `app/state.py` | | AI a"
     },
     {
       "meta": {
-        "bytes": 3096,
+        "bytes": 6214,
+        "file": "agent_context/WORKFLOWS.md",
+        "headings": [
+          "Workflows",
+          "12-Step Scale",
+          "Product Workflow",
+          "Memos Workflow",
+          "Mixed Tasks"
+        ],
+        "layer": "meta-layer",
+        "sha256_16": "bea026bcb627b7a6"
+      },
+      "vector_text": "agent_context/WORKFLOWS.md Workflows 12-Step Scale Product Workflow Memos Workflow Mixed Tasks # Workflows Status: mandatory routing contract. Language: concise English. Use two explicit workstreams: - `product`: client-facing Governed Autonomous Intelligence Workspace. - `memos`: Memory OS, agent workflow, development telemetry, repo analysis, and self-improvement tools. Naming guard: `memos` is an internal command/workflow alias for Memory OS. It is"
+    },
+    {
+      "meta": {
+        "bytes": 5700,
+        "file": "agent_context/memory_os_architecture.md",
+        "headings": [
+          "Governed Autonomous Intelligence Workspace: Memory OS & SOLID Refactoring Architecture",
+          "1. SOLID Codebase Evaluation",
+          "1.1 Single Responsibility Principle (SRP)",
+          "1.2 Open/Closed Principle (OCP)",
+          "1.3 Liskov Substitution Principle (LSP)",
+          "1.4 Interface Segregation Principle (ISP)",
+          "1.5 Dependency Inversion Principle (DIP)",
+          "2. Memory OS Architecture Specification",
+          "2.1 Layer 1: Root Map Contract (`llms.txt`)",
+          "2.2 Layer 2: Hierarchical Memory Nodes (`memory_snapshot.json`)",
+          "2.3 Layer 3: Experience Memory (`task_capsules.jsonl`)",
+          "2.4 Hybrid Retrieval Routing",
+          "2.5 Tool-First Execution Policy"
+        ],
+        "layer": "meta-layer",
+        "sha256_16": "b3bc067ff414db73"
+      },
+      "vector_text": "agent_context/memory_os_architecture.md Governed Autonomous Intelligence Workspace: Memory OS & SOLID Refactoring Architecture 1. SOLID Codebase Evaluation 1.1 Single Responsibility Principle (SRP) 1.2 Open/Closed Principle (OCP) 1.3 Liskov Substitution Principle (LSP) 1.4 Interface Segregation Principle (ISP) 1.5 Dependency Inversion Principle (DIP) 2. Memory OS Architecture Specification 2.1 Layer 1: Root Map Contract (`llms.txt`) 2.2 Layer 2: Hierarchical Memory Nodes (`memory_snapshot.json`) 2.3 Layer 3: Experience Memory (`task_capsules.jsonl`) 2.4 Hybrid Retrieval Routing 2.5 Tool-First Execution Policy # Governed Autonomous Intelligence Workspace: Memory OS & SOLID Refactoring Architecture ## 1. SOLID Co"
+    },
+    {
+      "meta": {
+        "bytes": 6556,
         "file": "agent_context/CONTEXT.md",
         "headings": [
           "Project Context",
+          "Governance, Policy, & Ethical Guardrails",
+          "Acceptable Use Boundaries",
+          "Misuse & Prohibited Boundaries",
+          "Source Policy Tiers",
+          "Progressive Entitlement Modes",
+          "Basic UI Roles",
           "Start",
           "Main Files",
           "Architecture",
@@ -59,13 +107,13 @@
           "Current UI Rules"
         ],
         "layer": "meta-layer",
-        "sha256_16": "fdbd94f482bad707"
+        "sha256_16": "39c8acd4f2e35e1c"
       },
-      "vector_text": "agent_context/CONTEXT.md Project Context Start Main Files Architecture Common Commands Key API DB Env Known Risks Current UI Rules # Project Context Project: YouTube News Automation. Owner: Oleksii, news media analyst. State: local-first Flask dashboard, AI chat in progress. Runtime: macOS, Python 3.9, `venv_auto/`, SQLite local, Neon optional. ## Start ```bash python web_app.py ``` Default URL: `http://127.0.0.1:5001`. If occupied, app may use `5002`. ## Main Files - `web_app.py`: lega"
+      "vector_text": "agent_context/CONTEXT.md Project Context Governance, Policy, & Ethical Guardrails Acceptable Use Boundaries Misuse & Prohibited Boundaries Source Policy Tiers Progressive Entitlement Modes Basic UI Roles Start Main Files Architecture Common Commands Key API DB Env Known Risks Current UI Rules # Project Context Project: Governed Autonomous Intelligence Workspace. Owner: Oleksii, news media analyst. State: local-first Flask dashboard, AI chat in progress. Runtime: macOS, Python 3.9, `venv_auto/`, SQLite local, Neon optional. ## Governance, Policy, & Ethical Guardrails ### Acceptable Use Boundaries The workspace is built exclusively to support: - Ne"
     },
     {
       "meta": {
-        "bytes": 2421,
+        "bytes": 22984,
         "file": "agent_context/development_log.md",
         "headings": [
           "Development Log",
@@ -74,17 +122,89 @@
           "2026-05-29",
           "2026-05-30",
           "2026-05-31",
+          "2026-06-01",
+          "2026-06-02",
+          "2026-06-02",
+          "2026-06-03",
           "Locked Decisions",
           "Open Work"
         ],
         "layer": "meta-layer",
-        "sha256_16": "9b4f320351ac09bd"
+        "sha256_16": "8ff593845a9cf48c"
       },
-      "vector_text": "agent_context/development_log.md Development Log 2026-05-27 2026-05-28 2026-05-29 2026-05-30 2026-05-31 Locked Decisions Open Work # Development Log Format: short English bullets only. Keep durable facts. ## 2026-05-27 - Built Flask dashboard MVP: stats, channels, charts, video table, modal, exports, actions. - Added 4 themes and UA/EN i18n. - Added video detail scraping and MP4 download flow. ## 2026-05-28 - Added SQLite indexes for channel/date/views/likes/comments/sync queries. - Ref"
+      "vector_text": "agent_context/development_log.md Development Log 2026-05-27 2026-05-28 2026-05-29 2026-05-30 2026-05-31 2026-06-01 2026-06-02 2026-06-02 2026-06-03 Locked Decisions Open Work # Development Log Format: short English bullets only. Keep durable facts. ## 2026-05-27 - Built Flask dashboard MVP: stats, channels, charts, video table, modal, exports, actions. - Added 4 themes and UA/EN i18n. - Added video detail scraping and MP4 download flow. ## 2026-05-28 - Added SQLite indexes for channel/date/views/likes/comments/sync queries. - Ref"
     },
     {
       "meta": {
-        "bytes": 4464,
+        "bytes": 45890,
+        "file": "agent_context/task_capsules.jsonl",
+        "layer": "meta-layer",
+        "recent_rows": [
+          {
+            "id": null,
+            "preview": "",
+            "status": "active",
+            "type": "unknown"
+          },
+          {
+            "id": null,
+            "preview": "",
+            "status": "active",
+            "type": "unknown"
+          },
+          {
+            "id": null,
+            "preview": "",
+            "status": "active",
+            "type": "unknown"
+          },
+          {
+            "id": null,
+            "preview": "",
+            "status": "active",
+            "type": "unknown"
+          },
+          {
+            "id": null,
+            "preview": "",
+            "status": "active",
+            "type": "unknown"
+          }
+        ],
+        "row_count": 47,
+        "sha256_16": "c8785c6a8d113f8e",
+        "status_counts": {
+          "active": 47
+        },
+        "type_counts": {
+          "unknown": 47
+        }
+      },
+      "vector_text": "agent_context/task_capsules.jsonl {\"timestamp\": \"2026-06-01T17:30:00Z\", \"task\": \"Video Details Modal Assistant Integration and Sidebar Click-Outside Closure\", \"files_modified\": [\"static/css/style.css\", \"templates/index.html\", \"static/js/app.js\", \"static/js/translations.js\"], \"hurdles_regression\": \"Ensuring the click-outside handler in app.js does not intercept click events triggered directly"
+    },
+    {
+      "meta": {
+        "bytes": 5704,
+        "file": "agent_context/PHASE_1_KICKOFF_CHECKLIST.md",
+        "headings": [
+          "Phase 1 Kickoff Checklist",
+          "✅ Pre-Flight Checks",
+          "🚀 Phase 1 First Slice: Brief Generation",
+          "Immediate Tasks (Highest Priority)",
+          "Secondary Tasks (Phase 1 Continuation)",
+          "🛑 Hard Constraints (Do NOT Violate)",
+          "📋 File Edits Already Made (Reference)",
+          "🎯 Success Criteria",
+          "📚 Reference Documents"
+        ],
+        "layer": "meta-layer",
+        "sha256_16": "77d83b03b75338ea"
+      },
+      "vector_text": "agent_context/PHASE_1_KICKOFF_CHECKLIST.md Phase 1 Kickoff Checklist ✅ Pre-Flight Checks 🚀 Phase 1 First Slice: Brief Generation Immediate Tasks (Highest Priority) Secondary Tasks (Phase 1 Continuation) 🛑 Hard Constraints (Do NOT Violate) 📋 File Edits Already Made (Reference) 🎯 Success Criteria 📚 Reference Documents # Phase 1 Kickoff Checklist **Date:** 2026-06-02 **Status:** Ready to start Phase 1 Editorial MVP **Owner:** Next agent (Codex or Copilot) --- ## ✅ Pre-Flight Checks - [x] Phase 0 (Strategy Alignment) complete - [x] Governance schema migration script created (`migrations/0002_governance_registry.sql`) - [x] Operator Runtime read-only endpoints implemented +"
+    },
+    {
+      "meta": {
+        "bytes": 6054,
         "file": "agent_context/AGENT_RULES.md",
         "headings": [
           "Agent Rules",
@@ -97,89 +217,99 @@
           "Secrets",
           "Navigation",
           "Project Constraints",
-          "Development Log"
+          "Development Log & Handover"
         ],
         "layer": "meta-layer",
-        "sha256_16": "0572adbb0132fa92"
+        "sha256_16": "03a9970b5a3f8612"
       },
-      "vector_text": "agent_context/AGENT_RULES.md Agent Rules Behavior Autonomy Token-Budget And Step Tiers Memory And RAG Indexing Testing LLM Providers Secrets Navigation Project Constraints Development Log # Agent Rules Status: mandatory. Language: concise English. ## Behavior - No default praise. Use critical, project-aware analysis. - Offer options only when choices matter. Format: `A1`, `A2`, `B1`. - State assumptions, risks, verification, and remaining gaps. - Keep docs and handoffs short. Remove narrative. ## Autonomy Allowed without approval: - Read/sear"
+      "vector_text": "agent_context/AGENT_RULES.md Agent Rules Behavior Autonomy Token-Budget And Step Tiers Memory And RAG Indexing Testing LLM Providers Secrets Navigation Project Constraints Development Log & Handover # Agent Rules Status: mandatory. Language: concise English. ## Behavior - No default praise. Use critical, project-aware analysis. - Offer options only when choices matter. Format: `A1`, `A2`, `B1`. - State assumptions, risks, verification, and remaining gaps. - Keep docs and handoffs short. Remove narrative. ## Autonomy Allowed without approval: - Read/sear"
     },
     {
       "meta": {
-        "bytes": 683,
+        "bytes": 926,
         "file": "agent_context/README.md",
         "headings": [
           "Agent Context"
         ],
         "layer": "meta-layer",
-        "sha256_16": "f69fd053f8b3dcf1"
+        "sha256_16": "2fbd6849d1a0d5d9"
       },
-      "vector_text": "agent_context/README.md Agent Context # Agent Context Purpose: small onboarding layer for agents. Read order: 1. `HANDSHAKE.md` 2. `AGENT_RULES.md` 3. `CONTEXT.md` 4. `development_log.md` only if history is needed 5. `../agent_proposals/INDEX.md` only for roadmap or prior research Files: - `HANDSHAKE.md`: ultra-short current handoff. - `AGENT_RULES.md`: behavior and safety rules. - `CONTEXT.md`:"
+      "vector_text": "agent_context/README.md Agent Context # Agent Context Purpose: small onboarding layer for agents. Read order: 1. `../llms.txt` (Root Map) 2. `../strategy.md` (Unified Strategy) 3. `HANDSHAKE.md` (Current Handover) 4. `WORKFLOWS.md` (Workflow routing and 12-step scale) 5. `AGENT_RULES.md` (Behavioral Rules) 6. `CONTEXT.md` (System Context) 7. `development_log.md` only if history is needed 8. `../"
     },
     {
       "meta": {
-        "bytes": 1889,
+        "bytes": 5199,
         "file": "agent_context/HANDSHAKE.md",
         "headings": [
           "Agent Handshake",
           "Current Session Status",
           "Completed Today",
           "Blocked / Pending",
-          "Next Handover: Gemini Auditor",
+          "Next Handover",
           "Last Change"
         ],
         "layer": "meta-layer",
-        "sha256_16": "f7a6ddfefd8d00ed"
+        "sha256_16": "1c33b47303139e37"
       },
-      "vector_text": "agent_context/HANDSHAKE.md Agent Handshake Current Session Status Completed Today Blocked / Pending Next Handover: Gemini Auditor Last Change <!-- HANDSHAKE_PROMPT: Read this first; obey AGENT_RULES.md tiers; continue the NEXT HANDOVER only; keep patches scoped; backend-test by default; UI click-through stays with user. --> # Agent Handshake ## Current Session Status - Active Agent: Codex - Budget Tier applied: `codex max limits` - Target: System workflow integration and meta-file update. ## Compl"
+      "vector_text": "agent_context/HANDSHAKE.md Agent Handshake Current Session Status Completed Today Blocked / Pending Next Handover Last Change # Agent Handshake ## Current Session Status - Active Agent: Antigravity - Budget Tier applied: `product giant` / score 12 - Target: Phase 2 product features (Entity Extraction & Micro-Widgets) and deduplication layout merging. ## Completed Today - [x] Database Schema Migration: Created `migrations/0004_entity_tracking.sql` and integrated it into `DatabaseCli"
     },
     {
       "meta": {
-        "bytes": 6175,
+        "bytes": 9839,
         "file": "agent_context/GLOBAL_ROADMAP.md",
         "headings": [
-          "Global Roadmap",
-          "Confirmed Current State",
-          "Closed Or Consolidated Items",
-          "Active Bugs And Feature Queue",
-          "A. Stabilization And Verification",
-          "B. Current UI Corrections",
-          "C. Assistant Quality And Token Control",
-          "D. Data Layer And RBAC Foundation",
-          "E. Widget Persistence And Extensible Interface",
-          "F. Collaboration And Team Server",
-          "G. Host Health, Remote Access, And Packaging",
-          "Recommended Next Sprint",
-          "Token Optimization Rules",
-          "Hard Blocks"
+          "Global Roadmap: Governed Autonomous Intelligence Workspace",
+          "Strategic Phases",
+          "Phase 0: Strategy & Category Alignment",
+          "Phase 1: Editorial MVP",
+          "Phase 2: Dense Workspace & Entity Tracking",
+          "Phase 3: Evidence & OSINT Mode",
+          "Phase 4: Controlled Automation",
+          "Phase 5: Enterprise Hardening",
+          "Code Refactoring & Memory OS",
+          "SOLID Cleanups",
+          "Memory OS Operations"
         ],
         "layer": "meta-layer",
-        "sha256_16": "ad4043c5648b4792"
+        "sha256_16": "4ac91f85735993fe"
       },
-      "vector_text": "agent_context/GLOBAL_ROADMAP.md Global Roadmap Confirmed Current State Closed Or Consolidated Items Active Bugs And Feature Queue A. Stabilization And Verification B. Current UI Corrections C. Assistant Quality And Token Control D. Data Layer And RBAC Foundation E. Widget Persistence And Extensible Interface F. Collaboration And Team Server G. Host Health, Remote Access, And Packaging Recommended Next Sprint Token Optimization Rules Hard Blocks # Global Roadmap Status: consolidated on 2026-05-31 from proposals, admin inbox, indexes, README files, and local schema inspection. Purpose: one compact source for current bugs, features, risks, and execution order. ## Confirmed Current State - App: local-first Flask da"
+      "vector_text": "agent_context/GLOBAL_ROADMAP.md Global Roadmap: Governed Autonomous Intelligence Workspace Strategic Phases Phase 0: Strategy & Category Alignment Phase 1: Editorial MVP Phase 2: Dense Workspace & Entity Tracking Phase 3: Evidence & OSINT Mode Phase 4: Controlled Automation Phase 5: Enterprise Hardening Code Refactoring & Memory OS SOLID Cleanups Memory OS Operations # Global Roadmap: Governed Autonomous Intelligence Workspace Status: reformed on 2026-06-02 based on the autonomous_intelligence_hub_strategy_v3.md GTM directive and deep-research-report.md memory model. --- ## Strategic Phases ### Phase 0: Strategy & Category Alignment - [x] Rename category to **Governed Autonomous Intelligence Workspace** across "
     },
     {
       "meta": {
-        "bytes": 74642,
+        "bytes": 140272,
         "file": "agent_context/memory_snapshot.json",
         "layer": "meta-layer",
-        "sha256_16": "6c9902a5485c4eb7"
+        "sha256_16": "7caa9a312d75e4d1"
       },
-      "vector_text": "agent_context/memory_snapshot.json { \"counts\": { \"items\": 72, \"layers\": { \"domain-layer\": 48, \"meta-layer\": 24 }, \"skipped\": 2 }, \"generated_at\": \"2026-06-01T00:39:57\", \"items\": [ { \"meta\": { \"bytes\": 1884, \"file\": \"README.md\", \"headings\": [ \"YouTube News Automation\", \"Start\", \"Read Order\", \"Current Architecture\", \"Main Paths\", \"Locked Rules\" ], \"layer\": \"meta-layer\", \"sha256_16\": \"7c7c65ab55"
+      "vector_text": "agent_context/memory_snapshot.json { \"counts\": { \"items\": 120, \"layers\": { \"domain-layer\": 88, \"meta-layer\": 32 }, \"skipped\": 2 }, \"generated_at\": \"2026-06-03T16:09:35\", \"items\": [ { \"meta\": { \"bytes\": 2156, \"file\": \"README.md\", \"headings\": [ \"Governed Autonomous Intelligence Workspace\", \"Start\", \"Read Order\", \"Current Architecture\", \"Main Paths\", \"Locked Rules\" ], \"layer\": \"meta-layer\", \"sha"
     },
     {
       "meta": {
-        "bytes": 852,
+        "bytes": 3686,
         "file": "agent_context/implementation_plan.md",
         "headings": [
-          "Implementation Plan",
-          "Next Sprint",
-          "Verification Baseline"
+          "Implementation Plan: Analytics Suite Phase 1 & 2",
+          "User Review Required",
+          "Open Questions",
+          "Proposed Changes",
+          "1. Analytics Core Module",
+          "[MODIFY] [anomaly_detector.py](file:///Users/oleksii/Documents/News%20Research%20Automation/scripts/analytics/anomaly_detector.py)",
+          "2. Command Line Interface",
+          "[MODIFY] [cli.py](file:///Users/oleksii/Documents/News%20Research%20Automation/scripts/analytics/cli.py)",
+          "3. Flask API Integration",
+          "[NEW] [analytics.py](file:///Users/oleksii/Documents/News%20Research%20Automation/app/routes/analytics.py)",
+          "[MODIFY] [__init__.py](file:///Users/oleksii/Documents/News%20Research%20Automation/app/__init__.py)",
+          "4. Test Suite",
+          "[NEW] [test_anomaly_detector.py](file:///Users/oleksii/Documents/News%20Research%20Automation/scratch/test_anomaly_detector.py)",
+          "Verification Plan",
+          "Automated Tests",
+          "Manual Verification"
         ],
         "layer": "meta-layer",
-        "sha256_16": "b602347c6d98c0af"
+        "sha256_16": "7633b518343cd1e6"
       },
-      "vector_text": "agent_context/implementation_plan.md Implementation Plan Next Sprint Verification Baseline # Implementation Plan Scope: current execution slice only. Full roadmap lives in `GLOBAL_ROADMAP.md`. ## Next Sprint 1. Manually verify sidebar overlay behavior across desktop/mobile and drag-to-widget workflow. 2. Apply the validated migration runner to the live DB only after explicit confirmation. 3. Add RBAC gating for proposal/admin controls after sessio"
+      "vector_text": "agent_context/implementation_plan.md Implementation Plan: Analytics Suite Phase 1 & 2 User Review Required Open Questions Proposed Changes 1. Analytics Core Module [MODIFY] [anomaly_detector.py](file:///Users/oleksii/Documents/News%20Research%20Automation/scripts/analytics/anomaly_detector.py) 2. Command Line Interface [MODIFY] [cli.py](file:///Users/oleksii/Documents/News%20Research%20Automation/scripts/analytics/cli.py) 3. Flask API Integration [NEW] [analytics.py](file:///Users/oleksii/Documents/News%20Research%20Automation/app/routes/analytics.py) [MODIFY] [__init__.py](file:///Users/oleksii/Documents/News%20Research%20Automation/app/__init__.py) 4. Test Suite [NEW] [test_anomaly_detector.py](file:///Users/"
     },
     {
       "meta": {
@@ -248,28 +378,60 @@
     },
     {
       "meta": {
-        "bytes": 4740,
+        "bytes": 3487,
+        "file": "configs/README.md",
+        "headings": [
+          "configs/",
+          "Files",
+          "Database Schema (db_schema_v2.json)",
+          "v1.0 Tables (Legacy, Active)",
+          "v1.1 Tables (Active)",
+          "v1.1 Support Tables (Migrated via `0001_v1_1_support_tables.sql`)",
+          "Phase 0 Planned Tables (Not Yet Migrated)",
+          "Phase 1 + Beyond Planned",
+          "Updating db_schema_v2.json",
+          "LLM Providers (llm_providers.json)",
+          "References"
+        ],
+        "layer": "meta-layer",
+        "sha256_16": "9b3dbf2b4e4aea2f"
+      },
+      "vector_text": "configs/README.md configs/ Files Database Schema (db_schema_v2.json) v1.0 Tables (Legacy, Active) v1.1 Tables (Active) v1.1 Support Tables (Migrated via `0001_v1_1_support_tables.sql`) Phase 0 Planned Tables (Not Yet Migrated) Phase 1 + Beyond Planned Updating db_schema_v2.json LLM Providers (llm_providers.json) References # configs/ Configuration schemas and metadata. ## Files | File | Purpose | |---|---| | `schemas/INDEX.md` | Schema documentation index | | `schemas/db_schema_v2.json` | Database table definitions (legacy + v1.1 + Phase 0/1 planned) | | `schemas/llm_providers.json` | LLM provider configs (models, costs, quotas) | --- ## Database Schema (db_schema_v2.json) **S"
+    },
+    {
+      "meta": {
+        "bytes": 333,
+        "file": "configs/settings.toml",
+        "layer": "meta-layer",
+        "sha256_16": "eb8396259fc3645b"
+      },
+      "vector_text": "configs/settings.toml # Settings Configuration for Governed Autonomous Intelligence Workspace # Memory OS Settings [model] provider = \"ollama\" name = \"llama3\" temperature = 0.7 [rag] chunk_size = 800 overlap = 120 vector_db = \"qdrant\" distance_metric = \"cosine\" [memory] storage_type = \"sqlite\" log_format = \"jsonl\" compression_threshold_tokens = 2048"
+    },
+    {
+      "meta": {
+        "bytes": 9237,
         "file": "configs/schemas/db_schema_v2.json",
         "layer": "meta-layer",
-        "sha256_16": "1d0f9e6ff73af5e1"
+        "sha256_16": "2a2e51304b263b83"
       },
       "vector_text": "configs/schemas/db_schema_v2.json { \"version\": \"2.0\", \"status\": \"current-plus-planned\", \"migration_policy\": { \"runner\": \"scripts/migrate_db.py\", \"migrations_dir\": \"migrations/\", \"schema_table\": \"schema_migrations\", \"schema_table_fields\": { \"version\": \"TEXT PRIMARY KEY\", \"applied_at\": \"TEXT NOT NULL\", \"checksum\": \"TEXT NOT NULL\" }, \"production_rule\": \"use --apply explicitly; default is dry-ru"
     },
     {
       "meta": {
-        "bytes": 1147,
+        "bytes": 1316,
         "file": "configs/schemas/INDEX.md",
         "headings": [
           "Configuration Schemas",
           "Files",
           "Current Local DB Reality",
+          "Target Schema Drafts",
           "Provider Contract",
           "Migration Rule"
         ],
         "layer": "meta-layer",
-        "sha256_16": "792c319a70c44371"
+        "sha256_16": "5c98ecb7361c55aa"
       },
-      "vector_text": "configs/schemas/INDEX.md Configuration Schemas Files Current Local DB Reality Provider Contract Migration Rule # Configuration Schemas Status: pointer docs for v1.1 planning and implementation checks. ## Files - `db_schema_v2.json`: current SQLite reality plus planned tables and migration policy. - `llm_providers.json`: provider chain contract. ## Current Local DB Reality Observed tables include: - core: `channels`, `videos`, `video_phrases` - assistant/provider: `ag"
+      "vector_text": "configs/schemas/INDEX.md Configuration Schemas Files Current Local DB Reality Target Schema Drafts Provider Contract Migration Rule # Configuration Schemas Status: pointer docs for v1.1 planning and implementation checks. ## Files - `db_schema_v2.json`: current SQLite reality plus planned/target tables and migration policy. - `llm_providers.json`: provider chain contract. ## Current Local DB Reality Observed tables include: - core: `channels`, `videos`, `video_phrases` - assistant/provid"
     },
     {
       "meta": {
@@ -282,10 +444,29 @@
     },
     {
       "meta": {
-        "bytes": 2009,
+        "bytes": 1049,
+        "file": "configs/schemas/proposal_schema.json",
+        "layer": "meta-layer",
+        "sha256_16": "00ee19d85ae6fd3f"
+      },
+      "vector_text": "configs/schemas/proposal_schema.json { \"$schema\": \"http://json-schema.org/draft-07/schema#\", \"title\": \"Proposal\", \"type\": \"object\", \"properties\": { \"id\": { \"type\": \"integer\" }, \"ts\": { \"type\": \"integer\" }, \"role\": { \"type\": \"string\", \"enum\": [\"admin\"] }, \"type\": { \"type\": \"string\", \"enum\": [\"bug\", \"feature\"] }, \"status\": { \"type\": \"string\", \"enum\": [\"active\", \"done\", \"deferred\", \"rejected\"] },"
+    },
+    {
+      "meta": {
+        "bytes": 2364,
         "classes": [],
         "dependencies": [
-          "app",
+          "app.routes.actions",
+          "app.routes.analytics",
+          "app.routes.briefs",
+          "app.routes.charts",
+          "app.routes.entities",
+          "app.routes.governance",
+          "app.routes.main",
+          "app.routes.stats",
+          "app.routes.videos",
+          "app.services.cloud_rotation",
+          "app.services.telemetry",
           "flask",
           "os",
           "sys"
@@ -293,34 +474,35 @@
         "file": "app/__init__.py",
         "functions": [
           "create_app:6",
-          "_init_telemetry_and_rotation:34"
+          "_init_telemetry_and_rotation:42"
         ],
         "layer": "domain-layer",
-        "sha256_16": "0092a57bc01d3992"
+        "sha256_16": "33dff0d6f3bf962c"
       },
-      "vector_text": "app/__init__.py create_app:6 _init_telemetry_and_rotation:34 import os import sys from flask import Flask def create_app(): # Calculate root directory relative to this file app_dir = os.path.dirname(os.path.abspath(__file__)) root_dir = os.path.dirname(app_dir) app = Flask(__name__, template_folder=os.path.join(root_dir, \"templates\"), static_folder=os.path.join(root_dir, \"static\")) # Import and register blueprints fro"
+      "vector_text": "app/__init__.py create_app:6 _init_telemetry_and_rotation:42 import os import sys from flask import Flask def create_app(): # Calculate root directory relative to this file app_dir = os.path.dirname(os.path.abspath(__file__)) root_dir = os.path.dirname(app_dir) app = Flask(__name__, template_folder=os.path.join(root_dir, \"templates\"), static_folder=os.path.join(root_dir, \"static\")) # Import and register blueprints fro"
     },
     {
       "meta": {
-        "bytes": 955,
+        "bytes": 1313,
         "file": "app/README.md",
         "headings": [
           "app/"
         ],
         "layer": "meta-layer",
-        "sha256_16": "6476f4fdba7eb081"
+        "sha256_16": "af8c8e83ca05c876"
       },
       "vector_text": "app/README.md app/ # app/ Flask application package. | Path | Purpose | |---|---| | `__init__.py` | `create_app()`, blueprint registration, optional telemetry/rotation startup | | `state.py` | Shared background task/process state | | `routes/` | Flask blueprints | | `services/agent.py` | AI assistant streaming and provider routing | | `services/cloud_rotation.py` | Provider sc"
     },
     {
       "meta": {
-        "bytes": 6707,
+        "bytes": 8365,
         "classes": [
-          "LogRedirector:134"
+          "LogRedirector:178"
         ],
         "dependencies": [
           "datetime",
-          "news_scraper",
+          "news_scraper.db_client",
+          "news_scraper.postgres_sync",
           "os",
           "subprocess",
           "sys",
@@ -329,55 +511,94 @@
         ],
         "file": "app/state.py",
         "functions": [
-          "background_daemons_disabled:31",
-          "get_sqlite_conn:38",
-          "check_active_tasks:44",
-          "trigger_background_update:71",
-          "bg_sync_worker:111",
-          "trigger_background_views_update:161",
-          "log_write:116",
-          "write:135",
-          "flush:138",
-          "isatty:140"
+          "get_entitlement_state:65",
+          "background_daemons_disabled:75",
+          "get_sqlite_conn:82",
+          "check_active_tasks:88",
+          "trigger_background_update:115",
+          "bg_sync_worker:155",
+          "trigger_background_views_update:205",
+          "log_write:160",
+          "write:179",
+          "flush:182",
+          "isatty:184"
         ],
         "layer": "domain-layer",
-        "sha256_16": "7f89927f09790572"
+        "sha256_16": "e5399732226f4a4a"
       },
-      "vector_text": "app/state.py background_daemons_disabled:31 get_sqlite_conn:38 check_active_tasks:44 trigger_background_update:71 bg_sync_worker:111 trigger_background_views_update:161 log_write:116 write:135 flush:138 isatty:140 LogRedirector:134 import os import sys import time import subprocess import threading from datetime import datetime from news_scraper.db_client import DatabaseClient from news_scraper.postgres_sync import PostgresSyncClient # Calculate root directory relative to this file app_dir = os.path.dirname(os.path.abspath(__file__)) root_dir = os.path.dirname(app_dir) SCRAPE_LOG_PATH"
+      "vector_text": "app/state.py get_entitlement_state:65 background_daemons_disabled:75 get_sqlite_conn:82 check_active_tasks:88 trigger_background_update:115 bg_sync_worker:155 trigger_background_views_update:205 log_write:160 write:179 flush:182 isatty:184 LogRedirector:178 import os import sys import time import subprocess import threading from datetime import datetime from news_scraper.db_client import DatabaseClient from news_scraper.postgres_sync import PostgresSyncClient # Calculate root directory relative to this file app_dir = os.path.dirname(os.path.abspath(__file__)) root_dir = os.path.dirname(app_dir) SCRAPE_LOG_PATH"
     },
     {
       "meta": {
-        "bytes": 17594,
+        "bytes": 3276,
         "classes": [],
         "dependencies": [
-          "app",
-          "collections",
+          "app.services.briefs",
+          "app.services.governance",
+          "app.services.rbac",
+          "app.state",
+          "flask"
+        ],
+        "file": "app/routes/briefs.py",
+        "functions": [
+          "generate_brief:17",
+          "get_briefs:42",
+          "get_brief:53",
+          "export_brief:68"
+        ],
+        "layer": "domain-layer",
+        "routes": [
+          "/api/briefs/generate [\"POST\"]",
+          "/api/briefs [\"GET\"]",
+          "/api/briefs/<int:brief_id> [\"GET\"]",
+          "/api/briefs/<int:brief_id>/export [\"POST\"]"
+        ],
+        "sha256_16": "e2ce928310ea77cc"
+      },
+      "vector_text": "app/routes/briefs.py generate_brief:17 get_briefs:42 get_brief:53 export_brief:68 \"\"\"Brief routes for Phase 1 Editorial MVP. Endpoints for brief listing, generation, and formatting exports. \"\"\" from flask import Blueprint, jsonify, request, Response from app.services.briefs import BriefsService from app.services.governance import GovernanceMigrationRequired from app.services.rbac import require_admin as _admin_required from app.state impo"
+    },
+    {
+      "meta": {
+        "bytes": 19646,
+        "classes": [],
+        "dependencies": [
+          "app.state",
           "flask",
-          "news_scraper",
+          "news_scraper.db_client",
           "os",
           "re",
+          "scripts.analytics.phrase_performance",
           "threading",
           "time"
         ],
         "file": "app/routes/charts.py",
         "functions": [
-          "get_db_mtime:15",
-          "get_charts:30"
+          "get_db_mtime:16",
+          "_empty_phrase_payload:40",
+          "_legacy_top_items:52",
+          "_legacy_lift_items:69",
+          "_build_phrase_analytics:89",
+          "get_charts:210"
         ],
         "layer": "domain-layer",
         "routes": [
           "/api/charts ['GET']"
         ],
-        "sha256_16": "f33f8569956726e6"
+        "sha256_16": "489aae88960b47d0"
       },
-      "vector_text": "app/routes/charts.py get_db_mtime:15 get_charts:30 import re import os import time import threading from flask import Blueprint, jsonify, request from news_scraper.db_client import DatabaseClient from app.state import bg_state charts_bp = Blueprint('charts', __name__) CHARTS_CACHE = {} cache_lock = threading.Lock() CACHE_TTL = 60 # Cache expires after 60 seconds def get_db_mtime(): \"\"\"Returns the maximum mti"
+      "vector_text": "app/routes/charts.py get_db_mtime:16 _empty_phrase_payload:40 _legacy_top_items:52 _legacy_lift_items:69 _build_phrase_analytics:89 get_charts:210 import re import os import time import threading from flask import Blueprint, jsonify, request from news_scraper.db_client import DatabaseClient from app.state import bg_state from scripts.analytics.phrase_performance import analyze_records, youtube_rows_to_phrase_records charts_bp = Blueprint('charts', __name__) CHARTS_CACHE = {} cache_lock = threading.Lock"
     },
     {
       "meta": {
-        "bytes": 27120,
+        "bytes": 31369,
         "classes": [],
         "dependencies": [
-          "app",
+          "app.services.agent",
+          "app.services.cloud_rotation",
+          "app.services.health",
+          "app.services.rbac",
+          "app.services.widgets",
+          "app.state",
           "base64",
           "datetime",
           "fcntl",
@@ -396,40 +617,42 @@
         ],
         "file": "app/routes/actions.py",
         "functions": [
-          "_proposal_inbox_path:31",
-          "_read_proposal_rows:37",
-          "_write_proposal_rows:66",
-          "auth_status:76",
-          "add_channel_route:90",
-          "start_scrape:139",
-          "start_sync:176",
-          "start_update:208",
-          "start_views_update:227",
-          "get_action_status:241",
-          "admin_health:265",
-          "widgets_registry:273",
-          "widgets_state_get:282",
-          "widgets_state_put:291",
-          "cleanup_terminal:313",
-          "start_terminal:347",
-          "terminal_stream:391",
-          "trigger_server_shutdown:429",
-          "terminal_input:461",
-          "terminal_resize:481",
-          "agent_models:503",
-          "agent_chat:515",
-          "agent_chat_stream:562",
-          "list_agent_proposals:605",
-          "submit_agent_proposal:620",
-          "update_agent_proposal_status:656",
-          "chat_clear_context:692",
-          "chat_feedback:702",
-          "chat_report_quota:757",
-          "actions_shutdown:790"
+          "_proposal_inbox_path:36",
+          "_read_proposal_rows:42",
+          "_write_proposal_rows:71",
+          "auth_status:81",
+          "auth_session_create:95",
+          "auth_session_destroy:119",
+          "add_channel_route:129",
+          "start_scrape:178",
+          "start_sync:215",
+          "start_update:247",
+          "start_views_update:266",
+          "get_action_status:281",
+          "admin_health:305",
+          "widgets_registry:313",
+          "widgets_state_get:336",
+          "widgets_state_put:345",
+          "widgets_layouts_get:359",
+          "widgets_layouts_create:367",
+          "widgets_layouts_delete:384",
+          "widgets_layouts_activate:398",
+          "cleanup_terminal:418",
+          "start_terminal:452",
+          "terminal_stream:496",
+          "trigger_server_shutdown:534",
+          "terminal_input:566",
+          "terminal_resize:586",
+          "agent_models:609",
+          "agent_chat:622",
+          "agent_chat_stream:670",
+          "list_agent_proposals:713"
         ],
         "layer": "domain-layer",
         "routes": [
           "/api/auth/status ['GET']",
+          "/api/auth/session ['POST']",
+          "/api/auth/session ['DELETE']",
           "/api/action/add_channel ['POST']",
           "/api/action/scrape ['POST']",
           "/api/action/sync ['POST']",
@@ -440,6 +663,10 @@
           "/api/widgets/registry ['GET']",
           "/api/widgets/state ['GET']",
           "/api/widgets/state ['PUT']",
+          "/api/widgets/layouts ['GET']",
+          "/api/widgets/layouts ['POST']",
+          "/api/widgets/layouts/<int:layout_id> ['DELETE']",
+          "/api/widgets/layouts/activate/<int:layout_id> ['POST']",
           "/api/terminal/stream [GET]",
           "/api/terminal/input ['POST']",
           "/api/terminal/resize ['POST']",
@@ -454,43 +681,45 @@
           "/api/chat/report-quota ['POST']",
           "/api/action/shutdown ['POST']"
         ],
-        "sha256_16": "cef0ba5cc6bb4db4"
+        "sha256_16": "a1e3d0f7c3846df5"
       },
-      "vector_text": "app/routes/actions.py _proposal_inbox_path:31 _read_proposal_rows:37 _write_proposal_rows:66 auth_status:76 add_channel_route:90 start_scrape:139 start_sync:176 start_update:208 start_views_update:227 get_action_status:241 admin_health:265 widgets_registry:273 widgets_state_get:282 widgets_state_put:291 cleanup_terminal:313 start_terminal:347 terminal_stream:391 trigger_server_shutdown:429 terminal_input:461 terminal_resize:481 agent_models:503 agent_chat:515 agent_chat_stream:562 list_agent_proposals:605 submit_agent_proposal:620 update_agent_proposal_status:656 chat_clear_context:692 chat_feedback:702 chat_report_quota:757 actions_shutdown:790 import os import sys import json import subprocess import threadin"
+      "vector_text": "app/routes/actions.py _proposal_inbox_path:36 _read_proposal_rows:42 _write_proposal_rows:71 auth_status:81 auth_session_create:95 auth_session_destroy:119 add_channel_route:129 start_scrape:178 start_sync:215 start_update:247 start_views_update:266 get_action_status:281 admin_health:305 widgets_registry:313 widgets_state_get:336 widgets_state_put:345 widgets_layouts_get:359 widgets_layouts_create:367 widgets_layouts_delete:384 widgets_layouts_activate:398 cleanup_terminal:418 start_terminal:452 terminal_stream:496 trigger_server_shutdown:534 terminal_input:566 terminal_resize:586 agent_models:609 agent_chat:622 agent_chat_stream:670 list_agent_proposals:713 import os import sys import json import subprocess im"
     },
     {
       "meta": {
-        "bytes": 22,
+        "bytes": 291,
         "classes": [],
         "dependencies": [],
         "file": "app/routes/__init__.py",
         "functions": [],
         "layer": "domain-layer",
-        "sha256_16": "30997ef7aa618e31"
+        "sha256_16": "ba8d25a4ac424089"
       },
-      "vector_text": "app/routes/__init__.py # Routes package init"
+      "vector_text": "app/routes/__init__.py # Routes package init # Phase 1 ingestion foundation: POST /api/sources/ingest for YouTube/RSS/manual previews. # TODO: Add Operator Runtime UI controls and approved scheduler binding. # TODO: Phase 1 brief routes: GET /api/briefs (daily summaries), POST /api/briefs/export (markdown/HTML)"
     },
     {
       "meta": {
-        "bytes": 568,
+        "bytes": 2598,
         "file": "app/routes/README.md",
         "headings": [
-          "app/routes/"
+          "app/routes/",
+          "Operator Runtime Endpoints"
         ],
         "layer": "meta-layer",
-        "sha256_16": "e19b3b0b49088983"
+        "sha256_16": "38ec5bbf8ce01bdb"
       },
-      "vector_text": "app/routes/README.md app/routes/ # app/routes/ Flask blueprints. | File | Routes | |---|---| | `main.py` | `GET /` | | `stats.py` | `GET /api/stats`, `/api/channels`, `/api/channel/stats` | | `videos.py` | `GET /api/videos`, export, detail scrape, thumbnail OCR, formats, download | | `charts.py` | `GET /api/charts` with cache | | `actions.py` | auth status, background actions, admin health,"
+      "vector_text": "app/routes/README.md app/routes/ Operator Runtime Endpoints # app/routes/ Flask blueprints. | File | Routes | |---|---| | `main.py` | `GET /` | | `stats.py` | `GET /api/stats`, `/api/channels`, `/api/channel/stats` | | `videos.py` | `GET /api/videos`; admin-gated export, detail scrape, thumbnail OCR, formats, download | | `charts.py` | `GET /api/charts` with cache | | `actions.py` | auth status/session, admin-gated b"
     },
     {
       "meta": {
         "bytes": 13611,
         "classes": [],
         "dependencies": [
-          "app",
+          "app.state",
           "datetime",
           "flask",
-          "news_scraper",
+          "news_scraper.db_client",
+          "news_scraper.postgres_sync",
           "psycopg2",
           "yt_dlp"
         ],
@@ -512,10 +741,74 @@
     },
     {
       "meta": {
+        "bytes": 4079,
+        "classes": [],
+        "dependencies": [
+          "app.services.data_method_review",
+          "app.services.rbac",
+          "app.state",
+          "dataclasses",
+          "flask",
+          "os",
+          "scripts.analytics.anomaly_detector",
+          "scripts.analytics.method_review_proposals"
+        ],
+        "file": "app/routes/analytics.py",
+        "functions": [
+          "get_anomalies:11",
+          "get_data_method_review:46",
+          "post_data_method_review:66",
+          "post_data_method_proposals:87"
+        ],
+        "layer": "domain-layer",
+        "routes": [
+          "/api/analytics/anomalies ['GET']",
+          "/api/analytics/data-methods ['GET']",
+          "/api/analytics/data-methods/review ['POST']",
+          "/api/analytics/data-methods/proposals ['POST']"
+        ],
+        "sha256_16": "0584cb90d058fe13"
+      },
+      "vector_text": "app/routes/analytics.py get_anomalies:11 get_data_method_review:46 post_data_method_review:66 post_data_method_proposals:87 from flask import Blueprint, jsonify, request from dataclasses import asdict from app.services.data_method_review import review_data_methods, write_data_method_review_snapshot from app.services.rbac import require_admin as _admin_required from app.state import root_dir analytics_bp = Blueprint('analytics', __name__) @analytics_bp.route('/api/analytics/anomal"
+    },
+    {
+      "meta": {
+        "bytes": 13049,
+        "classes": [],
+        "dependencies": [
+          "__future__",
+          "app.services.entities",
+          "app.services.rbac",
+          "flask",
+          "os",
+          "pathlib",
+          "sqlite3",
+          "typing"
+        ],
+        "file": "app/routes/entities.py",
+        "functions": [
+          "get_entity_stats:22",
+          "get_entity_timeline:73",
+          "extract_entities:140",
+          "register_alias:178"
+        ],
+        "layer": "domain-layer",
+        "routes": [
+          "/api/entities/stats [\"GET\"]",
+          "/api/entities/timeline [\"GET\"]",
+          "/api/entities/extract [\"POST\"]",
+          "/api/entities/aliases [\"POST\"]"
+        ],
+        "sha256_16": "89aa11e675325e17"
+      },
+      "vector_text": "app/routes/entities.py get_entity_stats:22 get_entity_timeline:73 extract_entities:140 register_alias:178 \"\"\"API endpoints for Entity Extraction and Tracking. Admin-gated triggers and analytics endpoints for dashboard micro-widgets. \"\"\" from __future__ import annotations import os import sqlite3 from flask import Blueprint, jsonify, request from pathlib import Path from typing import Any, Dict, List from app.services.rbac import require_admin as _admin_required"
+    },
+    {
+      "meta": {
         "bytes": 328,
         "classes": [],
         "dependencies": [
-          "app",
+          "app.state",
           "flask"
         ],
         "file": "app/routes/main.py",
@@ -532,18 +825,22 @@
     },
     {
       "meta": {
-        "bytes": 19290,
+        "bytes": 24261,
         "classes": [],
         "dependencies": [
-          "app",
+          "app.services.rbac",
+          "app.state",
           "csv",
           "datetime",
           "flask",
+          "glob",
           "io",
           "json",
-          "news_scraper",
+          "news_scraper.db_client",
+          "news_scraper.ocr",
           "os",
-          "scripts",
+          "re",
+          "scripts.db_exporter",
           "subprocess",
           "sys",
           "threading",
@@ -552,35 +849,228 @@
         ],
         "file": "app/routes/videos.py",
         "functions": [
-          "get_videos:16",
-          "export_videos:146",
-          "scrape_video_details_route:204",
-          "ocr_thumbnails_batch_route:352",
-          "get_video_formats:405",
-          "download_video_route:449",
-          "process_batch:359",
-          "run_tokenization:325"
+          "get_videos:17",
+          "get_video_by_id:147",
+          "export_videos:172",
+          "scrape_video_details_route:231",
+          "ocr_thumbnails_batch_route:380",
+          "get_video_formats:434",
+          "download_video_route:479",
+          "get_video_transcript_route:548",
+          "process_batch:387",
+          "run_tokenization:352",
+          "sub_priority:601"
         ],
         "layer": "domain-layer",
         "routes": [
           "/api/videos ['GET']",
+          "/api/videos/<video_id> ['GET']",
           "/api/videos/export ['GET']",
           "/api/videos/<video_id>/scrape_details ['POST']",
           "/api/videos/ocr_thumbnails ['POST']",
           "/api/videos/<video_id>/formats ['GET']",
-          "/api/videos/<video_id>/download ['GET']"
+          "/api/videos/<video_id>/download ['GET']",
+          "/api/videos/<video_id>/transcript ['GET']"
         ],
-        "sha256_16": "ba35ad732a753ae2"
+        "sha256_16": "39b3be145149a130"
       },
-      "vector_text": "app/routes/videos.py get_videos:16 export_videos:146 scrape_video_details_route:204 ocr_thumbnails_batch_route:352 get_video_formats:405 download_video_route:449 process_batch:359 run_tokenization:325 import os import sys import time import json import csv from io import StringIO from datetime import datetime from flask import Blueprint, jsonify, request, send_file, make_response from news_scraper.db_client import DatabaseClient from app.state import get_sqlite_conn, root_dir videos_bp = Blueprint('videos', __name__) @videos_bp.route('/api/videos', method"
+      "vector_text": "app/routes/videos.py get_videos:17 get_video_by_id:147 export_videos:172 scrape_video_details_route:231 ocr_thumbnails_batch_route:380 get_video_formats:434 download_video_route:479 get_video_transcript_route:548 process_batch:387 run_tokenization:352 sub_priority:601 import os import sys import time import json import csv from io import StringIO from datetime import datetime from flask import Blueprint, jsonify, request, send_file, make_response from news_scraper.db_client import DatabaseClient from app.services.rbac import require_admin as _admin_required from app.state import get_sqlite_conn, root_dir videos_bp = Bluep"
     },
     {
       "meta": {
-        "bytes": 4575,
+        "bytes": 8950,
+        "classes": [],
+        "dependencies": [
+          "app.services.credentials",
+          "app.services.governance",
+          "app.services.rbac",
+          "app.state",
+          "flask"
+        ],
+        "file": "app/routes/governance.py",
+        "functions": [
+          "get_governance_policy:27",
+          "get_governance_readiness:34",
+          "get_sources:41",
+          "get_connector_runs:57",
+          "get_source_records:73",
+          "get_audit_events:95",
+          "get_evidence_links:111",
+          "get_source_credential_status:128",
+          "post_source:144",
+          "delete_source_route:157",
+          "post_source_credential:173",
+          "get_governance_entitlements:204",
+          "get_source_connectors:211",
+          "post_source_ingest:218",
+          "_ingest_payload_from_request:238"
+        ],
+        "layer": "domain-layer",
+        "routes": [
+          "/api/governance/policy [\"GET\"]",
+          "/api/governance/readiness [\"GET\"]",
+          "/api/sources [\"GET\"]",
+          "/api/connector-runs [\"GET\"]",
+          "/api/source-records [\"GET\"]",
+          "/api/audit-events [\"GET\"]",
+          "/api/evidence-links [\"GET\"]",
+          "/api/source-credentials/status [\"GET\"]",
+          "/api/sources [\"POST\"]",
+          "/api/sources/<int:source_id> [\"DELETE\"]",
+          "/api/source-credentials [\"POST\"]",
+          "/api/governance/entitlements [\"GET\"]",
+          "/api/source-connectors [\"GET\"]",
+          "/api/sources/ingest [\"POST\"]"
+        ],
+        "sha256_16": "c90bc6a43fc9e430"
+      },
+      "vector_text": "app/routes/governance.py get_governance_policy:27 get_governance_readiness:34 get_sources:41 get_connector_runs:57 get_source_records:73 get_audit_events:95 get_evidence_links:111 get_source_credential_status:128 post_source:144 delete_source_route:157 post_source_credential:173 get_governance_entitlements:204 get_source_connectors:211 post_source_ingest:218 _ingest_payload_from_request:238 from flask import Blueprint, jsonify, request from app.services.governance import ( ConnectorValidationError, GovernanceMigrationRequired, connector_metadata, create_source, list_audit_events, list_connector_runs, list_evidence_links, list_source_records, list_source_credential_status, list_sources, policy_summary, registry_"
+    },
+    {
+      "meta": {
+        "bytes": 14262,
+        "classes": [
+          "BriefsService:24"
+        ],
+        "dependencies": [
+          "__future__",
+          "app.services.governance",
+          "datetime",
+          "html",
+          "re",
+          "sqlite3",
+          "typing"
+        ],
+        "file": "app/services/briefs.py",
+        "functions": [
+          "_connect_db:17",
+          "generate_daily_brief:28",
+          "list_briefs:155",
+          "get_brief_by_id:194",
+          "export_brief:265",
+          "format_brief_markdown:317",
+          "redact_brief:344",
+          "scrub:368"
+        ],
+        "layer": "domain-layer",
+        "sha256_16": "eba5576703c38d63"
+      },
+      "vector_text": "app/services/briefs.py _connect_db:17 generate_daily_brief:28 list_briefs:155 get_brief_by_id:194 export_brief:265 format_brief_markdown:317 redact_brief:344 scrub:368 BriefsService:24 \"\"\"Brief generation and export service for Phase 1 Editorial MVP. Implemented with governance patterns (redaction, admin-gated, migration-safe). \"\"\" from __future__ import annotations import sqlite3 import datetime import re from typing import Any, Dict, List, Optional from html import escape as html_escape from app.services.governance import GovernanceMigra"
+    },
+    {
+      "meta": {
+        "bytes": 2965,
         "classes": [],
         "dependencies": [
           "__future__",
-          "app",
+          "pathlib",
+          "scripts.analytics.data_method_evaluator",
+          "typing"
+        ],
+        "file": "app/services/data_method_review.py",
+        "functions": [
+          "log_path_for_root:15",
+          "_build_insights:20",
+          "review_data_methods:50",
+          "write_data_method_review_snapshot:64"
+        ],
+        "layer": "domain-layer",
+        "sha256_16": "95685537a70be8e5"
+      },
+      "vector_text": "app/services/data_method_review.py log_path_for_root:15 _build_insights:20 review_data_methods:50 write_data_method_review_snapshot:64 \"\"\"Review data-access method experiment logs without touching live DB schema.\"\"\" from __future__ import annotations from pathlib import Path from typing import Any, Dict, List from scripts.analytics.data_method_evaluator import analyze_log, write_review_snapshot DEFAULT_RELATIVE_LOG_PATH = \"data/data_access_experiments.jsonl\" DEFAULT_RELATIVE_SNAPSHOT_PATH ="
+    },
+    {
+      "meta": {
+        "bytes": 10781,
+        "classes": [
+          "DashboardContextBuilder:10",
+          "SystemPromptBuilder:178"
+        ],
+        "dependencies": [
+          "collections",
+          "news_scraper.db_client",
+          "os"
+        ],
+        "file": "app/services/prompt_builder.py",
+        "functions": [
+          "build:14",
+          "get_offline_response:182",
+          "build:192"
+        ],
+        "layer": "domain-layer",
+        "sha256_16": "f4b3698d20a53e65"
+      },
+      "vector_text": "app/services/prompt_builder.py build:14 get_offline_response:182 build:192 DashboardContextBuilder:10 SystemPromptBuilder:178 \"\"\" Prompt Builder Service Governed Autonomous Intelligence Workspace \"\"\" import os from collections import defaultdict from news_scraper.db_client import DatabaseClient class DashboardContextBuilder: \"\"\"Handles SQLite metrics querying and formatting of active dashboard filters context.\"\"\" @staticmethod def build(channel_ids=None, start_date=None, end_date=N"
+    },
+    {
+      "meta": {
+        "bytes": 2510,
+        "classes": [],
+        "dependencies": [
+          "app.services.governance",
+          "cryptography.fernet",
+          "os",
+          "pathlib",
+          "typing"
+        ],
+        "file": "app/services/credentials.py",
+        "functions": [
+          "_resolve_master_key:9",
+          "encrypt_secret:24",
+          "decrypt_secret:29",
+          "store_credential:34",
+          "get_decrypted_credential:57"
+        ],
+        "layer": "domain-layer",
+        "sha256_16": "48e5afa1ed27828d"
+      },
+      "vector_text": "app/services/credentials.py _resolve_master_key:9 encrypt_[REDACTED] decrypt_[REDACTED] store_credential:34 get_decrypted_credential:57 import os from pathlib import Path from typing import Optional from cryptography.fernet import Fernet from app.services.governance import _connect KEY_FILE_NAME = \"secrets_master.key\" def _resolve_master_key(root_dir: str) -> str: \"\"\"Resolve encryption master key: 1) Env var 2) local file 3) auto-generate.\"\"\" key = os.environ.get(\"SOURCES_ENCRYPTION_KEY\") if"
+    },
+    {
+      "meta": {
+        "bytes": 14460,
+        "classes": [
+          "QuotaExhaustedError:12",
+          "BaseLLMClient:16",
+          "GeminiClient:41",
+          "OllamaClient:108",
+          "OpenAICompatibleClient:173",
+          "LLMClientFactory:244"
+        ],
+        "dependencies": [
+          "abc",
+          "app.services.cloud_rotation",
+          "json",
+          "os",
+          "requests",
+          "typing"
+        ],
+        "file": "app/services/llm_clients.py",
+        "functions": [
+          "stream_chat:20",
+          "is_quota_error:26",
+          "stream_chat:44",
+          "stream_chat:111",
+          "__init__:176",
+          "stream_chat:179",
+          "normalize_openrouter_model:269",
+          "normalize_ollama_cloud_model:278",
+          "get_provider_config:289",
+          "create_client:314",
+          "list_models:325"
+        ],
+        "layer": "domain-layer",
+        "sha256_16": "c21ce675fe5780de"
+      },
+      "vector_text": "app/services/llm_clients.py stream_chat:20 is_quota_error:26 stream_chat:44 stream_chat:111 __init__:176 stream_chat:179 normalize_openrouter_model:269 normalize_ollama_cloud_model:278 get_provider_config:289 create_client:314 list_models:325 QuotaExhaustedError:12 BaseLLMClient:16 GeminiClient:41 OllamaClient:108 OpenAICompatibleClient:173 LLMClientFactory:244 \"\"\" LLM Client Providers & Factory Governed Autonomous Intelligence Workspace \"\"\" import os import json import requests from abc import ABC, abstractmethod from typing import Generator, List, Dict, Optional, Tuple class QuotaExhaustedError(Exception): \"\"\"Raised when a provider response indicates quota/rate-limit exhaustion.\"\"\" class BaseLLMClient(ABC): \""
+    },
+    {
+      "meta": {
+        "bytes": 4594,
+        "classes": [],
+        "dependencies": [
+          "__future__",
+          "app.services.cloud_rotation",
           "datetime",
           "os",
           "pathlib",
@@ -601,50 +1091,77 @@
           "build_admin_health:109"
         ],
         "layer": "domain-layer",
-        "sha256_16": "cbdb1ef4fcf2597c"
+        "sha256_16": "4d0ca576dbb6b2aa"
       },
       "vector_text": "app/services/health.py _safe_loadavg:28 _memory_summary:36 _table_exists:48 _table_counts:56 _db_summary:66 _provider_summary:93 build_admin_health:109 \"\"\"Non-secret admin health summary helpers.\"\"\" from __future__ import annotations import os import platform import resource import shutil import sqlite3 from datetime import datetime from pathlib import Path from typing import Any, Dict, Iterable COUNT_TABLES = ( \"channels\", \"videos\", \"video_phrases\", \"agent_chats\", \"users\", \"user_invites\", \"system_metrics\","
     },
     {
       "meta": {
-        "bytes": 456,
+        "bytes": 465,
         "file": "app/services/system_prompt.txt",
         "headings": [],
         "layer": "domain-layer",
-        "sha256_16": "8e3eb13b15a63a86"
+        "sha256_16": "b75e1a637883b7f2"
       },
-      "vector_text": "app/services/system_prompt.txt Ти — редакційний AI-аналітик YouTube News Automation Dashboard. Твоя задача — не переказувати графіки, а знаходити інсайти, ризики, сильні теми, слабкі сигнали й наступні редакційні дії. Відповідай мовою користувача. Тон: живий, стислий, критичний, з опорою на факти."
+      "vector_text": "app/services/system_prompt.txt Ти — редакційний AI-аналітик Governed Autonomous Intelligence Workspace. Твоя задача — не переказувати графіки, а знаходити інсайти, ризики, сильні теми, слабкі сигнали й наступні редакційні дії. Відповідай мовою користувача. Тон: живий, стислий, критичний, з опорою на факти."
     },
     {
       "meta": {
-        "bytes": 1816,
+        "bytes": 1003,
+        "classes": [
+          "ChatLogger:8"
+        ],
+        "dependencies": [
+          "news_scraper.db_client"
+        ],
+        "file": "app/services/chat_logger.py",
+        "functions": [
+          "log:12"
+        ],
+        "layer": "domain-layer",
+        "sha256_16": "a5e5d9f58d738fc1"
+      },
+      "vector_text": "app/services/chat_logger.py log:12 ChatLogger:8 \"\"\" Chat Logger Service Governed Autonomous Intelligence Workspace \"\"\" from news_scraper.db_client import DatabaseClient class ChatLogger: \"\"\"Encapsulates recording of AI chat interactions to the database.\"\"\" @staticmethod def log(role: str, provider: str, model: str, user_message: str, assistant_answer: str) -> bool: \"\"\"Insert a chat interaction record into"
+    },
+    {
+      "meta": {
+        "bytes": 4551,
         "classes": [],
         "dependencies": [
           "__future__",
           "flask",
           "functools",
+          "hashlib",
           "hmac",
           "os",
+          "secrets",
+          "threading",
+          "time",
           "typing"
         ],
         "file": "app/services/rbac.py",
         "functions": [
-          "configured_admin_token:20",
-          "extract_request_token:24",
-          "has_admin_access:37",
-          "current_request_role:46",
-          "assistant_role_for_request:50",
-          "require_admin:57",
-          "wrapper:59"
+          "configured_admin_token:30",
+          "_token_fingerprint:34",
+          "_prune_expired_sessions:38",
+          "extract_request_token:48",
+          "has_valid_admin_session:61",
+          "create_admin_session:85",
+          "destroy_admin_session:108",
+          "has_admin_access:116",
+          "current_request_role:127",
+          "assistant_role_for_request:131",
+          "require_admin:138",
+          "wrapper:140"
         ],
         "layer": "domain-layer",
-        "sha256_16": "6c632765de87e6e4"
+        "sha256_16": "ef542d7ddc826684"
       },
-      "vector_text": "app/services/rbac.py configured_admin_[REDACTED] extract_request_[REDACTED] has_admin_access:37 current_request_role:46 assistant_role_for_request:50 require_admin:57 wrapper:59 \"\"\"Small request-level RBAC helpers. This is intentionally token-backed until full user sessions exist. It prevents client-submitted roles from becoming trusted server roles. \"\"\" from __future__ import annotations import hmac import os from functools import wraps from typing import Callable, Optional from flask import jsonify, request ADMIN_ROLES = {\"admin\","
+      "vector_text": "app/services/rbac.py configured_admin_[REDACTED] _token_fingerprint:34 _prune_expired_sessions:38 extract_request_[REDACTED] has_valid_admin_session:61 create_admin_session:85 destroy_admin_session:108 has_admin_access:116 current_request_role:127 assistant_role_for_request:131 require_admin:138 wrapper:140 \"\"\"Small request-level RBAC helpers. Admin roles are derived from a configured server token or from server-side sessions minted by that token. Client-submitted roles are never trusted. \"\"\" from __future__ import annotations import hashlib import hmac import os import secrets import threading import time from functools import wraps from typing import Callable"
     },
     {
       "meta": {
-        "bytes": 7316,
+        "bytes": 7335,
         "classes": [
           "TelemetryDaemon:41"
         ],
@@ -671,13 +1188,13 @@
           "stop:147"
         ],
         "layer": "domain-layer",
-        "sha256_16": "881cec2205e92939"
+        "sha256_16": "da1bcc79b8189774"
       },
-      "vector_text": "app/services/telemetry.py start_telemetry:157 stop_telemetry:169 get_metrics_summary:178 __init__:44 run:61 _collect_metrics:79 _store_metrics:120 stop:147 TelemetryDaemon:41 #!/usr/bin/env python3 \"\"\" System Telemetry Daemon (v1.1.0) YouTube News Automation Purpose: Collect real-time system metrics (CPU, RAM, Disk IO, HTTP sessions) for cloud migration planning. Runs as lightweight background daemon thread. Safe for SQLite WAL mode (no write bottlenecks). Metrics Collected: - CPU usage (%) - RAM used (MB) - Disk IO (MB read/writ"
+      "vector_text": "app/services/telemetry.py start_telemetry:157 stop_telemetry:169 get_metrics_summary:178 __init__:44 run:61 _collect_metrics:79 _store_metrics:120 stop:147 TelemetryDaemon:41 #!/usr/bin/env python3 \"\"\" System Telemetry Daemon (v1.1.0) Governed Autonomous Intelligence Workspace Purpose: Collect real-time system metrics (CPU, RAM, Disk IO, HTTP sessions) for cloud migration planning. Runs as lightweight background daemon thread. Safe for SQLite WAL mode (no write bottlenecks). Metrics Collected: - CPU usage (%) - RAM used (MB) - Di"
     },
     {
       "meta": {
-        "bytes": 4168,
+        "bytes": 13491,
         "classes": [],
         "dependencies": [
           "__future__",
@@ -685,26 +1202,35 @@
           "json",
           "os",
           "pathlib",
+          "sqlite3",
           "typing"
         ],
         "file": "app/services/widgets.py",
         "functions": [
-          "widget_state_path:46",
-          "widget_registry:50",
-          "sanitize_widget:57",
-          "sanitize_widgets:95",
-          "default_state:101",
-          "load_widget_state:109",
-          "save_widget_state:126"
+          "widget_state_path:69",
+          "_get_db_conn:73",
+          "_init_widgets_db:83",
+          "widget_registry:110",
+          "sanitize_widget:117",
+          "sanitize_widgets:198",
+          "default_state:204",
+          "load_layouts:213",
+          "create_layout:222",
+          "delete_layout:238",
+          "activate_layout:254",
+          "get_active_layout_id:265",
+          "load_widget_state:281",
+          "load_widget_state_file:321",
+          "save_widget_state:339"
         ],
         "layer": "domain-layer",
-        "sha256_16": "20f1b54d38acdd46"
+        "sha256_16": "ac130b22b9dbf332"
       },
-      "vector_text": "app/services/widgets.py widget_state_path:46 widget_registry:50 sanitize_widget:57 sanitize_widgets:95 default_state:101 load_widget_state:109 save_widget_state:126 \"\"\"Dashboard widget registry and state persistence. This is a file-backed bridge until the `dashboard_widgets` SQLite migration is explicitly applied. It never mutates the live DB. \"\"\" from __future__ import annotations import json import os from datetime import datetime from pathlib import Path from typing import Any, Dict, List WIDGET_STATE_VERSION = 1 WID"
+      "vector_text": "app/services/widgets.py widget_state_path:69 _get_db_conn:73 _init_widgets_db:83 widget_registry:110 sanitize_widget:117 sanitize_widgets:198 default_state:204 load_layouts:213 create_layout:222 delete_layout:238 activate_layout:254 get_active_layout_id:265 load_widget_state:281 load_widget_state_file:321 save_widget_state:339 \"\"\"Dashboard widget registry and state persistence. This uses a SQLite backend in governance.db to save layouts and widgets, with a file-backed bridge fallback for migration safety. \"\"\" from __future__ import annotations import json import os import sqlite3 from datetime import datetime from pathlib import Path from typing import Any, Dict, List WIDGET_STATE"
     },
     {
       "meta": {
-        "bytes": 1017,
+        "bytes": 1163,
         "file": "app/services/README.md",
         "headings": [
           "🛠 app/services/ — Business Services Package",
@@ -712,45 +1238,77 @@
           "Де шукати що"
         ],
         "layer": "meta-layer",
-        "sha256_16": "3bbf18466b53b73c"
+        "sha256_16": "c65d3f5788b63f02"
       },
       "vector_text": "app/services/README.md 🛠 app/services/ — Business Services Package Сервіси та їх роль Де шукати що # 🛠 app/services/ — Business Services Package Ця директорія містить допоміжні бізнес-сервіси додатку. ## Сервіси та їх роль | Файл | Клас / сервіс | Призначення | |---|---|---| | `agent.py` | `AgentService` | Робота з AI-асистентом. Генерує контекст схеми БД, поточного стану SQLite, а також обробляє чат-повідомлення користувача за допомогою Gemini API (з офф"
     },
     {
       "meta": {
-        "bytes": 29683,
+        "bytes": 13484,
         "classes": [
-          "QuotaExhaustedError:8",
-          "AgentService:12"
+          "AgentService:27"
         ],
         "dependencies": [
-          "app",
-          "collections",
+          "app.services.chat_logger",
+          "app.services.cloud_rotation",
+          "app.services.llm_clients",
+          "app.services.memory_os",
+          "app.services.prompt_builder",
           "json",
-          "news_scraper",
           "os",
-          "requests"
+          "requests",
+          "time",
+          "typing"
         ],
         "file": "app/services/agent.py",
         "functions": [
-          "_normalize_openrouter_model:40",
-          "_normalize_ollama_cloud_model:49",
-          "_get_provider_config:60",
-          "list_models:91",
-          "build_dashboard_context:141",
-          "get_offline_response:312",
-          "_build_system_prompt:325",
-          "_get_rotation_attempts:369",
-          "_is_quota_error:399",
-          "_stream_provider_text:414",
-          "stream_chat_response:603",
-          "_log_chat:662",
-          "add:373"
+          "_normalize_openrouter_model:36",
+          "_normalize_ollama_cloud_model:41",
+          "_get_provider_config:46",
+          "list_models:55",
+          "build_dashboard_context:64",
+          "get_offline_response:74",
+          "_build_system_prompt:83",
+          "_get_rotation_attempts:92",
+          "_is_quota_error:122",
+          "_stream_provider_text:128",
+          "stream_chat_response:142",
+          "_log_chat:273",
+          "_calculate_cost:278",
+          "add:96"
         ],
         "layer": "domain-layer",
-        "sha256_16": "4662b8f41a854417"
+        "sha256_16": "5a812ce79bca3397"
       },
-      "vector_text": "app/services/agent.py _normalize_openrouter_model:40 _normalize_ollama_cloud_model:49 _get_provider_config:60 list_models:91 build_dashboard_context:141 get_offline_response:312 _build_system_prompt:325 _get_rotation_attempts:369 _is_quota_error:399 _stream_provider_text:414 stream_chat_response:603 _log_chat:662 add:373 QuotaExhaustedError:8 AgentService:12 import os import json import requests from collections import defaultdict from news_scraper.db_client import DatabaseClient class QuotaExhaustedError(Exception): \"\"\"Raised when a provider response indicates quota/rate-limit exhaustion.\"\"\" class AgentService: # ───────────────────────────────────────────── # Provider config & Defaults # ─────────────────────"
+      "vector_text": "app/services/agent.py _normalize_openrouter_model:36 _normalize_ollama_cloud_model:41 _get_provider_config:46 list_models:55 build_dashboard_context:64 get_offline_response:74 _build_system_prompt:83 _get_rotation_attempts:92 _is_quota_error:122 _stream_provider_text:128 stream_chat_response:142 _log_chat:273 _calculate_cost:278 add:96 AgentService:27 \"\"\" Agent Service (Facade) Governed Autonomous Intelligence Workspace This service acts as a unified coordinator/facade delegating responsibilities to: - ChatLogger (recording chat history) - DashboardContextBuilder & SystemPromptBuilder (prompt engineering and db statistics context) - LLMClientFactory & BaseLLMClient implementations (provider integrations)"
+    },
+    {
+      "meta": {
+        "bytes": 9858,
+        "classes": [
+          "EntityExtractionService:27"
+        ],
+        "dependencies": [
+          "__future__",
+          "app.services.llm_clients",
+          "json",
+          "os",
+          "pathlib",
+          "re",
+          "sqlite3",
+          "typing"
+        ],
+        "file": "app/services/entities.py",
+        "functions": [
+          "_connect_db:19",
+          "extract_entities_from_text:31",
+          "save_extracted_entities:110",
+          "extract_entities_for_video:194"
+        ],
+        "layer": "domain-layer",
+        "sha256_16": "8d6b1eff320190c6"
+      },
+      "vector_text": "app/services/entities.py _connect_db:19 extract_entities_from_text:31 save_extracted_entities:110 extract_entities_for_video:194 EntityExtractionService:27 \"\"\"Entity extraction service for Phase 2 Workspace. Uses LLM client factory to extract political actors, organizations, and locations from video titles, descriptions, and transcripts, resolving them to a canonical dictionary. \"\"\" from __future__ import annotations import json import os import re import sqlite3 from pathlib import Path from typing import Any,"
     },
     {
       "meta": {
@@ -764,7 +1322,7 @@
     },
     {
       "meta": {
-        "bytes": 3250,
+        "bytes": 3362,
         "file": "app/services/chief_editor_core.md",
         "headings": [
           "Chief Editor Core",
@@ -775,29 +1333,86 @@
           "Робота з Аналітикою"
         ],
         "layer": "domain-layer",
-        "sha256_16": "94cd81d66eba449b"
+        "sha256_16": "6e2dacc40c602806"
       },
-      "vector_text": "app/services/chief_editor_core.md Chief Editor Core Роль Формат Відповіді Редакторська Логіка Заборони Робота з Аналітикою # Chief Editor Core Ти працюєш як `Media` - AI chief editor, аналітик і стратегічний співредактор для YouTube News Automation. ## Роль - Не переказуй графік як BI-звіт. Витягуй редакційний сенс: що змінилось, що дивно, що може спрацювати, що ризиковано. - Говори українською у reasoning/чаті, якщо користувач не попросив іншу мову. - Пиши менш формально: корот"
+      "vector_text": "app/services/chief_editor_core.md Chief Editor Core Роль Формат Відповіді Редакторська Логіка Заборони Робота з Аналітикою # Chief Editor Core Ти працюєш як `Media` - AI chief editor, аналітик і стратегічний співредактор для Governed Autonomous Intelligence Workspace. ## Роль - Не переказуй графік як BI-звіт. Витягуй редакційний сенс: що змінилось, що дивно, що може спрацювати, що ризиковано. - Звертайся до корситувача живою мовою якою він до тебе звертається (окрім російської -"
     },
     {
       "meta": {
-        "bytes": 480,
+        "bytes": 1591,
         "file": "app/services/system_instructions_user.txt",
-        "headings": [],
+        "headings": [
+          "Chief Editor Core — System Prompt",
+          "Directives",
+          "Response Format",
+          "Editorial Logic",
+          "Prohibitions",
+          "Metrics Workflow"
+        ],
         "layer": "domain-layer",
-        "sha256_16": "91ef275984b25eef"
+        "sha256_16": "28ad8099685a2964"
       },
-      "vector_text": "app/services/system_instructions_user.txt 1. Будь лаконічним асистентом-редактором без офіціозу. 2. Допомагай з перекладами, заголовками, короткими довідками, редакційними ідеями та поясненням аналітики. 3. Пиши просто, але не поверхово: додавай 1-2 практичні редакційні висновки, якщо контекст це дозволяє."
+      "vector_text": "app/services/system_instructions_user.txt Chief Editor Core — System Prompt Directives Response Format Editorial Logic Prohibitions Metrics Workflow # Chief Editor Core — System Prompt Role: Media AI — chief editor, analyst, strategic co-editor for Governed Autonomous Intelligence Workspace. ## Directives - Extract editorial insight, not BI reports. What changed. What's anomalous. What works. What risks. - No russian, no communism, no fundamentalism, no far right, no far left. Terse, casual, fact-driven."
     },
     {
       "meta": {
-        "bytes": 13186,
+        "bytes": 33296,
+        "classes": [
+          "GovernanceMigrationRequired:54"
+        ],
+        "dependencies": [
+          "__future__",
+          "app.services.credentials",
+          "datetime",
+          "news_scraper.connectors",
+          "pathlib",
+          "sqlite3",
+          "typing"
+        ],
+        "file": "app/services/governance.py",
+        "functions": [
+          "db_path_for_root:58",
+          "_initialize_schema:62",
+          "_connect:236",
+          "_table_exists:251",
+          "_object_names:259",
+          "_applied_migrations:271",
+          "registry_ready:278",
+          "registry_readiness:292",
+          "policy_summary:333",
+          "_require_registry:341",
+          "_clean_text:349",
+          "validate_source_payload:358",
+          "_rows_to_dicts:407",
+          "connector_metadata:411",
+          "list_sources:416",
+          "_safe_limit:433",
+          "list_connector_runs:441",
+          "list_source_records:465",
+          "list_audit_events:511",
+          "list_evidence_links:530",
+          "list_source_credential_status:592",
+          "run_source_ingestion:618",
+          "_connector_context_from_payload:671",
+          "_persist_ingestion_result:723",
+          "_source_record_preview:789",
+          "create_source:806",
+          "delete_source:848"
+        ],
+        "layer": "domain-layer",
+        "sha256_16": "ef2301746525afa2"
+      },
+      "vector_text": "app/services/governance.py db_path_for_root:58 _initialize_schema:62 _connect:236 _table_exists:251 _object_names:259 _applied_migrations:271 registry_ready:278 registry_readiness:292 policy_summary:333 _require_registry:341 _clean_text:349 validate_source_payload:358 _rows_to_dicts:407 connector_metadata:411 list_sources:416 _safe_limit:433 list_connector_runs:441 list_source_records:465 list_audit_events:511 list_evidence_links:530 list_source_credential_status:592 run_source_ingestion:618 _connector_context_from_payload:671 _persist_ingestion_result:723 _source_record_preview:789 create_source:806 delete_source:848 GovernanceMigrationRequired:54 \"\"\"Governance registry helpers for source policy and evidence s"
+    },
+    {
+      "meta": {
+        "bytes": 13205,
         "classes": [
           "Provider:24",
           "CloudRotationEngine:36"
         ],
         "dependencies": [
-          "app",
+          "app.services.telemetry",
           "dataclasses",
           "datetime",
           "json",
@@ -826,16 +1441,197 @@
           "_table_exists:317"
         ],
         "layer": "domain-layer",
-        "sha256_16": "746af59ec5022e52"
+        "sha256_16": "d18debd78218cda0"
       },
-      "vector_text": "app/services/cloud_rotation.py init_rotation_engine:329 get_rotation_engine:335 __init__:39 _load_configuration:54 _reload_efficiency_scores:82 _load_quota_errors:125 get_next_available_provider:146 get_available_providers:159 check_quota_exhaustion:165 report_quota_error:195 _record_quota_error:202 record_feedback:252 get_provider_by_id:293 get_health_summary:297 _table_exists:317 Provider:24 CloudRotationEngine:36 \"\"\" Cloud Rotation Engine (v1.1.0) YouTube News Automation Purpose: Manage free/paid LLM provider rotation with efficiency scoring and quota interception. Features: - Provider chain: Gemini Free → OpenRouter Free → Ollama Cloud → OpenAI/Anthropic Paid - Efficiency scoring: Likes / (Likes + Dislikes)"
+      "vector_text": "app/services/cloud_rotation.py init_rotation_engine:329 get_rotation_engine:335 __init__:39 _load_configuration:54 _reload_efficiency_scores:82 _load_quota_errors:125 get_next_available_provider:146 get_available_providers:159 check_quota_exhaustion:165 report_quota_error:195 _record_quota_error:202 record_feedback:252 get_provider_by_id:293 get_health_summary:297 _table_exists:317 Provider:24 CloudRotationEngine:36 \"\"\" Cloud Rotation Engine (v1.1.0) Governed Autonomous Intelligence Workspace Purpose: Manage free/paid LLM provider rotation with efficiency scoring and quota interception. Features: - Provider chain: Gemini Free → OpenRouter Free → Ollama Cloud → OpenAI/Anthropic Paid - Efficiency scoring: Likes /"
+    },
+    {
+      "meta": {
+        "bytes": 1016,
+        "classes": [
+          "PromptVersioner:4"
+        ],
+        "dependencies": [
+          "hashlib",
+          "typing"
+        ],
+        "file": "app/services/memory_os/versioner.py",
+        "functions": [
+          "__init__:7",
+          "register_prompt:10",
+          "get_prompt:18",
+          "compute_hash:23"
+        ],
+        "layer": "domain-layer",
+        "sha256_16": "256a39d3490afa75"
+      },
+      "vector_text": "app/services/memory_os/versioner.py __init__:7 register_prompt:10 get_prompt:18 compute_hash:23 PromptVersioner:4 import hashlib from typing import Dict, Optional class PromptVersioner: \"\"\"Manages prompt template registries, versions, and SHA-256 integrity mapping.\"\"\" def __init__(self): self._registry: Dict[str, Dict[str, str]] = {} def register_prompt(self, name: str, version: str, template_text: str): \"\"\"Register a prompt template under a specific version string.\"\"\""
+    },
+    {
+      "meta": {
+        "bytes": 834,
+        "classes": [],
+        "dependencies": [
+          "app.services.memory_os.context",
+          "app.services.memory_os.core",
+          "app.services.memory_os.optimizer",
+          "app.services.memory_os.prompt_formatter",
+          "app.services.memory_os.telemetry",
+          "app.services.memory_os.toml_parser",
+          "app.services.memory_os.versioner"
+        ],
+        "file": "app/services/memory_os/__init__.py",
+        "functions": [],
+        "layer": "domain-layer",
+        "sha256_16": "4d927f8a1e871703"
+      },
+      "vector_text": "app/services/memory_os/__init__.py from app.services.memory_os.core import MemoryOS from app.services.memory_os.telemetry import TelemetryRecorder from app.services.memory_os.versioner import PromptVersioner from app.services.memory_os.context import ContextRegistry from app.services.memory_os.optimizer import RouteOptimizer from app.services.memory_os.toml_parser import parse_toml, load_toml"
+    },
+    {
+      "meta": {
+        "bytes": 1834,
+        "classes": [
+          "TelemetryRecorder:3"
+        ],
+        "dependencies": [
+          "app.services.memory_os.core"
+        ],
+        "file": "app/services/memory_os/telemetry.py",
+        "functions": [
+          "__init__:6",
+          "record_run:9"
+        ],
+        "layer": "domain-layer",
+        "sha256_16": "83cb4fa246c92ea5"
+      },
+      "vector_text": "app/services/memory_os/telemetry.py __init__:6 record_run:9 TelemetryRecorder:3 from app.services.memory_os.core import MemoryOS class TelemetryRecorder: \"\"\"Logs LLM execution metrics (tokens, latency, cost, and statuses).\"\"\" def __init__(self, memory_os: MemoryOS): self.memory_os = memory_os def record_run( self, prompt_name: str, prompt_version: str, prompt_hash: str, provider_id: str, model_id: str, input_tokens: int = 0, output_toke"
+    },
+    {
+      "meta": {
+        "bytes": 4275,
+        "classes": [
+          "MemoryOS:6"
+        ],
+        "dependencies": [
+          "pathlib",
+          "sqlite3",
+          "time",
+          "typing"
+        ],
+        "file": "app/services/memory_os/core.py",
+        "functions": [
+          "__init__:9",
+          "get_connection:19",
+          "init_db:26",
+          "add_or_update_memory:68",
+          "get_memories:90"
+        ],
+        "layer": "domain-layer",
+        "sha256_16": "bf23ad030fd5d5e0"
+      },
+      "vector_text": "app/services/memory_os/core.py __init__:9 get_connection:19 init_db:26 add_or_update_memory:68 get_memories:90 MemoryOS:6 import sqlite3 import time from pathlib import Path from typing import List, Dict, Any, Optional class MemoryOS: \"\"\"Core orchestrator for Memory OS. Handles DB initialization and connection management.\"\"\" def __init__(self, db_path: str = None): if db_path is None: # Default to isolated SQLite db file in data/ self.db_path = Path(__file__).resolve().parents["
+    },
+    {
+      "meta": {
+        "bytes": 4671,
+        "classes": [],
+        "dependencies": [
+          "typing"
+        ],
+        "file": "app/services/memory_os/toml_parser.py",
+        "functions": [
+          "parse_toml:8",
+          "load_toml_file:120"
+        ],
+        "layer": "domain-layer",
+        "sha256_16": "0ebf77afe9a40523"
+      },
+      "vector_text": "app/services/memory_os/toml_parser.py parse_toml:8 load_toml_file:120 \"\"\" TOML Parser Utility Governed Autonomous Intelligence Workspace - Memory OS \"\"\" from typing import Dict, Any def parse_toml(toml_str: str) -> Dict[str, Any]: \"\"\" Parses a simple TOML string into a nested Python dictionary. Supports comments, sections, nested sections, strings, integers, floats, booleans, and arrays. \"\"\" result: Dict[str, Any] = {} current"
+    },
+    {
+      "meta": {
+        "bytes": 8024,
+        "classes": [
+          "ContextRegistry:8"
+        ],
+        "dependencies": [
+          "ast",
+          "collections",
+          "datetime",
+          "hashlib",
+          "pathlib",
+          "re",
+          "typing"
+        ],
+        "file": "app/services/memory_os/context.py",
+        "functions": [
+          "__init__:11",
+          "rel:14",
+          "redact:22",
+          "sha256_text:35",
+          "layer_for:39",
+          "iter_files:52",
+          "compact_whitespace:75",
+          "python_symbols:80",
+          "js_symbols:105",
+          "route_symbols:117",
+          "build_pointer:122",
+          "build_snapshot:154"
+        ],
+        "layer": "domain-layer",
+        "sha256_16": "064af4dc07235af5"
+      },
+      "vector_text": "app/services/memory_os/context.py __init__:11 rel:14 redact:22 sha256_text:35 layer_for:39 iter_files:52 compact_whitespace:75 python_symbols:80 js_symbols:105 route_symbols:117 build_pointer:122 build_snapshot:154 ContextRegistry:8 import ast import hashlib import re from datetime import datetime from pathlib import Path from typing import Any, Dict, Iterable, List, Optional class ContextRegistry: \"\"\"Standalone developer memory indexing engine. Builds compact context snapshots.\"\"\" def __init__(self, root_dir: str): self.root_dir = Path(root_dir).resolve() def rel(self, path: Path) -> s"
+    },
+    {
+      "meta": {
+        "bytes": 2350,
+        "classes": [
+          "RouteOptimizer:4"
+        ],
+        "dependencies": [
+          "app.services.memory_os.core",
+          "typing"
+        ],
+        "file": "app/services/memory_os/optimizer.py",
+        "functions": [
+          "__init__:7",
+          "analyze_metrics:10",
+          "recommend_route:37"
+        ],
+        "layer": "domain-layer",
+        "sha256_16": "6bfe8e31e33bcdb6"
+      },
+      "vector_text": "app/services/memory_os/optimizer.py __init__:7 analyze_metrics:10 recommend_route:37 RouteOptimizer:4 from typing import Dict, Any, List, Optional from app.services.memory_os.core import MemoryOS class RouteOptimizer: \"\"\"Analyzes execution metrics and recommends optimal models/configurations.\"\"\" def __init__(self, memory_os: MemoryOS): self.memory_os = memory_os def analyze_metrics(self, prompt_name: str, limit: int = 50) -> List[Dict[str, Any]]: \"\"\"Query av"
+    },
+    {
+      "meta": {
+        "bytes": 2808,
+        "classes": [],
+        "dependencies": [
+          "re",
+          "typing"
+        ],
+        "file": "app/services/memory_os/prompt_formatter.py",
+        "functions": [
+          "wrap_in_xml:9",
+          "format_user_profile:13",
+          "markdown_table_to_html:29",
+          "compress_dialog:62",
+          "strip_whitespace_noise:77"
+        ],
+        "layer": "domain-layer",
+        "sha256_16": "f41ea56576a614f6"
+      },
+      "vector_text": "app/services/memory_os/prompt_formatter.py wrap_in_xml:9 format_user_profile:13 markdown_table_to_html:29 compress_dialog:62 strip_whitespace_noise:77 \"\"\" Prompt Formatter Service Governed Autonomous Intelligence Workspace - Memory OS \"\"\" import re from typing import List, Dict, Any def wrap_in_xml(tag_name: str, content: str) -> str: \"\"\"Wraps text content inside strict XML tags.\"\"\" return f\"<{tag_name}>\\n{content.strip()}\\n</{tag_name}>\" def format_user_profile(profile_dict: Dict[str, Any]) -> str: \"\"\" Fo"
     },
     {
       "meta": {
         "bytes": 7597,
         "classes": [],
         "dependencies": [
-          "news_scraper",
+          "news_scraper.db_client",
+          "news_scraper.utils",
           "os",
           "re",
           "sys"
@@ -897,11 +1693,35 @@
     },
     {
       "meta": {
+        "bytes": 3214,
+        "classes": [],
+        "dependencies": [
+          "__future__",
+          "argparse",
+          "json",
+          "pathlib",
+          "typing"
+        ],
+        "file": "scripts/validate_task_capsules.py",
+        "functions": [
+          "_is_non_empty_string:37",
+          "validate_rows:41",
+          "validate_file:85",
+          "main:91"
+        ],
+        "layer": "domain-layer",
+        "sha256_16": "b8e632936f932c0e"
+      },
+      "vector_text": "scripts/validate_task_capsules.py _is_non_empty_string:37 validate_rows:41 validate_file:85 main:91 \"\"\"Validate agent task capsule JSONL files.\"\"\" from __future__ import annotations import argparse import json from pathlib import Path from typing import Iterable, List REQUIRED_FIELDS = { \"timestamp\", \"task\", \"files_modified\", \"hurdles_regression\", \"resolution\", \"lessons_learned\", } VALID_WORKFLOWS = {\"product\", \"memos\"} VALID_STEP_SCORES = set(range(1, 13)"
+    },
+    {
+      "meta": {
         "bytes": 5392,
         "classes": [],
         "dependencies": [
           "datetime",
-          "news_scraper",
+          "news_scraper.kaggle_sync",
+          "news_scraper.utils",
           "os",
           "sys"
         ],
@@ -926,7 +1746,8 @@
         "dependencies": [
           "argparse",
           "datetime",
-          "news_scraper",
+          "news_scraper.db_client",
+          "news_scraper.utils",
           "os",
           "pandas",
           "subprocess",
@@ -946,7 +1767,7 @@
     },
     {
       "meta": {
-        "bytes": 9307,
+        "bytes": 9288,
         "classes": [],
         "dependencies": [
           "__future__",
@@ -978,7 +1799,7 @@
           "main:250"
         ],
         "layer": "domain-layer",
-        "sha256_16": "28cd133af2bff861"
+        "sha256_16": "b8131b87cfcf5be9"
       },
       "vector_text": "scripts/compact_memory.py rel:53 redact:60 sha256_text:67 layer_for:71 iter_files:84 read_text:102 compact_whitespace:111 python_symbols:115 js_symbols:139 route_symbols:150 jsonl_summary:155 build_pointer:183 build_snapshot:217 main:250 \"\"\"Build a compact, layer-tagged memory snapshot for agent handoff. Default mode is a dry run: print the JSON snapshot to stdout and do not mutate project files. Use --write to save the snapshot to agent_context/. \"\"\" from __future__ import annotations import argparse import ast import hashlib import json import re from collections import Counter from dateti"
     },
@@ -1017,7 +1838,7 @@
     },
     {
       "meta": {
-        "bytes": 989,
+        "bytes": 1955,
         "file": "scripts/README.md",
         "headings": [
           "Scripts",
@@ -1029,12 +1850,15 @@
           "Apply migrations only after backup/test review",
           "Refresh ultra-short next-agent handoff",
           "Build compact layer-tagged memory snapshot (dry-run default)",
+          "Audit Memory OS control-plane state",
+          "Convert repeated data-access method insights into proposals (dry-run default)",
+          "Rank phrase/n-gram performance from local YouTube records",
           "Pre-compute N-grams + TF-IDF weighted performance lift trends"
         ],
         "layer": "meta-layer",
-        "sha256_16": "db8f5d90eefea072"
+        "sha256_16": "b1ff30d693747d63"
       },
-      "vector_text": "scripts/README.md Scripts Initialize a new database Export database to CSV/Excel Sync local SQLite → Neon PostgreSQL (interactive) Manual SQLite → Kaggle sync Preview pending SQLite migrations (dry-run default) Apply migrations only after backup/test review Refresh ultra-short next-agent handoff Build compact layer-tagged memory snapshot (dry-run default) Pre-compute N-grams + TF-IDF weighted performance lift trends # Scripts Utility scripts for maintenance and data management. Run all scripts from the **project root** directory: ```bash # Initialize a new database python scripts/init_db.py # Export database to CSV/Excel python scripts/db_exporter.py # Sync local SQLite → Neon PostgreSQL (interactive) python sc"
+      "vector_text": "scripts/README.md Scripts Initialize a new database Export database to CSV/Excel Sync local SQLite → Neon PostgreSQL (interactive) Manual SQLite → Kaggle sync Preview pending SQLite migrations (dry-run default) Apply migrations only after backup/test review Refresh ultra-short next-agent handoff Build compact layer-tagged memory snapshot (dry-run default) Audit Memory OS control-plane state Convert repeated data-access method insights into proposals (dry-run default) Rank phrase/n-gram performance from local YouTube records Pre-compute N-grams + TF-IDF weighted performance lift trends # Scripts Utility scripts for maintenance and data management. Run all scripts from the **project root** directory: ```bash # In"
     },
     {
       "meta": {
@@ -1062,7 +1886,7 @@
         "classes": [],
         "dependencies": [
           "pathlib",
-          "scripts",
+          "scripts.migrate_db",
           "sys"
         ],
         "file": "scripts/migrate_db_v2.py",
@@ -1074,10 +1898,51 @@
     },
     {
       "meta": {
+        "bytes": 12096,
+        "classes": [],
+        "dependencies": [
+          "__future__",
+          "argparse",
+          "datetime",
+          "json",
+          "pathlib",
+          "scripts.analytics.method_review_proposals",
+          "scripts.memory.audit_memos",
+          "scripts.memory.quantize_task",
+          "scripts.memory.validate_workflows",
+          "scripts.validate_task_capsules",
+          "subprocess",
+          "sys",
+          "typing"
+        ],
+        "file": "scripts/memos.py",
+        "functions": [
+          "write_if_missing:100",
+          "append_if_absent:109",
+          "cmd_init:122",
+          "cmd_integrate:152",
+          "cmd_audit:162",
+          "cmd_validate:171",
+          "cmd_snapshot:193",
+          "cmd_method_proposals:204",
+          "cmd_quantize:224",
+          "cmd_workflows:251",
+          "build_parser:265",
+          "main:316"
+        ],
+        "layer": "domain-layer",
+        "sha256_16": "6728184d745c057c"
+      },
+      "vector_text": "scripts/memos.py write_if_missing:100 append_if_absent:109 cmd_init:122 cmd_integrate:152 cmd_audit:162 cmd_validate:171 cmd_snapshot:193 cmd_method_proposals:204 cmd_quantize:224 cmd_workflows:251 build_parser:265 main:316 #!/usr/bin/env python3 \"\"\"Portable Memos control CLI for project-local Memory OS operations.\"\"\" from __future__ import annotations import argparse import json import subprocess import sys from datetime import datetime from pathlib import Path from typing import Any, Dict, List ROOT = Path(__file__).resolve().parents[1] if str(ROOT) not in sys.path: sys.path."
+    },
+    {
+      "meta": {
         "bytes": 6755,
         "classes": [],
         "dependencies": [
-          "news_scraper",
+          "news_scraper.db_client",
+          "news_scraper.postgres_sync",
+          "news_scraper.utils",
           "os",
           "sys",
           "time"
@@ -1100,7 +1965,11 @@
         "dependencies": [
           "argparse",
           "json",
-          "news_scraper",
+          "news_scraper.cli_progress",
+          "news_scraper.db_client",
+          "news_scraper.keypress",
+          "news_scraper.scraper_engine",
+          "news_scraper.utils",
           "os",
           "sys",
           "time",
@@ -1122,7 +1991,188 @@
     },
     {
       "meta": {
-        "bytes": 5573,
+        "bytes": 13026,
+        "classes": [],
+        "dependencies": [
+          "__future__",
+          "argparse",
+          "collections",
+          "datetime",
+          "json",
+          "pathlib",
+          "re",
+          "scripts.memory.validate_memory",
+          "scripts.memory.validate_workflows",
+          "scripts.validate_task_capsules",
+          "subprocess",
+          "sys",
+          "typing"
+        ],
+        "file": "scripts/memory/audit_memos.py",
+        "functions": [
+          "read_text:40",
+          "load_jsonl:46",
+          "parse_handshake:66",
+          "_first_match:83",
+          "summarize_capsules:88",
+          "inspect_memory_lifecycle:109",
+          "roadmap_memos_status:134",
+          "_looks_like_memos_item:148",
+          "build_recommendations:153",
+          "auto_transition_proposals:172",
+          "audit:257",
+          "to_markdown:284",
+          "main:313"
+        ],
+        "layer": "domain-layer",
+        "sha256_16": "10e8eb5cc2dd32c5"
+      },
+      "vector_text": "scripts/memory/audit_memos.py read_text:40 load_jsonl:46 parse_handshake:66 _first_match:83 summarize_capsules:88 inspect_memory_lifecycle:109 roadmap_memos_status:134 _looks_like_memos_item:148 build_recommendations:153 auto_transition_proposals:172 audit:257 to_markdown:284 main:313 #!/usr/bin/env python3 \"\"\"Audit Memory OS workflow state and emit a compact report.\"\"\" from __future__ import annotations import argparse import json import re import sys from collections import Counter from datetime import datetime from pathlib import Path from typing import Any, Dict, Iterable, List, Tuple ROOT = Path(__file__).resolve().parents[2] if str("
+    },
+    {
+      "meta": {
+        "bytes": 12257,
+        "classes": [],
+        "dependencies": [
+          "argparse",
+          "datetime",
+          "hashlib",
+          "json",
+          "pathlib",
+          "sys",
+          "typing"
+        ],
+        "file": "scripts/memory/lifecycle.py",
+        "functions": [
+          "log_info:13",
+          "log_error:16",
+          "sha256_file:19",
+          "load_jsonl:28",
+          "write_jsonl:41",
+          "append_jsonl:47",
+          "validate_evidence:52",
+          "cmd_propose:60",
+          "cmd_transition:96",
+          "cmd_manifest:190",
+          "cmd_prune:235",
+          "main:267"
+        ],
+        "layer": "domain-layer",
+        "sha256_16": "03e1e696dd5d5e04"
+      },
+      "vector_text": "scripts/memory/lifecycle.py log_info:13 log_error:16 sha256_file:19 load_jsonl:28 write_jsonl:41 append_jsonl:47 validate_evidence:52 cmd_propose:60 cmd_transition:96 cmd_manifest:190 cmd_prune:235 main:267 #!/usr/bin/env python3 import sys import json import hashlib import argparse from datetime import datetime from pathlib import Path from typing import List, Dict, Set, Any, Tuple ROOT = Path(__file__).resolve().parents[2] MEMORY_DIR = ROOT / \"memory\" def log_info(msg: str): print(f\"INFO: {msg}\") def log_error(msg: str): print(f\"ERROR: {msg}\", file=sys.stderr"
+    },
+    {
+      "meta": {
+        "bytes": 5238,
+        "classes": [],
+        "dependencies": [
+          "argparse",
+          "json",
+          "sys",
+          "typing"
+        ],
+        "file": "scripts/memory/quantize_task.py",
+        "functions": [
+          "calculate_score:38",
+          "legacy_score_to_step_score:67",
+          "calculate_step_score:76",
+          "_workflow_for_step:86",
+          "_model_policy_for_step:97",
+          "resolve_profile:107",
+          "main:132"
+        ],
+        "layer": "domain-layer",
+        "sha256_16": "e951f8d677ceeda7"
+      },
+      "vector_text": "scripts/memory/quantize_task.py calculate_score:38 legacy_score_to_step_score:67 calculate_step_score:76 _workflow_for_step:86 _model_policy_for_step:97 resolve_profile:107 main:132 #!/usr/bin/env python3 import sys import json import argparse from typing import Dict, Any, List, Tuple STEP_SCALE = { 1: \"nano\", 2: \"micro\", 3: \"tiny\", 4: \"little\", 5: \"pretty little\", 6: \"light mid\", 7: \"mid\", 8: \"high mid\", 9: \"mid high\", 10: \"big\", 11: \"large\", 12: \"giant\", } LEGACY_BANDS: List[Tuple[int, int, int]] = [ (1, 10, 1), (11, 18, 2), (19, 25,"
+    },
+    {
+      "meta": {
+        "bytes": 9450,
+        "classes": [],
+        "dependencies": [
+          "json",
+          "os",
+          "pathlib",
+          "sys"
+        ],
+        "file": "scripts/memory/validate_memory.py",
+        "functions": [
+          "log_error:10",
+          "validate_nodes:13",
+          "validate_edges:74",
+          "validate_events:111",
+          "validate_proposals_file:147",
+          "main:216"
+        ],
+        "layer": "domain-layer",
+        "sha256_16": "4f792c158438167e"
+      },
+      "vector_text": "scripts/memory/validate_memory.py log_error:10 validate_nodes:13 validate_edges:74 validate_events:111 validate_proposals_file:147 main:216 #!/usr/bin/env python3 import json import sys import os from pathlib import Path ROOT = Path(__file__).resolve().parents[2] MEMORY_DIR = ROOT / \"memory\" def log_error(msg: str): print(f\"ERROR: {msg}\", file=sys.stderr) def validate_nodes() -> bool: nodes_file = MEMORY_DIR / \"nodes.jsonl\" if not nodes_file.exists(): log_error(f\"nodes.jsonl not found at {nodes_"
+    },
+    {
+      "meta": {
+        "bytes": 8185,
+        "classes": [],
+        "dependencies": [
+          "__future__",
+          "app.services.memory_os",
+          "argparse",
+          "datetime",
+          "json",
+          "pathlib",
+          "scripts.memory.quantize_task",
+          "sys",
+          "typing"
+        ],
+        "file": "scripts/memory/validate_workflows.py",
+        "functions": [
+          "utc_now_iso:35",
+          "load_specs:39",
+          "validate_specs:59",
+          "build_report:131",
+          "write_manifest:164",
+          "to_markdown:169",
+          "_as_int:195",
+          "_coverage:202",
+          "main:210"
+        ],
+        "layer": "domain-layer",
+        "sha256_16": "64c7e33e4780d929"
+      },
+      "vector_text": "scripts/memory/validate_workflows.py utc_now_iso:35 load_specs:39 validate_specs:59 build_report:131 write_manifest:164 to_markdown:169 _as_int:195 _coverage:202 main:210 #!/usr/bin/env python3 \"\"\"Validate Memory OS workflow TOML specs against the 12-step contract.\"\"\" from __future__ import annotations import argparse import json import sys from datetime import datetime from pathlib import Path from typing import Any, Dict, Iterable, List, Optional, Tuple ROOT = Path(__file__).resolve().parents[2] if str(ROOT) not in sys.path"
+    },
+    {
+      "meta": {
+        "bytes": 10980,
+        "classes": [],
+        "dependencies": [
+          "argparse",
+          "json",
+          "pathlib",
+          "sys",
+          "typing"
+        ],
+        "file": "scripts/memory/search_memory.py",
+        "functions": [
+          "load_nodes:11",
+          "load_edges:25",
+          "load_snapshot:39",
+          "traverse_graph:49",
+          "traverse_dependencies:77",
+          "search_memory:105",
+          "main:242",
+          "to_node_shape:202"
+        ],
+        "layer": "domain-layer",
+        "sha256_16": "7ba4afea1472ccc9"
+      },
+      "vector_text": "scripts/memory/search_memory.py load_nodes:11 load_edges:25 load_snapshot:39 traverse_graph:49 traverse_dependencies:77 search_memory:105 main:242 to_node_shape:202 #!/usr/bin/env python3 import sys import json import argparse from pathlib import Path from typing import List, Dict, Set, Any ROOT = Path(__file__).resolve().parents[2] MEMORY_DIR = ROOT / \"memory\" def load_nodes() -> List[Dict[str, Any]]: nodes_file = MEMORY_DIR / \"nodes.jsonl\" if not nodes_file.exists(): return [] nodes = [] with open(nodes_file, \"r\", enc"
+    },
+    {
+      "meta": {
+        "bytes": 18238,
         "classes": [
           "Anomaly:83"
         ],
@@ -1132,58 +2182,172 @@
           "json",
           "numpy",
           "sqlite3",
+          "time",
           "typing"
         ],
         "file": "scripts/analytics/anomaly_detector.py",
         "functions": [
-          "detect_anomalies:97",
-          "inject_caveats:130",
-          "to_json:163",
-          "to_markdown:169"
+          "parse_date:97",
+          "calculate_views_in_window:108",
+          "detect_anomalies:138",
+          "inject_caveats:336",
+          "to_json:482",
+          "to_markdown:491"
         ],
         "layer": "domain-layer",
-        "sha256_16": "1d39ff8f016a93b1"
+        "sha256_16": "1d4e9969557197ca"
       },
-      "vector_text": "scripts/analytics/anomaly_detector.py detect_anomalies:97 inject_caveats:130 to_json:163 to_markdown:169 Anomaly:83 \"\"\" Anomaly Detector — Z-Score Based Anomaly Detection with Caveat Injection This module detects anomalous videos (viral content, data errors) using Z-score analysis on a 7-day rolling window. Every metric includes caveats (quality flags). Algorithm: 1. Query SQLite for channel's videos + views_update (JSON array) 2. Calculate 7-day rolling mean and std of v"
+      "vector_text": "scripts/analytics/anomaly_detector.py parse_date:97 calculate_views_in_window:108 detect_anomalies:138 inject_caveats:336 to_json:482 to_markdown:491 Anomaly:83 \"\"\" Anomaly Detector — Z-Score Based Anomaly Detection with Caveat Injection This module detects anomalous videos (viral content, data errors) using Z-score analysis on a 7-day rolling window. Every metric includes caveats (quality flags). Algorithm: 1. Query SQLite for channel's videos + views_update (JSON array) 2. Calculate 7-day rolling mean and std of v"
     },
     {
       "meta": {
-        "bytes": 1239,
+        "bytes": 1783,
         "classes": [],
         "dependencies": [],
         "file": "scripts/analytics/__init__.py",
         "functions": [],
         "layer": "domain-layer",
-        "sha256_16": "29c0a40176a20c72"
+        "sha256_16": "a463933aacd81fe2"
       },
       "vector_text": "scripts/analytics/__init__.py \"\"\" Analytics Suite — CLI-First Anomaly Detection & Metrics Engine This package implements the analytics layer for YouTube News Automation. All modules follow Decision-First, Local-First, CLI-First philosophy. Architecture: cli.py → Click-based entry point (--help) anomaly_detector.py → Z-score detection + caveat injection trend_analyzer.py → Polynomial regr"
     },
     {
       "meta": {
-        "bytes": 5104,
+        "bytes": 8240,
+        "classes": [
+          "KPI:16"
+        ],
+        "dependencies": [
+          "dataclasses",
+          "datetime",
+          "json",
+          "numpy",
+          "sqlite3",
+          "typing"
+        ],
+        "file": "scripts/analytics/metrics_engine.py",
+        "functions": [
+          "parse_date:30",
+          "calculate_kpi:41",
+          "to_json:204",
+          "to_markdown:208"
+        ],
+        "layer": "domain-layer",
+        "sha256_16": "dd572d9d624931f1"
+      },
+      "vector_text": "scripts/analytics/metrics_engine.py parse_date:30 calculate_kpi:41 to_json:204 to_markdown:208 KPI:16 \"\"\" Metrics Engine — KPI Aggregation Dashboard This module calculates median views, Q1/Q3 range, total videos, and engagement rates for a specific YouTube channel over the last 7 days. \"\"\" import sqlite3 import json import numpy as np from datetime import datetime, timedelta from typing import List, Dict, Any, Tuple, Optional from dataclasses import dataclas"
+    },
+    {
+      "meta": {
+        "bytes": 17122,
+        "classes": [
+          "PhraseRecord:32",
+          "PhraseMetric:41"
+        ],
+        "dependencies": [
+          "__future__",
+          "dataclasses",
+          "datetime",
+          "json",
+          "math",
+          "pathlib",
+          "re",
+          "scripts.analytics.anomaly_detector",
+          "sqlite3",
+          "typing"
+        ],
+        "file": "scripts/analytics/phrase_performance.py",
+        "functions": [
+          "tokenize:50",
+          "generate_ngrams:69",
+          "analyze_records:82",
+          "load_youtube_records:181",
+          "youtube_rows_to_phrase_records:241",
+          "analyze_youtube_phrases:284",
+          "to_json:317",
+          "to_markdown:321",
+          "_empty_report:363",
+          "_metric_baselines:380",
+          "_stats:388",
+          "_percentile:409",
+          "_sample_records:424",
+          "_sort_value:437",
+          "_safe_float:445",
+          "_row_get:454"
+        ],
+        "layer": "domain-layer",
+        "sha256_16": "bce57aa168d2985f"
+      },
+      "vector_text": "scripts/analytics/phrase_performance.py tokenize:50 generate_ngrams:69 analyze_records:82 load_youtube_records:181 youtube_rows_to_phrase_records:241 analyze_youtube_phrases:284 to_json:317 to_markdown:321 _empty_report:363 _metric_baselines:380 _stats:388 _percentile:409 _sample_records:424 _sort_value:437 _safe_float:445 _row_get:454 PhraseRecord:32 PhraseMetric:41 \"\"\"Generic n-gram performance analytics. The core scorer works on arbitrary records with text fields and numeric metrics. The YouTube adapter only maps SQLite video rows into that generic shape. \"\"\" from __future__ import annotations import json import math import re import sqlite3 from dataclasses import asdict, dataclass from datetime import date"
+    },
+    {
+      "meta": {
+        "bytes": 11183,
+        "classes": [
+          "Forecast:17",
+          "Trend:26"
+        ],
+        "dependencies": [
+          "dataclasses",
+          "datetime",
+          "json",
+          "numpy",
+          "sqlite3",
+          "typing"
+        ],
+        "file": "scripts/analytics/trend_analyzer.py",
+        "functions": [
+          "parse_date:41",
+          "analyze_trend:52",
+          "to_json:285",
+          "to_markdown:289"
+        ],
+        "layer": "domain-layer",
+        "sha256_16": "9c1cafea7b789a99"
+      },
+      "vector_text": "scripts/analytics/trend_analyzer.py parse_date:41 analyze_trend:52 to_json:285 to_markdown:289 Forecast:17 Trend:26 \"\"\" Trend Analyzer — Polynomial Regression and Forecast Generation This module fits 2nd-degree or 1st-degree polynomials to historical video views dynamics to predict view counts at future times (24h, 7d, 30d). It includes confidence intervals (R²) and flags caveats (e.g. data quality issues, negative slopes). \"\"\" import sqlite3 import json import numpy as n"
+    },
+    {
+      "meta": {
+        "bytes": 17111,
         "classes": [],
         "dependencies": [
           "click",
           "json",
           "pathlib",
+          "scripts.analytics.anomaly_detector",
+          "scripts.analytics.data_method_evaluator",
+          "scripts.analytics.method_review_proposals",
+          "scripts.analytics.metrics_engine",
+          "scripts.analytics.phrase_performance",
+          "scripts.analytics.topic_study",
+          "scripts.analytics.trend_analyzer",
+          "traceback",
           "typing"
         ],
         "file": "scripts/analytics/cli.py",
         "functions": [
-          "cli:36",
-          "anomalies:52",
-          "trend:78",
-          "kpi:101",
-          "brief:124"
+          "cli:42",
+          "anomalies:58",
+          "trend:96",
+          "kpi:127",
+          "topic_study:166",
+          "phrase_performance:225",
+          "method_log:280",
+          "_csv_list:319",
+          "method_rank:327",
+          "method_review:345",
+          "method_proposals:364",
+          "brief:392"
         ],
         "layer": "domain-layer",
-        "sha256_16": "afff9b31126503fd"
+        "sha256_16": "a0ddcff9580561d7"
       },
-      "vector_text": "scripts/analytics/cli.py cli:36 anomalies:52 trend:78 kpi:101 brief:124 \"\"\" CLI Entry Point — Click-based Command Router This module implements the command-line interface for analytics suite. Every command supports --help and outputs structured results (JSON + Markdown). Commands: anomalies → Detect anomalous videos using Z-score trend → Analyze trend using polynomial regression kpi → Show KPI dashboard (medians, quartiles) brie"
+      "vector_text": "scripts/analytics/cli.py cli:42 anomalies:58 trend:96 kpi:127 topic_study:166 phrase_performance:225 method_log:280 _csv_list:319 method_rank:327 method_review:345 method_proposals:364 brief:392 \"\"\" CLI Entry Point — Click-based Command Router This module implements the command-line interface for analytics suite. Every command supports --help and outputs structured results (JSON + Markdown). Commands: anomalies → Detect anomalous videos using Z-score trend → Analyze trend using polynomial regression kpi → Show KPI dashboard (medians, quartiles) topi"
     },
     {
       "meta": {
-        "bytes": 5892,
+        "bytes": 8667,
         "file": "scripts/analytics/INDEX.md",
         "headings": [
           "📊 Analytics Suite — Module Index",
@@ -1192,6 +2356,9 @@
           "[anomaly_detector.py](./anomaly_detector.py)",
           "[trend_analyzer.py](./trend_analyzer.py)",
           "[metrics_engine.py](./metrics_engine.py)",
+          "[topic_study.py](./topic_study.py)",
+          "[data_method_evaluator.py](./data_method_evaluator.py)",
+          "[phrase_performance.py](./phrase_performance.py)",
           "[brief_generator.py](./brief_generator.py)",
           "[__init__.py](./__init__.py)",
           "Testing",
@@ -1202,14 +2369,180 @@
           "Phase 2: Flask Integration (Sprint 1–2)",
           "Phase 3: Dashboard Widget (Sprint 2)",
           "Phase 4: trend_analyzer (Sprint 2)",
-          "Phase 5: metrics_engine & brief_generator (Sprint 3)",
-          "Quick Reference",
-          "Related Documentation"
+          "Phase 5: metrics_engine & brief_generator (Sprint 3)"
         ],
         "layer": "meta-layer",
-        "sha256_16": "7c2a8a95e8bd309b"
+        "sha256_16": "0300c555200a6a37"
       },
-      "vector_text": "scripts/analytics/INDEX.md 📊 Analytics Suite — Module Index Modules [cli.py](./cli.py) [anomaly_detector.py](./anomaly_detector.py) [trend_analyzer.py](./trend_analyzer.py) [metrics_engine.py](./metrics_engine.py) [brief_generator.py](./brief_generator.py) [__init__.py](./__init__.py) Testing Unit Tests Integration Tests Implementation Roadmap Phase 1: anomaly_detector (Sprint 1) Phase 2: Flask Integration (Sprint 1–2) Phase 3: Dashboard Widget (Sprint 2) Phase 4: trend_analyzer (Sprint 2) Phase 5: metrics_engine & brief_generator (Sprint 3) Quick Reference Related Documentation # 📊 Analytics Suite — Module Index **Location:** `scripts/analytics/` **Purpose:** CLI-first analytics implementation (Anomaly detecti"
+      "vector_text": "scripts/analytics/INDEX.md 📊 Analytics Suite — Module Index Modules [cli.py](./cli.py) [anomaly_detector.py](./anomaly_detector.py) [trend_analyzer.py](./trend_analyzer.py) [metrics_engine.py](./metrics_engine.py) [topic_study.py](./topic_study.py) [data_method_evaluator.py](./data_method_evaluator.py) [phrase_performance.py](./phrase_performance.py) [brief_generator.py](./brief_generator.py) [__init__.py](./__init__.py) Testing Unit Tests Integration Tests Implementation Roadmap Phase 1: anomaly_detector (Sprint 1) Phase 2: Flask Integration (Sprint 1–2) Phase 3: Dashboard Widget (Sprint 2) Phase 4: trend_analyzer (Sprint 2) Phase 5: metrics_engine & brief_generator (Sprint 3) # 📊 Analytics Suite — Module Inde"
+    },
+    {
+      "meta": {
+        "bytes": 16101,
+        "classes": [
+          "CaveatDetail:36",
+          "TopicEvidence:43",
+          "TopicCorrelation:56",
+          "TopicAnomaly:65",
+          "TopicStudyReport:75"
+        ],
+        "dependencies": [
+          "dataclasses",
+          "datetime",
+          "json",
+          "math",
+          "numpy",
+          "re",
+          "sqlite3",
+          "typing"
+        ],
+        "file": "scripts/analytics/topic_study.py",
+        "functions": [
+          "tokenize_topic:93",
+          "parse_date:109",
+          "_safe_float:120",
+          "_safe_int:129",
+          "_engagement_rate:133",
+          "_score_row:140",
+          "_pearson:158",
+          "_interpret_correlation:171",
+          "_confidence_from_caveats:187",
+          "_build_evidence:200",
+          "_detect_metric_anomalies:215",
+          "_query_rows:252",
+          "study_topic:302",
+          "to_json:420",
+          "to_markdown:424"
+        ],
+        "layer": "domain-layer",
+        "sha256_16": "d1d8478342134f25"
+      },
+      "vector_text": "scripts/analytics/topic_study.py tokenize_topic:93 parse_date:109 _safe_float:120 _safe_int:129 _engagement_rate:133 _score_row:140 _pearson:158 _interpret_correlation:171 _confidence_from_caveats:187 _build_evidence:200 _detect_metric_anomalies:215 _query_rows:252 study_topic:302 to_json:420 to_markdown:424 CaveatDetail:36 TopicEvidence:43 TopicCorrelation:56 TopicAnomaly:65 TopicStudyReport:75 \"\"\" Topic Study Engine — customer-scoped deep analysis over local source data. The engine studies one topic at a time. It does not try to \"know everything\". It builds a bounded evidence corpus, scores relevance, computes probability-like signals, correlations, and anomalies, then returns JSON/Markdown with caveats. \"\"\" "
+    },
+    {
+      "meta": {
+        "bytes": 76,
+        "classes": [],
+        "dependencies": [
+          "scripts.analytics.cli"
+        ],
+        "file": "scripts/analytics/__main__.py",
+        "functions": [],
+        "layer": "domain-layer",
+        "sha256_16": "fb42cb3a55a899ea"
+      },
+      "vector_text": "scripts/analytics/__main__.py from scripts.analytics.cli import cli if __name__ == \"__main__\": cli()"
+    },
+    {
+      "meta": {
+        "bytes": 8300,
+        "classes": [
+          "MethodReviewProposal:26"
+        ],
+        "dependencies": [
+          "__future__",
+          "dataclasses",
+          "datetime",
+          "json",
+          "pathlib",
+          "typing"
+        ],
+        "file": "scripts/analytics/method_review_proposals.py",
+        "functions": [
+          "utc_now_iso:38",
+          "now_ms:42",
+          "load_review_snapshot:46",
+          "load_proposal_rows:57",
+          "existing_proposal_keys:76",
+          "build_proposal_candidates:89",
+          "proposal_to_row:144",
+          "append_proposals:160",
+          "append_lifecycle_event:192",
+          "generate_method_review_proposals:216"
+        ],
+        "layer": "domain-layer",
+        "sha256_16": "18f6089df1385468"
+      },
+      "vector_text": "scripts/analytics/method_review_proposals.py utc_now_iso:38 now_ms:42 load_review_snapshot:46 load_proposal_rows:57 existing_proposal_keys:76 build_proposal_candidates:89 proposal_to_row:144 append_proposals:160 append_lifecycle_event:192 generate_method_review_proposals:216 MethodReviewProposal:26 \"\"\"Convert repeated data-method review insights into admin proposals. This module is file-backed by design. It does not schedule runs, mutate the main SQLite database, or implement proposals automatically. \"\"\" from __future__ import annotations import json from dataclasses import asdict, dataclass from datetime import datetime from pathlib import Path from t"
+    },
+    {
+      "meta": {
+        "bytes": 10438,
+        "classes": [
+          "DataMethodExperiment:23",
+          "DataMethodScore:40"
+        ],
+        "dependencies": [
+          "dataclasses",
+          "datetime",
+          "json",
+          "math",
+          "pathlib",
+          "typing"
+        ],
+        "file": "scripts/analytics/data_method_evaluator.py",
+        "functions": [
+          "utc_now_iso:57",
+          "_clamp_non_negative_int:61",
+          "_clamp_non_negative_float:71",
+          "make_experiment:81",
+          "append_experiment:138",
+          "load_experiments:146",
+          "_recommend:165",
+          "rank_methods:175",
+          "analyze_log:234",
+          "write_review_snapshot:247",
+          "to_json:259",
+          "to_markdown:263"
+        ],
+        "layer": "domain-layer",
+        "sha256_16": "cba0bb0deb5bada7"
+      },
+      "vector_text": "scripts/analytics/data_method_evaluator.py utc_now_iso:57 _clamp_non_negative_int:61 _clamp_non_negative_float:71 make_experiment:81 append_experiment:138 load_experiments:146 _recommend:165 rank_methods:175 analyze_log:234 write_review_snapshot:247 to_json:259 to_markdown:263 DataMethodExperiment:23 DataMethodScore:40 \"\"\" Data Method Evaluator — logs and ranks data-access experiments. The operating rule is simple: try permitted ways to read data, log outcomes, rank methods later, and let stronger systems build on known working methods. This module is file-backed to avoid DB migrations. \"\"\" import json import math from dataclasses import asdict, dataclass from datetime imp"
+    },
+    {
+      "meta": {
+        "bytes": 1288,
+        "file": "migrations/0004_entity_tracking.sql",
+        "layer": "domain-layer",
+        "sha256_16": "a8155867cbfa0b1c"
+      },
+      "vector_text": "migrations/0004_entity_tracking.sql CREATE TABLE IF NOT EXISTS entities ( id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE NOT NULL, type TEXT NOT NULL CHECK (type IN ('person', 'organization', 'location')), created_at TEXT DEFAULT (datetime('now', 'localtime')) ); CREATE TABLE IF NOT EXISTS entity_aliases ( id INTEGER PRIMARY KEY AUTOINCREMENT, canonical_id INTEGER NOT NULL, alias TEXT"
+    },
+    {
+      "meta": {
+        "bytes": 3049,
+        "file": "migrations/README.md",
+        "headings": [
+          "Migrations",
+          "Status",
+          "0001: v1.1 Support Tables",
+          "0002: Governance Registry (BLOCKED)",
+          "Migration Runner",
+          "Notes for Developers"
+        ],
+        "layer": "meta-layer",
+        "sha256_16": "47337d4b21d0119f"
+      },
+      "vector_text": "migrations/README.md Migrations Status 0001: v1.1 Support Tables 0002: Governance Registry (BLOCKED) Migration Runner Notes for Developers # Migrations Database schema migrations for the Governed Autonomous Intelligence Workspace. ## Status | Version | Name | Status | Applied | |---------|------|--------|---------| | 0001 | v1.1 Support Tables | Completed | ✅ (live `data/youtube_news.db`) | | 0002 | Governance Registry | Phase 0 | ❌ Blocked (see note below) | ## 0001: v1.1 Support Tables **File"
+    },
+    {
+      "meta": {
+        "bytes": 4632,
+        "file": "migrations/0002_governance_registry.sql",
+        "layer": "domain-layer",
+        "sha256_16": "caf4541b940cba54"
+      },
+      "vector_text": "migrations/0002_governance_registry.sql CREATE TABLE IF NOT EXISTS sources ( id INTEGER PRIMARY KEY AUTOINCREMENT, type TEXT NOT NULL, name TEXT NOT NULL, policy_tier TEXT NOT NULL CHECK (policy_tier IN ('A', 'B', 'C', 'D', 'E', 'X')), status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'active', 'paused', 'blocked', 'retired')), owner_user_id INTEGER, source_url TEXT, external_id"
+    },
+    {
+      "meta": {
+        "bytes": 725,
+        "file": "migrations/0003_dashboard_layouts.sql",
+        "layer": "domain-layer",
+        "sha256_16": "cc321591b0717a0e"
+      },
+      "vector_text": "migrations/0003_dashboard_layouts.sql CREATE TABLE IF NOT EXISTS dashboard_layouts ( id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE NOT NULL, is_default INTEGER DEFAULT 0 CHECK (is_default IN (0, 1)), created_at TEXT DEFAULT (datetime('now', 'localtime')), updated_at TEXT DEFAULT (datetime('now', 'localtime')) ); CREATE TABLE IF NOT EXISTS dashboard_widgets ( id TEXT PRIMARY KEY, layout_"
     },
     {
       "meta": {
@@ -1222,12 +2555,12 @@
     },
     {
       "meta": {
-        "bytes": 52776,
+        "bytes": 79991,
         "file": "templates/index.html",
         "layer": "domain-layer",
-        "sha256_16": "2347e0b84ae8595b"
+        "sha256_16": "96b4b12617871cfb"
       },
-      "vector_text": "templates/index.html <!DOCTYPE html> <html lang=\"en\"> <head> <meta charset=\"UTF-8\"> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"> <title>News Research Automation | Dashboard</title> <!-- FontAwesome icons --> <link rel=\"stylesheet\" href=\"https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css\"> <!-- Main Stylesheet --> <link rel=\"styles"
+      "vector_text": "templates/index.html <!DOCTYPE html> <html lang=\"en\"> <head> <meta charset=\"UTF-8\"> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"> <title>Governed Autonomous Intelligence Workspace | Dashboard</title> <!-- FontAwesome icons --> <link rel=\"stylesheet\" href=\"https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css\"> <!-- Main Stylesheet -->"
     },
     {
       "meta": {
@@ -1243,40 +2576,40 @@
     },
     {
       "meta": {
-        "bytes": 600,
+        "bytes": 865,
         "file": "static/README.md",
         "headings": [
           "static/"
         ],
         "layer": "meta-layer",
-        "sha256_16": "733e13901db075ef"
+        "sha256_16": "46d443122d915e32"
       },
-      "vector_text": "static/README.md static/ # static/ Frontend assets. | File | Purpose | |---|---| | `css/style.css` | Layout, themes, widgets, chat drawer, responsive rules | | `js/app.js` | Entry module and initialization | | `js/state.js` | Shared frontend state | | `js/api.js` | Fetch/API helpers | | `js/charts.js` | Chart.js rendering | | `js/d3-charts.js` | D3/copyable chart rendering | | `js/u"
+      "vector_text": "static/README.md static/ # static/ Frontend assets. | File | Purpose | |---|---| | `css/style.css` | Layout, themes, widgets, chat drawer, responsive rules | | `js/app.js` | Entry module and initialization | | `js/state.js` | Shared frontend state | | `js/auth.js` | Admin session prompts and protected fetch helpers | | `js/api.js` | Fetch/API helpers | | `js/charts.js` | Chart.js re"
     },
     {
       "meta": {
-        "bytes": 69123,
+        "bytes": 86897,
         "file": "static/css/style.css",
         "layer": "domain-layer",
-        "sha256_16": "61e4cb620e65712f"
+        "sha256_16": "4bf39c69a84e2a5e"
       },
       "vector_text": "static/css/style.css /* Kaggle-style CSS variables and layout */ @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap'); :root { /* DEFAULT THEME: LIGHT WHITE */ --bg-color: #f7f9fa; --card-bg: #ffffff; --bg-card: #ffffff; --border-color: #e2e8f0; --text-color: #202124; --text-muted: #5f6368; --accent-color: #008abb; /* Kaggle Blue */"
     },
     {
       "meta": {
-        "bytes": 12240,
+        "bytes": 38735,
         "classes": [],
         "dependencies": [],
         "file": "static/js/translations.js",
         "functions": [],
         "layer": "domain-layer",
-        "sha256_16": "4371f0486ee1ba15"
+        "sha256_16": "ed1ea38df3587a4b"
       },
-      "vector_text": "static/js/translations.js // Translations dictionary export const translations = { ua: { menu_dashboard: \"Дані та Аналітика\", menu_terminal: \"Термінал\", terminal_quick_scripts: \"Швидкі скрипти\", terminal_session_title: \"Сесія терміналу (venv)\", terminal_help_text: \"Натисніть на скрипт для вводу. Використовуйте стрілку для опцій. Натисніть Enter для запуску.\", header_title: \"Панель ав"
+      "vector_text": "static/js/translations.js // Translations dictionary export const translations = { ua: { lbl_workspace_layout: \"Макет робочої області:\", btn_save_layout: \"Зберегти\", btn_new_layout: \"Новий макет\", btn_delete_layout: \"Видалити\", menu_dashboard: \"Аналіз\", menu_terminal: \"Адміністрування\", terminal_quick_scripts: \"Швидкі скрипти\", terminal_session_title: \"Сесія терміналу (venv)\", termin"
     },
     {
       "meta": {
-        "bytes": 99344,
+        "bytes": 146302,
         "classes": [
           "ChatUIManager"
         ],
@@ -1285,13 +2618,17 @@
           "./translations.js",
           "./api.js",
           "./charts.js",
-          "./terminal.js"
+          "./terminal.js",
+          "./auth.js"
         ],
         "file": "static/js/ui.js",
         "functions": [
           "escapeHtml",
           "changeLanguage",
           "changeTheme",
+          "normalizeUiRole",
+          "applyRoleVisibility",
+          "applyEntitlementsUI",
           "switchSection",
           "setSidebarCollapsed",
           "toggleSidebar",
@@ -1301,37 +2638,87 @@
           "loadProposalInbox",
           "updateProposalStatus",
           "initProposalInbox",
-          "toggleChannelsDropdown",
-          "onChannelCheckboxChange",
-          "onChannelColorChange",
-          "toggleSelectAllChannels",
-          "getSelectedChannels",
-          "updateActiveChannelNameLabel",
-          "renderChannelsMenu",
-          "renderTable",
-          "toggleSort",
-          "debounceFilter",
-          "resetFilters",
-          "setDateRange",
-          "toggleColumnsSelector",
-          "updateColumns",
-          "changePage",
-          "changePerPage",
-          "changeChartLimit",
-          "selectSingleChannel"
+          "_formatPolicyAction",
+          "_safeExternalUrl",
+          "_setOperatorStatus",
+          "_renderPolicyTiers",
+          "_operatorText",
+          "_operatorSources",
+          "_findOperatorSource",
+          "_connectorHelp",
+          "_renderConnectorSummary",
+          "_renderSourceRegistry",
+          "_renderIngestionConsole",
+          "_summarizeMissing",
+          "_renderMigrationReadiness",
+          "_renderConnectorRuns",
+          "_renderSourceRecords"
         ],
         "layer": "domain-layer",
-        "sha256_16": "93007fa8afaa79ff"
+        "sha256_16": "8f3575d6459123d5"
       },
-      "vector_text": "static/js/ui.js escapeHtml changeLanguage changeTheme switchSection setSidebarCollapsed toggleSidebar closeSidebar _renderProposalActions _renderProposalInbox loadProposalInbox updateProposalStatus initProposalInbox toggleChannelsDropdown onChannelCheckboxChange onChannelColorChange toggleSelectAllChannels getSelectedChannels updateActiveChannelNameLabel renderChannelsMenu renderTable toggleSort debounceFilter resetFilters setDateRange toggleColumnsSelector updateColumns changePage changePerPage changeChartLimit selectSingleChannel ChatUIManager import { state, DEFAULT_COLORS } from './state.js'; import { translations } from './translations.js'; import { loadStats, loadChannelStatsHeader, loadChannels, loadVide"
+      "vector_text": "static/js/ui.js escapeHtml changeLanguage changeTheme normalizeUiRole applyRoleVisibility applyEntitlementsUI switchSection setSidebarCollapsed toggleSidebar closeSidebar _renderProposalActions _renderProposalInbox loadProposalInbox updateProposalStatus initProposalInbox _formatPolicyAction _safeExternalUrl _setOperatorStatus _renderPolicyTiers _operatorText _operatorSources _findOperatorSource _connectorHelp _renderConnectorSummary _renderSourceRegistry _renderIngestionConsole _summarizeMissing _renderMigrationReadiness _renderConnectorRuns _renderSourceRecords ChatUIManager import { state, DEFAULT_COLORS } from './state.js'; import { translations } from './translations.js'; import { loadStats, loadChannelStat"
     },
     {
       "meta": {
-        "bytes": 6456,
+        "bytes": 3268,
+        "classes": [],
+        "dependencies": [
+          "./state.js"
+        ],
+        "file": "static/js/auth.js",
+        "functions": [
+          "normalizeUiRole",
+          "authText",
+          "loadAuthStatus",
+          "ensureAdminSession",
+          "deniedResponse",
+          "adminFetch",
+          "adminFetchSilent",
+          "openAdminUrl"
+        ],
+        "layer": "domain-layer",
+        "sha256_16": "865071047c8ad59f"
+      },
+      "vector_text": "static/js/auth.js normalizeUiRole authText loadAuthStatus ensureAdminSession deniedResponse adminFetch adminFetchSilent openAdminUrl import { state } from './state.js'; let authStatus = null; let authStatusPromise = null; function normalizeUiRole(status) { const role = String(status?.role || \"user\").toLowerCase(); if (status?.admin || role === \"admin\" || role === \"master_admin\") return \"admin\"; if (role === \"analyst\") return \"analyst\"; return \"reader\"; } function authText() { if (state.cu"
+    },
+    {
+      "meta": {
+        "bytes": 11926,
         "classes": [],
         "dependencies": [
           "./state.js",
-          "./translations.js"
+          "./auth.js"
+        ],
+        "file": "static/js/briefs.js",
+        "functions": [
+          "briefText",
+          "loadBriefs",
+          "loadBriefSources",
+          "generateDailyBrief",
+          "viewBriefDetails",
+          "closeBriefModal",
+          "exportBriefFromModal",
+          "fetchBriefExportText",
+          "writeClipboardText",
+          "showBriefCopyStatus",
+          "copyBriefMarkdown",
+          "copyBriefMarkdownFromModal",
+          "escapeHtml"
+        ],
+        "layer": "domain-layer",
+        "sha256_16": "ea250ad549aef8df"
+      },
+      "vector_text": "static/js/briefs.js briefText loadBriefs loadBriefSources generateDailyBrief viewBriefDetails closeBriefModal exportBriefFromModal fetchBriefExportText writeClipboardText showBriefCopyStatus copyBriefMarkdown copyBriefMarkdownFromModal escapeHtml import { state } from './state.js'; import { adminFetch, adminFetchSilent } from './auth.js'; let activeBriefId = null; function briefText(key, fallback) { const dict = { copy_brief: { ua: \"Копіювати\", en: \"Copy\", }, copied: { ua: \"Дайджест скопійовано в буфер.\", en: \"Brief copied to clipboard.\", }, copy_failed: { ua: \"Не вдалося скопіювати дайджест.\", en: \""
+    },
+    {
+      "meta": {
+        "bytes": 6609,
+        "classes": [],
+        "dependencies": [
+          "./state.js",
+          "./translations.js",
+          "./auth.js"
         ],
         "file": "static/js/terminal.js",
         "functions": [
@@ -1343,9 +2730,9 @@
           "toggleDropdown"
         ],
         "layer": "domain-layer",
-        "sha256_16": "739a1c2f16738c1a"
+        "sha256_16": "5e4601135adbeab3"
       },
-      "vector_text": "static/js/terminal.js initTerminal connectTerminalStream sendTerminalInput sendTerminalResize injectCommand toggleDropdown import { state } from './state.js'; import { translations } from './translations.js'; export function initTerminal() { const container = document.getElementById(\"xterm-container\"); if (!container) return; if (state.termInitialized) { // Just fit the terminal if already initialized if (state.fitAddon) { setTimeout(() => { try { state.fitAddon.fit(); sendTermi"
+      "vector_text": "static/js/terminal.js initTerminal connectTerminalStream sendTerminalInput sendTerminalResize injectCommand toggleDropdown import { state } from './state.js'; import { translations } from './translations.js'; import { adminFetch, adminFetchSilent, ensureAdminSession } from './auth.js'; export function initTerminal() { const container = document.getElementById(\"xterm-container\"); if (!container) return; if (state.termInitialized) { // Just fit the terminal if already initialized"
     },
     {
       "meta": {
@@ -1374,15 +2761,15 @@
     },
     {
       "meta": {
-        "bytes": 1596,
+        "bytes": 1964,
         "classes": [],
         "dependencies": [],
         "file": "static/js/state.js",
         "functions": [],
         "layer": "domain-layer",
-        "sha256_16": "573301f2edc9a69c"
+        "sha256_16": "65291fddc38fbe48"
       },
-      "vector_text": "static/js/state.js // Global App State for News Research Automation Dashboard export const state = { currentLang: localStorage.getItem(\"app_lang\") || \"ua\", currentTheme: localStorage.getItem(\"app_theme\") || \"light\", currentSection: \"analytics-tab\", activeChartInstance: null, chartRawData: null, activeChartType: 'top_viewed', chartLimit: parseInt(localStorage.getItem(\"chart_lim"
+      "vector_text": "static/js/state.js // Global App State for Governed Autonomous Intelligence Workspace export const state = { currentLang: localStorage.getItem(\"app_lang\") || \"ua\", currentTheme: localStorage.getItem(\"app_theme\") || \"light\", currentSection: \"analytics-tab\", activeChartInstance: null, chartRawData: null, activeChartType: 'top_viewed', chartLimit: parseInt(localStorage.getItem(\"c"
     },
     {
       "meta": {
@@ -1414,13 +2801,14 @@
     },
     {
       "meta": {
-        "bytes": 25876,
+        "bytes": 26843,
         "classes": [],
         "dependencies": [
           "./state.js",
           "./translations.js",
           "./ui.js",
-          "./charts.js"
+          "./charts.js",
+          "./auth.js"
         ],
         "file": "static/js/api.js",
         "functions": [
@@ -1431,25 +2819,32 @@
           "triggerAction",
           "checkProcessStatus",
           "loadChartsData",
-          "applyFilters"
+          "applyFilters",
+          "loadEntitlements"
         ],
         "layer": "domain-layer",
-        "sha256_16": "1201c18e11ffff52"
+        "sha256_16": "7a3f7d4ab4987a91"
       },
-      "vector_text": "static/js/api.js loadStats loadChannelStatsHeader loadChannels loadVideos triggerAction checkProcessStatus loadChartsData applyFilters import { state, DEFAULT_COLORS } from './state.js'; import { translations } from './translations.js'; import { renderTable, updateActiveChannelNameLabel, renderChannelsMenu, openVideoModal } from './ui.js'; import { renderActiveChart, initChartUI } from './charts.js'; // API CALL: FETCH DATABASE STATS export async function loadStats() { try { const res = awa"
+      "vector_text": "static/js/api.js loadStats loadChannelStatsHeader loadChannels loadVideos triggerAction checkProcessStatus loadChartsData applyFilters loadEntitlements import { state, DEFAULT_COLORS } from './state.js'; import { translations } from './translations.js'; import { renderTable, updateActiveChannelNameLabel, renderChannelsMenu, openVideoModal } from './ui.js'; import { renderActiveChart, initChartUI } from './charts.js'; import { adminFetch, adminFetchSilent, loadAuthStatus } from './auth.js'; // API CALL: FETC"
     },
     {
       "meta": {
-        "bytes": 24715,
+        "bytes": 85537,
         "classes": [
           "BaseWidget",
           "ChannelAnalyticsWidget",
+          "AnomalyAlertsWidget",
+          "DailyBriefsWidget",
+          "MinifiedStatCardsWidget",
+          "EntityTimelineTracksWidget",
+          "SystemStatusIndicatorWidget",
           "DashboardWorkspace"
         ],
         "dependencies": [
           "./state.js",
           "./translations.js",
-          "./charts.js"
+          "./charts.js",
+          "./auth.js"
         ],
         "file": "static/js/widgets.js",
         "functions": [
@@ -1458,17 +2853,20 @@
           "findUatvEnglishChannel",
           "defaultChannelIds",
           "chartLabel",
+          "parsePixelSize",
           "formatMetricLine",
+          "getPresetDateRange",
+          "getPresetDateRangeForDays",
           "initDashboardWorkspace"
         ],
         "layer": "domain-layer",
-        "sha256_16": "3fb5f2d1274fc741"
+        "sha256_16": "590ccc665a345115"
       },
-      "vector_text": "static/js/widgets.js escapeHtml readDateRange findUatvEnglishChannel defaultChannelIds chartLabel formatMetricLine initDashboardWorkspace BaseWidget ChannelAnalyticsWidget DashboardWorkspace import { state } from './state.js'; import { translations } from './translations.js'; import { CHART_DEFS, initChartUI, renderActiveChart } from './charts.js'; const STORAGE_KEY = 'dashboard_widgets_v1'; const WIDGETS_STATE_ENDPOINT = '/api/widgets/state'; function escapeHtml(value) { return String(value ?? '') .replace(/&/g, '&amp;') .replace(/</g, '&lt;')"
+      "vector_text": "static/js/widgets.js escapeHtml readDateRange findUatvEnglishChannel defaultChannelIds chartLabel parsePixelSize formatMetricLine getPresetDateRange getPresetDateRangeForDays initDashboardWorkspace BaseWidget ChannelAnalyticsWidget AnomalyAlertsWidget DailyBriefsWidget MinifiedStatCardsWidget EntityTimelineTracksWidget SystemStatusIndicatorWidget DashboardWorkspace import { state } from './state.js'; import { translations } from './translations.js'; import { CHART_DEFS, initChartUI, renderActiveChart } from './charts.js'; import { adminFetch, adminFetchSilent } from './auth.js'; const STORAGE_KEY = 'dashboard_widgets_v1'; const WIDGETS_STATE_ENDPOINT = '/api/widgets/state'; const MIN_WIDGET_WIDTH = 320; const M"
     },
     {
       "meta": {
-        "bytes": 9437,
+        "bytes": 15433,
         "classes": [],
         "dependencies": [
           "./state.js",
@@ -1476,16 +2874,25 @@
           "./api.js",
           "./charts.js",
           "./terminal.js",
-          "./widgets.js"
+          "./widgets.js",
+          "./briefs.js"
         ],
         "file": "static/js/app.js",
         "functions": [
+          "dateToDay",
+          "dayToDate",
+          "clearQuickDateSelection",
+          "updateDateRangeSliderLabels",
+          "syncDateRangeSliderFromInputs",
+          "applyDateRangeFromSlider",
+          "scheduleDateSliderApply",
+          "initDateRangeSlider",
           "syncTopBarHeight"
         ],
         "layer": "domain-layer",
-        "sha256_16": "02fa5fa88aba1bae"
+        "sha256_16": "219af3f711493103"
       },
-      "vector_text": "static/js/app.js syncTopBarHeight import { state } from './state.js'; import { changeLanguage, changeTheme, switchSection, toggleSidebar, closeSidebar, toggleChannelsDropdown, onChannelCheckboxChange, onChannelColorChange, toggleSelectAllChannels, getSelectedChannels, updateActiveChannelNameLabel, renderChannelsMenu, renderTable, toggleSort, debounceFilter, resetFilters, setDateRange, toggle"
+      "vector_text": "static/js/app.js dateToDay dayToDate clearQuickDateSelection updateDateRangeSliderLabels syncDateRangeSliderFromInputs applyDateRangeFromSlider scheduleDateSliderApply initDateRangeSlider syncTopBarHeight import { state } from './state.js'; import { changeLanguage, changeTheme, switchSection, toggleSidebar, closeSidebar, toggleChannelsDropdown, onChannelCheckboxChange, onChannelColorChange, toggleSelectAllChannels, getSelectedChannels, updateActiveChannelNameLabel, renderChannelsMenu, renderTable, toggleSort, debounceFilter, resetFilters, setDateRange, toggle"
     },
     {
       "meta": {

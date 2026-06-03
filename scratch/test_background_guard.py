@@ -1,5 +1,6 @@
 import os
 import sys
+import tempfile
 import unittest
 from unittest.mock import patch
 
@@ -72,6 +73,9 @@ class TestBackgroundGuard(unittest.TestCase):
 
         old_token = os.environ.get("NEWS_RESEARCH_ADMIN_TOKEN")
         os.environ["NEWS_RESEARCH_ADMIN_TOKEN"] = "secret-token"
+        tmp = tempfile.TemporaryDirectory()
+        root_patch = patch("app.routes.actions.root_dir", tmp.name)
+        root_patch.start()
         try:
             app = create_app()
             client = app.test_client()
@@ -95,7 +99,12 @@ class TestBackgroundGuard(unittest.TestCase):
                 json={"type": "feature", "desc": "Test proposal"}
             )
             self.assertEqual(response.status_code, 200)
+
+            inbox = os.path.join(tmp.name, "agent_proposals", "admin_proposals.jsonl")
+            self.assertTrue(os.path.exists(inbox))
         finally:
+            root_patch.stop()
+            tmp.cleanup()
             if old_token is None:
                 os.environ.pop("NEWS_RESEARCH_ADMIN_TOKEN", None)
             else:

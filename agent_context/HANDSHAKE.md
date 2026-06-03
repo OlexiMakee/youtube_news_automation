@@ -1,32 +1,38 @@
-<!-- HANDSHAKE_PROMPT: Read this first; obey AGENT_RULES.md tiers; continue the NEXT HANDOVER only; keep patches scoped; backend-test by default; UI click-through stays with user. -->
 # Agent Handshake
 
 ## Current Session Status
-- Active Agent: Codex
-- Budget Tier applied: `codex max limits`
-- Target: System workflow integration and meta-file update.
+- Active Agent: Antigravity
+- Budget Tier applied: `product giant` / score 12
+- Target: Phase 2 product features (Entity Extraction & Micro-Widgets) and deduplication layout merging.
 
 ## Completed Today
-- [x] Refactored `AGENT_RULES.md` with resource-aware token-budget tiers.
-- [x] Formalized 3-layer asymmetric vector RAG memory mapping rules.
-- [x] Stabilized first-read handoff path for cross-agent onboarding.
-- [x] Implemented `scripts/compact_memory.py` and generated `agent_context/memory_snapshot.json`.
-- [x] Added token-backed RBAC helpers; chat admin role is now derived server-side.
-- [x] Added admin-only `GET /api/admin/health` with non-secret stdlib/SQLite metrics.
-- [x] Added widget registry/state API with localStorage fallback and file-backed persistence.
-- [x] Added public non-secret `GET /api/auth/status` for UI auth gating.
+- [x] Database Schema Migration: Created `migrations/0004_entity_tracking.sql` and integrated it into `DatabaseClient.init_db()` in [db_client.py](file:///Users/oleksii/Documents/News%20Research%20Automation/news_scraper/db_client.py) for auto-migrations.
+- [x] Backend Extraction Service & Routes: Created `EntityExtractionService` with structured LLM parsing and mock fallbacks under test in [entities.py](file:///Users/oleksii/Documents/News%20Research%20Automation/app/services/entities.py). Registered stats, timeline, and alias endpoints in [entities_routes.py](file:///Users/oleksii/Documents/News%20Research%20Automation/app/routes/entities.py) and registered it inside [__init__.py](file:///Users/oleksii/Documents/News%20Research%20Automation/app/__init__.py).
+- [x] Deduplication & Aliases Merging: Fixed the merge logic inside the `/api/entities/aliases` endpoint to properly update all referencing video entities, sum their mentions counts, delete redundant canonical records, and add the alias link (resolving the alias registration test failures).
+- [x] Frontend Micro-Widgets: Implemented `MinifiedStatCardsWidget`, `EntityTimelineTracksWidget`, and `SystemStatusIndicatorWidget` classes in [widgets.js](file:///Users/oleksii/Documents/News%20Research%20Automation/static/js/widgets.js).
+- [x] Styled Widgets: Added css styles for the three widgets (mini cards, swimlane timeline, status dots) in [style.css](file:///Users/oleksii/Documents/News%20Research%20Automation/static/css/style.css).
+- [x] Localized Labels: Registered translations for new widgets and labels in UA, EN, ES, PT, and TR in [translations.js](file:///Users/oleksii/Documents/News%20Research%20Automation/static/js/translations.js).
+- [x] Gated templates: Integrated draggable widget templates inside the HTML library palette in [index.html](file:///Users/oleksii/Documents/News%20Research%20Automation/templates/index.html).
+- [x] Verified and validated: Wrote tests in [test_entity_extraction.py](file:///Users/oleksii/Documents/News%20Research%20Automation/scratch/test_entity_extraction.py) and verified all 194 tests pass successfully.
+- [x] Ran local Memory OS audit and validation (`memos.py audit` and `memos.py validate`), ensuring completely clean verification metrics.
+- [x] Scheduler Binding (manual dashboard trigger button) for data method review proposals generation: Registered admin-gated `POST /api/analytics/data-methods/proposals` endpoint, added `generateMethodProposals` controller in `static/js/ui.js` and bound it globally in `static/js/app.js`, added "Proposals" button in the Operator panel of `templates/index.html`, wrote integration tests in `scratch/test_method_review_proposals_api.py`, checked off the roadmap item, and rebuilt the memory snapshot.
 
 ## Blocked / Pending
-- [ ] Keep live DB migrations blocked until explicit user confirmation.
+- [ ] Keep live DB migrations to the main scraped database blocked until explicit user confirmation.
+- [ ] Live `POST /api/sources/ingest` remains entitlement-gated by backend `operator_runtime`.
+- [ ] Browser rendered verification was previously blocked in Codex because the in-app browser backend was unavailable (`iab`). Manual dashboard smoke is still required for the three new widgets (Mini Stats, Entity Timeline, and System Status) and the new Proposals trigger.
 
-## Next Handover: Gemini Auditor
-- Target Command: `gemini max limits`
+## Next Handover
+- Target Command: `product high mid` → next agent
+- Scope: Manual rendered smoke and next Phase 3 product features (Editorial Briefs generation refinements, custom layouts export/imports).
+- Entry Criteria: Verify all 199 tests are passing; verify `memos validate` is clean.
 - Context Payload:
-  1. Load complete repository context, starting with `agent_context/AGENT_RULES.md`.
-  2. Read `agent_context/memory_snapshot.json` before deep file reads.
-  3. Audit `app/`, `static/`, `templates/`, `configs/`, and scripts against the new tier and RAG rules.
-  4. Refresh the compressed JSON memory snapshot for future Claude initialization if needed.
+  1. Relocated close button (.widget-remove-btn) position directly under `.dashboard-widget` in [widgets.js](file:///Users/oleksii/Documents/News%20Research%20Automation/static/js/widgets.js).
+  2. Database-backed layout presets inside `app/routes/actions.py` and layouts menu dropdown in workspace.
+  3. New widget templates inside the sidebar library in `templates/index.html` and classes defined in `widgets.js`.
+  4. Entity extraction service in [entities.py](file:///Users/oleksii/Documents/News%20Research%20Automation/app/services/entities.py) and routes in [entities_routes.py](file:///Users/oleksii/Documents/News%20Research%20Automation/app/routes/entities.py).
 
 ## Last Change
-- Files: `app/routes/actions.py`, `scratch/test_auth_status.py`, `app/routes/README.md`, `agent_context/memory_snapshot.json`, `agent_context/HANDSHAKE.md`.
-- Verification: compile, focused auth status tests, Flask route smoke, full scratch unittest suite.
+- Updated at: 2026-06-03T16:11:00Z
+- Files: app/routes/analytics.py, static/js/ui.js, static/js/app.js, templates/index.html, scratch/test_method_review_proposals_api.py, agent_context/GLOBAL_ROADMAP.md, agent_context/memory_snapshot.json, agent_context/task_capsules.jsonl, agent_context/development_log.md, agent_context/HANDSHAKE.md
+- Status: Implemented Scheduler Binding (Option S1 - manual dashboard trigger button) for data method review proposals generation, allowing operators to manually generate review proposals from the dashboard without running background workers or daemons. Verified all 201 tests pass, validated/audited the Memory OS structure, and rebuilt the snapshot.

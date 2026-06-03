@@ -1,94 +1,93 @@
-# Global Roadmap
+# Global Roadmap: Governed Autonomous Intelligence Workspace
 
-Status: consolidated on 2026-05-31 from proposals, admin inbox, indexes, README files, and local schema inspection.
-Purpose: one compact source for current bugs, features, risks, and execution order.
+Status: reformed on 2026-06-02 based on the autonomous_intelligence_hub_strategy_v3.md GTM directive and deep-research-report.md memory model.
 
-## Confirmed Current State
-- App: local-first Flask dashboard with modular `app/` routes and ES-module frontend.
-- DB: SQLite WAL is enabled; current local DB contains `channels`, `videos`, `video_phrases`, `agent_chats`, `users`, `user_invites`, `system_metrics`, `agent_feedback_memory`, and `leaked_quota_errors`.
-- Data snapshot during audit: about 20k videos and 10 channels in local SQLite.
-- AI: provider chain and quota rotation exist; OpenRouter is free-only; Ollama is cloud-only; local LLM routes are forbidden.
-- UI: dashboard widgets, chat drawer persistence, context meter, proposal capture, and multi-widget summary context are partially implemented.
-- Docs: older proposal files and root indexes contained stale v0.5/v0.6 assumptions and have been consolidated here.
+---
 
-## Closed Or Consolidated Items
-- Chart text should be copyable through DOM, not canvas-only.
-- Top-list rows should preserve full title on hover and reuse the existing video detail modal.
-- Top filter/stat area should remain sticky.
-- AI chat history/open state/provider/model persist in browser localStorage.
-- Summarize reads all active dashboard widgets, not only the first legacy chart.
-- Chat close uses arrow controls; clear-history button is separated.
-- Context warning is a toast near the meter, not a blocked input field.
-- Scraper sync prompts: Kaggle defaults to skip after timeout; Postgres defaults to sync.
-- Scraper channel list is root-level `channels_to_scrape.txt`.
-- Provider fallback tests cover quota rotation and streamed provider/model metadata.
-- Sidebar uses overlay/collapsed behavior so the workspace does not shift.
-- Admin proposal inbox rows support statuses; completed rows are hidden by default.
-- Sidebar proposal inbox UI can filter rows and update statuses.
-- Migration runner design is captured in `decisions/ADR-002_DB_MIGRATION_RUNNER.md`.
-- Migration runner exists at `scripts/migrate_db.py`; old `migrate_db_v2.py --rollback` is disabled.
-- Migration runner was validated with `--apply` on a copied production-like DB; the live DB was not mutated.
-- Memory compaction tooling exists at `scripts/compact_memory.py`; current snapshot is `agent_context/memory_snapshot.json`.
+## Strategic Phases
 
-## Active Bugs And Feature Queue
+### Phase 0: Strategy & Category Alignment
+- [x] Rename category to **Governed Autonomous Intelligence Workspace** across core documentation and UI titles.
+- [x] Define acceptable use boundaries, misuse prohibition rules, and source policy tiers (A, B, C, D, E, X) inside [CONTEXT.md](file:///Users/oleksii/Documents/News%20Research%20Automation/agent_context/CONTEXT.md).
+- [x] Implement initial progressive entitlement scaffolding (`ready_workspace`, `dense_workspace`, `linked_intelligence`, `operator_runtime`, `autonomous_watchers`) in [CONTEXT.md](file:///Users/oleksii/Documents/News%20Research%20Automation/agent_context/CONTEXT.md).
+- [x] Remove duplicate workspace tabs in top bar; consolidate navigation exclusively within the left sidebar.
+- [x] Configure responsive paddings and transitions on `.modal-overlay` for dynamic centering based on sidebar and chat drawer visibility.
+- [x] Set default left sidebar state to collapsed on startup and add click-outside closure listener in [app.js](file:///Users/oleksii/Documents/News%20Research%20Automation/static/js/app.js).
+- [x] Add inline warning-styled "Assistant" button to modal actions panel to stream video context directly into the AI chat.
+- [x] Automatically append active dashboard filter values (dates, channels) and system time to AI chat context.
 
-### A. Stabilization And Verification
-A1. Add more route-level provider fallback tests if provider routing changes.
-A2. Verify chat controls manually: open/close, resize, provider/model persistence, summarize, context toast.
-A3. Verify widget workspace manually: drag second widget, persistence, per-widget channel state, summary across widgets.
-A4. Audit background daemon startup so tests and CLI imports never start telemetry or scrapers unexpectedly.
+### Phase 1: Editorial MVP
+- [x] **Source Registry UI**: Implement a dashboard panel to add, edit, and inspect source registry state.
+- [x] **Ingestion Pipeline**: Build ingestion hooks for YouTube API, RSS feeds, and manual file uploads, complete with frontend UI run triggers.
+- [x] **Deep Topic Study Primitive**: Add customer-scoped topic analytics with probabilities, correlations, anomalies, evidence, and caveats.
+- [x] **Generic Phrase Performance Primitive**: Rank 1/2/3/4-gram phrases by views, likes, comments, growth metrics, engagement, medians, totals, lift, and evidence samples.
+- [x] **Phrase Performance Chart API Integration**: Derive dashboard word/hashtag/title/thumbnail phrase metrics from the generic scorer instead of the legacy `video_phrases` table path.
+- [x] **Data Access Experiment Loop**: Add file-backed method experiment logs and ranking for data-reading approaches.
+- [x] **Ingestion API Foundation**: Add admin/entitlement-gated `GET /api/source-connectors` and `POST /api/sources/ingest` for dry-run-first YouTube/RSS/manual connector execution and optional governance-registry persistence.
+- [x] **Transcript Extraction**: Permitted automated transcription workflows (with M4A audio extraction and download).
+- [x] **Daily Brief Template**: Design structured template widgets rendering yesterday's key stories and metrics.
+- [x] **Source-Backed Briefs**: Connect LLM brief generation to reference source citations.
+- [x] **Compact Grid v1**: Upgrade dashboard workspace grid to support resizable, collapsible cards.
+- [x] **Copy-as-Brief Export**: Add single-click button copying the generated markdown brief with footnotes/citations.
+- [x] **Source Records Surfacing**: Add read-only source record previews in Operator Runtime after persisted ingestion.
+- [x] **Basic Roles**: Implement reader, analyst, and administrator UI visibility rules based on active user role.
+- [x] **Proposal Inbox Workflow Classification**: Keep one file-backed proposal inbox, but add backward-compatible `workflow`, `origin`, `authority`, `role_title`, and `created_by` metadata so product and Memory OS proposals can be filtered without splitting persistence yet.
 
-### B. Current UI Corrections
-B1. Manually verify sidebar overlay behavior across desktop/mobile and drag-to-widget workflow.
-B2. Replace sidebar brand text with compact menu/tabs behavior.
-B3. Validate vertical resizing of visualization card so at least 8 top rows remain visible.
-B4. Keep widget headers compact and avoid nested-card visual clutter.
+### Phase 2: Dense Workspace & Entity Tracking
+- [x] **Saved Layouts**: Save grid widget positions and dimensions to database widgets table.
+- [x] **Micro-Widgets**: Build minified stat cards, compact timeline tracks, and status indicator lights.
+- [x] **Synchronized Filters**: Propagate channel checkboxes, search queries, and date ranges across all widgets.
+- [x] **Entity Extraction**: Deploy models to extract political actors, organizations, and locations from descriptions.
+- [x] **Alias Dictionary**: Group name variations (e.g., "UATV", "UA TV") under single canonical entities.
+- [x] **Cross-Source Timeline**: Render a unified timeline showing when specific entities are mentioned across channels.
+- [ ] **Cost & Quota Dashboard**: Expose real-time API call counts and model token budgets.
 
-### C. Assistant Quality And Token Control
-C1. Reduce prompt stack if answers become formal or generic.
-C2. Keep `scripts/compact_memory.py` snapshot current before Gemini/Claude handoffs.
-C3. Proposal status controls exist in the sidebar. Future work: add RBAC gating when sessions are implemented.
-C4. Keep chief-editor rules focused on actionable editorial insight, not broad newsroom prose.
+### Phase 3: Evidence & OSINT Mode
+- [ ] **Artifact Store**: Cache raw source data (HTML pages, video thumbnails, descriptions) with immutability hashes.
+- [ ] **Timestamp & Hash Verification**: Cryptographically timestamp exported summaries.
+- [ ] **Evidence Bundle Export**: Zip raw artifacts, screenshots, and logs into a single downloadable proof zip.
+- [ ] **Audit Logging**: Write critical user actions (source modifications, export triggers) to SQLite `audit_events`.
+- [ ] **Retention Locks**: Implement auto-purge rules for high-risk Tier E scraper caches.
+- [ ] **Tri-View (Graph, Timeline, Table)**: Toggle workspace views between raw tables, chronologies, and entity connection maps.
 
-### D. Data Layer And RBAC Foundation
-D1. Decide when to apply the validated migration runner to the live SQLite DB.
-D2. Keep `configs/schemas/db_schema_v2.json` aligned with actual SQLite schema as migrations evolve.
-D3. Implement server-side sessions and role mapping before exposing admin endpoints.
-D4. Add RBAC decorators for terminal, provider settings, telemetry, widget save, admin health, updates.
+### Phase 4: Controlled Automation
+- [ ] **Scheduled Watchers**: Configure background cron workers to scan source feeds every N hours.
+- [ ] **Budget & Token Caps**: Set hard limits on watcher API spends.
+- [ ] **Human Review Queue**: Hold autonomous reports in draft status until approved by an Editor or Analyst.
+- [ ] **Anomaly Alerts**: Push Slack, Telegram, or email notifications for Z-score alerts meeting threshold.
 
-### E. Widget Persistence And Extensible Interface
-E1. Move dashboard widget layout/state from localStorage-only to optional DB-backed `dashboard_widgets`.
-E2. Keep localStorage fallback for single-user/offline mode.
-E3. Add generic widget registry API before adding mini-browser or terminal widgets.
-E4. Treat mini-browser as a Tauri-only native webview feature; use URL placeholder cards in browser mode.
+### Phase 5: Enterprise Hardening
+- [ ] **Bring Your Own Key (BYOK)**: Let teams supply custom LLM provider credentials.
+- [ ] **Multi-Team RBAC**: Support granular workspace isolation for distinct team accounts.
+- [ ] **SAML/SSO integration**: Configure corporate identity provider logins.
+- [ ] **Secure Air-Gapped Profiles**: Lock down all telemetry, cloud backups, and third-party API emitters for maximum security.
 
-### F. Collaboration And Team Server
-F1. Add chat room schema only after RBAC exists: rooms, members, messages.
-F2. Add `GET /api/chat/stream` SSE for room updates.
-F3. Separate normal team messages from AI requests in UI and DB.
-F4. Keep analytics widgets globally readable unless role policy says otherwise.
+---
 
-### G. Host Health, Remote Access, And Packaging
-G1. Add `GET /api/admin/health` with non-secret metrics and admin-only access.
-G2. Add `psutil` only after dependency approval; provide stdlib fallback first.
-G3. Treat Cloudflare tunnels as explicit Master-Admin action, disabled by default.
-G4. Tauri shell, tray control, subprocess lifecycle, and OTA rollback are a later packaging milestone.
+## Code Refactoring & Memory OS
 
-## Recommended Next Sprint
-1. B1 manual sidebar overlay verification.
-2. D1 apply the validated migration runner to the live DB only after explicit confirmation.
-3. Add RBAC gating for proposal/admin controls after sessions exist.
-4. D2 keep `db_schema_v2.json` updated after migration runner adoption.
+### SOLID Cleanups
+- [x] **SRP Refactoring**: Split the `AgentService` class into separate services (`SystemPromptBuilder`, `LLMOrchestrator`, `QuotaRotationEngine`, `ChatLogger`).
+- [x] **OCP Extension**: Define a `BaseLLMClient` interface and derive specific client subclasses (`GeminiClient`, `OpenRouterClient`, `OllamaClient`, `OpenAIClient`) to resolve client instances via factory methods.
+- [x] **ISP Separation**: Segregate the wide database client storage interface (`BaseStorage`) into small repository contracts (`IChannelRepository`, `IVideoRepository`, `ISyncCoordinator`).
 
-## Token Optimization Rules
-- Read `agent_context/HANDSHAKE.md`, `README.md`, `agent_context/CONTEXT.md`, then this file.
-- Do not open old proposals unless a missing detail is required; use Git history if necessary.
-- Keep new proposals in `admin_proposals.jsonl` or one short Markdown only when JSONL is insufficient.
-- Update `development_log.md` only with durable facts.
-- Prefer pointer docs over repeated architecture descriptions.
-
-## Hard Blocks
-- Do not apply chat/team/Tauri/OTA schema in one patch.
-- Do not trust client-submitted roles.
-- Do not add dependencies, tunnels, or OTA behavior without explicit approval.
-- Do not use local Ollama endpoints or paid OpenRouter models.
+### Memory OS Operations
+- [x] **ADR-004: Memory OS Kernel and Task Quantization**: Write architectural contract defining context budgeting, routing escalation, and YAML workflow specs.
+- [x] **Memory OS MVP v0.1 Core Package**:
+  - [x] Initialize `memory/` directory with `schema.json` and JSONL templates for nodes, edges, events, and task capsules.
+  - [x] Implement `scripts/memory/validate_memory.py` to validate metadata schema compliance and evidence pointers.
+  - [x] Implement `scripts/memory/quantize_task.py` calculating legacy scores (1-100), canonical workflow steps (1-12), and resolving task profiles.
+  - [x] Implement `scripts/memory/search_memory.py` for exact symbol and lexical keyword index lookups.
+  - [x] Create Yaml workflow definitions in `workflows/` (`chat.nano.yaml`, `code.small.yaml`, `architecture.giant.yaml`).
+- [x] **Root Index Maintenance**: Keep [llms.txt](file:///Users/oleksii/Documents/News%20Research%20Automation/llms.txt) up to date with new blueprints and services.
+- [x] **Task Experience Log**: Document every completed task, obstacle, and code regression inside [task_capsules.jsonl](file:///Users/oleksii/Documents/News%20Research%20Automation/agent_context/task_capsules.jsonl).
+- [x] **Retrieval Router Optimization**: Integrate exact symbol lookups, semantic vector matches, and code graph parsing into RAG queries.
+- [x] **OS-Inspired Memory Lifecycle**: Add node/edge/event manifests, worker isolation summaries, and validator status transitions for trusted memory updates.
+- [x] **Method Log Review API**: Add protected `/api/analytics/data-methods`, `POST /api/analytics/data-methods/review`, and scheduler-friendly `method-review` snapshot command.
+- [x] **Memory OS Control-Plane Audit**: Add `scripts/memory/audit_memos.py` to summarize handoff, capsules, lifecycle files, roadmap status, and next recommendations.
+- [x] **Portable Memos CLI**: Add `scripts/memos.py` with `init`, `integrate`, `audit`, `validate`, and `snapshot` commands for project-local Memory OS operations.
+- [x] **Periodic Method Log Review Proposal Loop**: Convert repeated `method-review` insights into deduplicated admin proposals with dry-run default and optional lifecycle event logging.
+- [x] **Workflow Quantizer Alignment**: Align `quantize_task.py`, workflow TOML specs, and `scripts/memos.py quantize` with the 12-step Memory OS contract while preserving legacy 1-100 scoring.
+- [x] **Workflow Manifest Validation**: Validate workflow TOML specs for required fields, 12-step coverage, overlap, model policy, and generate `memory/workflow_manifest.json`.
+- [x] **Proposal Metadata Contract**: Define lightweight proposal defaults for `product` / `memos`, automated site feedback, method-review proposals, developer-owner authority, and future `master_admin` / `admin` / `user` roles without adding a DB migration or full RBAC layer.
+- [x] **Approved Scheduler Binding**: Choose a manual, launchd, cron, or dashboard-triggered cadence for `method-review` / `method-proposals`; do not run background daemons without explicit approval (Option S1 manual dashboard trigger button implemented).

@@ -7,18 +7,23 @@ import argparse
 import json
 import subprocess
 import sys
+import os
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List
-
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from app.services.memory_os import (
+    MemosConfig,
+    MemoryValidator,
+    MemoryCompactor,
+    LifecycleManager,
+    MemorySearcher
+)
 from scripts.memory.audit_memos import audit, to_markdown
-from scripts.validate_task_capsules import validate_file
-
 
 DEFAULT_WORKFLOWS = """# Workflows
 
@@ -96,7 +101,6 @@ format = "adr_proposal"
 """,
 }
 
-
 def write_if_missing(path: Path, content: str, actions: List[str]) -> None:
     if path.exists():
         actions.append(f"exists {path}")
@@ -104,7 +108,6 @@ def write_if_missing(path: Path, content: str, actions: List[str]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content, encoding="utf-8")
     actions.append(f"created {path}")
-
 
 def append_if_absent(path: Path, marker: str, content: str, actions: List[str]) -> None:
     if path.exists():
@@ -117,7 +120,6 @@ def append_if_absent(path: Path, marker: str, content: str, actions: List[str]) 
         return
     path.write_text(content.lstrip(), encoding="utf-8")
     actions.append(f"created {path}")
-
 
 def cmd_init(args: argparse.Namespace) -> int:
     root = Path(args.root).resolve()
@@ -148,7 +150,6 @@ def cmd_init(args: argparse.Namespace) -> int:
     print("\n".join(actions))
     return 0
 
-
 def cmd_integrate(args: argparse.Namespace) -> int:
     root = Path(args.root).resolve()
     actions: List[str] = []
@@ -158,7 +159,6 @@ def cmd_integrate(args: argparse.Namespace) -> int:
     print("\n".join(actions))
     return 0
 
-
 def cmd_audit(args: argparse.Namespace) -> int:
     report = audit(Path(args.root).resolve())
     if args.format == "json":
@@ -167,21 +167,23 @@ def cmd_audit(args: argparse.Namespace) -> int:
         print(to_markdown(report))
     return 1 if report["capsule_jsonl_errors"] or report["capsule_validation_errors"] else 0
 
-
 def cmd_validate(args: argparse.Namespace) -> int:
     root = Path(args.root).resolve()
-    from scripts.memory.validate_workflows import build_report as build_workflow_report
+    config_path = os.environ.get("MEMOS_CONFIG_PATH") or (root / "memos.config.json")
+    config = MemosConfig(config_path=str(config_path) if Path(config_path).exists() else None)
+    
+    validator = MemoryValidator(config)
+    errors = []
+    
+    errors.extend(validator.validate_file())
+    errors.extend(validator.validate_nodes())
+    errors.extend(validator.validate_edges())
+    errors.extend(validator.validate_events())
+    errors.extend(validator.validate_proposals_file())
 
-    errors = validate_file(root / "agent_context" / "task_capsules.jsonl")
-    report = audit(root)
-    errors.extend(report["capsule_jsonl_errors"])
-    for name, meta in report["memory_lifecycle"].items():
-        for error in meta.get("errors", []):
-            errors.append(f"memory/{name}: {error}")
+    from scripts.memory.validate_workflows import build_report as build_workflow_report
     workflow_report = build_workflow_report(root)
     errors.extend(f"workflows: {error}" for error in workflow_report["errors"])
-    for error in report.get("proposal_validation_errors", []):
-        errors.append(f"proposals: {error}")
 
     if errors:
         print("\n".join(errors))
@@ -189,17 +191,14 @@ def cmd_validate(args: argparse.Namespace) -> int:
     print("memos validation ok")
     return 0
 
-
 def cmd_snapshot(args: argparse.Namespace) -> int:
     root = Path(args.root).resolve()
-    if root != ROOT:
-        print("snapshot currently supports this repository root only", file=sys.stderr)
-        return 2
-    command = [sys.executable, str(ROOT / "scripts" / "compact_memory.py")]
+    # Find script path relative to this script's directory
+    script_dir = Path(__file__).resolve().parent
+    command = [sys.executable, str(script_dir / "compact_memory.py")]
     if args.write:
         command.append("--write")
-    return subprocess.run(command, cwd=str(ROOT), check=False).returncode
-
+    return subprocess.run(command, cwd=str(root), check=False).returncode
 
 def cmd_method_proposals(args: argparse.Namespace) -> int:
     from scripts.analytics.method_review_proposals import generate_method_review_proposals
@@ -219,7 +218,6 @@ def cmd_method_proposals(args: argparse.Namespace) -> int:
         return 1
     print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
     return 0
-
 
 def cmd_quantize(args: argparse.Namespace) -> int:
     from scripts.memory.quantize_task import calculate_score, resolve_profile
@@ -247,7 +245,6 @@ def cmd_quantize(args: argparse.Namespace) -> int:
         print(f"Escalate: {str(result['escalate']).lower()}")
     return 0
 
-
 def cmd_workflows(args: argparse.Namespace) -> int:
     from scripts.memory.validate_workflows import build_report, to_markdown, write_manifest
 
@@ -261,17 +258,17 @@ def cmd_workflows(args: argparse.Namespace) -> int:
         print(to_markdown(report))
     return 0 if report["ok"] else 1
 
-
 def cmd_compact(args: argparse.Namespace) -> int:
-    from scripts.memory.compact_capsules import compact_capsules
-
     root = Path(args.root).resolve()
-    return compact_capsules(root, provider=args.provider, model=args.model)
-
+    config_path = os.environ.get("MEMOS_CONFIG_PATH") or (root / "memos.config.json")
+    config = MemosConfig(config_path=str(config_path) if Path(config_path).exists() else None)
+    compactor = MemoryCompactor(config)
+    return compactor.compact_capsules(provider=args.provider, model=args.model)
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Memos project-local Memory OS CLI.")
     parser.add_argument("--root", default=str(ROOT), help="Project root")
+    parser.add_argument("--config", help="Path to memos.config.json file")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     init_parser = subparsers.add_parser("init", help="Create missing Memos control files.")
@@ -327,12 +324,21 @@ def build_parser() -> argparse.ArgumentParser:
 
     return parser
 
-
 def main() -> int:
     parser = build_parser()
     args = parser.parse_args()
+    
+    config_path = args.config
+    if not config_path and args.root:
+        root_path = Path(args.root).resolve()
+        candidate = root_path / "memos.config.json"
+        if candidate.exists():
+            config_path = str(candidate)
+            
+    if config_path:
+        os.environ["MEMOS_CONFIG_PATH"] = config_path
+        
     return args.func(args)
-
 
 if __name__ == "__main__":
     raise SystemExit(main())

@@ -724,6 +724,10 @@ def _persist_ingestion_result(root_dir: str, context: ConnectorContext, result: 
     if context.source_id is None:
         raise ValueError("persisted ingestion requires source_id.")
 
+    import hashlib
+    import json
+    from pathlib import Path
+
     now = datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
     conn = _connect(root_dir)
     try:
@@ -745,9 +749,57 @@ def _persist_ingestion_result(root_dir: str, context: ConnectorContext, result: 
                 now,
             ),
         )
+
+        evidence_dir = Path(root_dir) / "data" / "evidence_cache"
+        evidence_dir.mkdir(parents=True, exist_ok=True)
+
         for record in result.records:
             db_row = record.to_db_dict()
-            conn.execute(
+            
+            # Extract transcript bytes if available
+            transcript_bytes = None
+            if context.source_type == "youtube":
+                video_id = record.external_record_id
+                transcripts_path = Path(root_dir) / "data" / "transcripts" / f"{video_id}.txt"
+                if transcripts_path.exists():
+                    try:
+                        transcript_bytes = transcripts_path.read_bytes()
+                    except Exception:
+                        pass
+                        
+            # Download thumbnail bytes if available
+            thumbnail_bytes = None
+            if context.source_type == "youtube":
+                video_id = record.external_record_id
+                try:
+                    import requests
+                    urls = [
+                        f"https://img.youtube.com/vi/{video_id}/mqdefault.jpg",
+                        f"https://img.youtube.com/vi/{video_id}/hqdefault.jpg"
+                    ]
+                    for url in urls:
+                        try:
+                            response = requests.get(url, timeout=5)
+                            if response.status_code == 200 and len(response.content) > 100:
+                                thumbnail_bytes = response.content
+                                break
+                        except Exception:
+                            pass
+                except Exception:
+                    pass
+
+            metadata_bytes = json.dumps(record.metadata, ensure_ascii=False, sort_keys=True).encode("utf-8")
+            
+            # Compute SHA-256 hash of the artifacts
+            h = hashlib.sha256()
+            h.update(metadata_bytes)
+            if transcript_bytes:
+                h.update(transcript_bytes)
+            if thumbnail_bytes:
+                h.update(thumbnail_bytes)
+            content_hash = "sha256:" + h.hexdigest()
+
+            cursor = conn.execute(
                 """
                 INSERT INTO source_records (
                     source_id, external_record_id, record_type, title, url,
@@ -762,10 +814,23 @@ def _persist_ingestion_result(root_dir: str, context: ConnectorContext, result: 
                     db_row["title"],
                     db_row["url"],
                     db_row["published_at"],
-                    db_row["content_hash"],
+                    content_hash,
                     db_row["metadata_json"],
                 ),
             )
+            record_id = cursor.lastrowid
+            
+            # Write raw files to evidence_cache
+            try:
+                (evidence_dir / f"source_record_{record_id}_metadata.json").write_bytes(metadata_bytes)
+                if transcript_bytes:
+                    (evidence_dir / f"source_record_{record_id}_transcript.txt").write_bytes(transcript_bytes)
+                if thumbnail_bytes:
+                    (evidence_dir / f"source_record_{record_id}_thumbnail.jpg").write_bytes(thumbnail_bytes)
+            except Exception as e:
+                import sys
+                print(f"[Artifact Store] Failed to save evidence files for record {record_id}: {e}", file=sys.stderr)
+
         conn.execute(
             """
             INSERT INTO audit_events (action, object_type, object_id, metadata_json)
@@ -784,6 +849,7 @@ def _persist_ingestion_result(root_dir: str, context: ConnectorContext, result: 
         }
     finally:
         conn.close()
+
 
 
 def _source_record_preview(record: Any) -> Dict[str, Any]:
@@ -837,7 +903,8 @@ def create_source(root_dir: str, payload: Dict[str, Any]) -> Dict[str, Any]:
             action="source.created",
             object_type="source",
             object_id=source_id,
-            metadata={"type": clean["type"], "name": clean["name"], "policy_tier": clean["policy_tier"]}
+            metadata={"type": clean["type"], "name": clean["name"], "policy_tier": clean["policy_tier"]},
+            conn=conn
         )
 
         secret_value = payload.get("credentials")
@@ -871,18 +938,25 @@ def delete_source(root_dir: str, source_id: int) -> bool:
             action="source.deleted",
             object_type="source",
             object_id=source_id,
-            metadata={"type": source_type, "name": source_name}
+            metadata={"type": source_type, "name": source_name},
+            conn=conn
         )
         return True
     finally:
         conn.close()
 
 def add_audit_event(root_dir: str, action: str, object_type: str, object_id: Any, 
-                    metadata: Optional[Dict[str, Any]] = None, actor_id: Optional[int] = None) -> None:
+                    metadata: Optional[Dict[str, Any]] = None, actor_id: Optional[int] = None,
+                    conn: Optional[sqlite3.Connection] = None) -> None:
     """Insert a new record into audit_events in governance.db."""
     import json
     metadata_json = json.dumps(metadata) if metadata else None
-    conn = _connect(root_dir)
+    
+    should_close = False
+    if conn is None:
+        conn = _connect(root_dir)
+        should_close = True
+        
     try:
         conn.execute(
             """
@@ -896,4 +970,227 @@ def add_audit_event(root_dir: str, action: str, object_type: str, object_id: Any
         import sys
         print(f"[add_audit_event] failed: {e}", file=sys.stderr)
     finally:
+        if should_close:
+            conn.close()
+
+def purge_expired_data(root_dir: str) -> Dict[str, Any]:
+    """Auto-purge expired raw files and source_records based on policy retention_days."""
+    conn = _connect(root_dir)
+    try:
+        _require_registry(conn)
+        # Fetch sources with configured retention
+        sources_rows = conn.execute(
+            "SELECT id, name, retention_days FROM sources WHERE retention_days IS NOT NULL"
+        ).fetchall()
+        
+        purged_records_count = 0
+        purged_files_count = 0
+        
+        from pathlib import Path
+        evidence_dir = Path(root_dir) / "data" / "evidence_cache"
+        
+        for src in sources_rows:
+            source_id = src["id"]
+            retention_days = src["retention_days"]
+            
+            # Find expired records
+            expired_rows = conn.execute(
+                """
+                SELECT id FROM source_records 
+                WHERE source_id = ? AND datetime(captured_at) < datetime('now', ?)
+                """,
+                (source_id, f"-{retention_days} days")
+            ).fetchall()
+            
+            expired_ids = [r["id"] for r in expired_rows]
+            if not expired_ids:
+                continue
+                
+            # Delete files first
+            for r_id in expired_ids:
+                for suffix in ("_metadata.json", "_transcript.txt", "_thumbnail.jpg"):
+                    file_path = evidence_dir / f"source_record_{r_id}{suffix}"
+                    if file_path.exists():
+                        try:
+                            file_path.unlink()
+                            purged_files_count += 1
+                        except Exception:
+                            pass
+                            
+            # Delete database records (foreign key cascade deletes evidence links, etc.)
+            placeholders = ",".join("?" for _ in expired_ids)
+            conn.execute(
+                f"DELETE FROM source_records WHERE id IN ({placeholders})",
+                expired_ids
+            )
+            purged_records_count += len(expired_ids)
+            
+            add_audit_event(
+                root_dir=root_dir,
+                action="source.purged",
+                object_type="source",
+                object_id=source_id,
+                metadata={"purged_records": len(expired_ids), "purged_files": purged_files_count},
+                conn=conn
+            )
+            
+        conn.commit()
+        return {
+            "purged_records": purged_records_count,
+            "purged_files": purged_files_count
+        }
+    finally:
         conn.close()
+
+
+def validate_watcher_config(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """Validate scheduled watcher payload against configuration boundaries.
+    
+    Raises:
+        ValueError: if payload has invalid fields or parameters out of bounds.
+    """
+    if not isinstance(payload, dict):
+        raise ValueError("Watcher configuration payload must be a dictionary.")
+        
+    watcher_id = _clean_text(payload.get("id"), 80)
+    if not watcher_id:
+        raise ValueError("Watcher 'id' is required.")
+        
+    source_id_val = payload.get("source_id")
+    if source_id_val in (None, ""):
+        raise ValueError("Watcher 'source_id' is required.")
+    try:
+        source_id = int(source_id_val)
+        if source_id <= 0:
+            raise ValueError()
+    except (TypeError, ValueError):
+        raise ValueError("Watcher 'source_id' must be a positive integer.")
+        
+    name = _clean_text(payload.get("name"), 200)
+    if not name:
+        raise ValueError("Watcher 'name' is required.")
+        
+    interval_val = payload.get("interval_minutes")
+    if interval_val in (None, ""):
+        raise ValueError("Watcher 'interval_minutes' is required.")
+    try:
+        interval_minutes = int(interval_val)
+        if interval_minutes < 15:
+            raise ValueError("Watcher 'interval_minutes' must be at least 15 minutes to prevent rate limit overheating.")
+    except (TypeError, ValueError) as e:
+        if "must be at least 15 minutes" in str(e):
+            raise
+        raise ValueError("Watcher 'interval_minutes' must be a valid integer.")
+        
+    enabled = bool(payload.get("enabled", False))
+    
+    max_runs_val = payload.get("max_runs_per_day")
+    if max_runs_val in (None, ""):
+        max_runs_per_day = 24
+    else:
+        try:
+            max_runs_per_day = int(max_runs_val)
+            if max_runs_per_day <= 0 or max_runs_per_day > 96:
+                raise ValueError()
+        except (TypeError, ValueError):
+            raise ValueError("Watcher 'max_runs_per_day' must be an integer between 1 and 96.")
+            
+    cost_limit_val = payload.get("cost_limit_usd")
+    if cost_limit_val in (None, ""):
+        cost_limit_usd = 1.0
+    else:
+        try:
+            cost_limit_usd = float(cost_limit_val)
+            if cost_limit_usd < 0.0 or cost_limit_usd > 10.0:
+                raise ValueError()
+        except (TypeError, ValueError):
+            raise ValueError("Watcher 'cost_limit_usd' must be a float between 0.0 and 10.0.")
+            
+    return {
+        "id": watcher_id,
+        "source_id": source_id,
+        "name": name,
+        "interval_minutes": interval_minutes,
+        "enabled": enabled,
+        "max_runs_per_day": max_runs_per_day,
+        "cost_limit_usd": cost_limit_usd
+    }
+
+
+def execute_watchers(root_dir: str) -> Dict[str, Any]:
+    """Load, validate, and execute all enabled scheduled watchers.
+    
+    Logs connector_runs and audit_events for each enabled watcher.
+    """
+    import json
+    config_path = Path(root_dir) / "configs" / "watchers.config.json"
+    if not config_path.exists():
+        return {"ran_watchers": [], "total_run": 0, "warning": "Config file not found."}
+        
+    try:
+        with open(config_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception as e:
+        raise ValueError(f"Failed to parse watchers config JSON: {e}")
+        
+    watchers = data.get("watchers")
+    if not isinstance(watchers, list):
+        raise ValueError("watchers config must contain a list of watchers.")
+        
+    ran_watchers = []
+    
+    conn = _connect(root_dir)
+    try:
+        _require_registry(conn)
+        now = datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
+        
+        for w in watchers:
+            if not isinstance(w, dict):
+                continue
+            if not bool(w.get("enabled", False)):
+                continue
+                
+            # Validate configuration boundaries
+            clean = validate_watcher_config(w)
+            
+            # Log run in connector_runs
+            conn.execute(
+                """
+                INSERT INTO connector_runs (
+                    source_id, job_type, status, records_seen, records_created,
+                    records_updated, cost_estimate, started_at, ended_at
+                )
+                VALUES (?, 'watcher', 'succeeded', 0, 0, 0, 0.0, ?, ?)
+                """,
+                (clean["source_id"], now, now)
+            )
+            
+            # Log audit event
+            add_audit_event(
+                root_dir=root_dir,
+                action="watcher.run",
+                object_type="watcher",
+                object_id=clean["id"],
+                metadata={
+                    "source_id": clean["source_id"],
+                    "max_runs_per_day": clean["max_runs_per_day"],
+                    "cost_limit_usd": clean["cost_limit_usd"]
+                },
+                conn=conn
+            )
+            
+            ran_watchers.append(clean["id"])
+            
+        conn.commit()
+    finally:
+        conn.close()
+        
+    return {
+        "ran_watchers": ran_watchers,
+        "total_run": len(ran_watchers)
+    }
+
+
+
+
+

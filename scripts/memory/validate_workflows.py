@@ -15,7 +15,7 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from app.services.memory_os import load_toml_file
+from memory_os import load_toml_file
 from scripts.memory.quantize_task import STEP_SCALE
 
 

@@ -1,9 +1,9 @@
 import json
 from pathlib import Path
 from typing import List, Dict, Set, Any, Optional
-from app.services.memory_os.interfaces import IMemosConfig, IMemoryStorage
-from app.services.memory_os.config import MemosConfig
-from app.services.memory_os.storage import FileSystemMemoryStorage
+from memory_os.interfaces import IMemosConfig, IMemoryStorage
+from memory_os.config import MemosConfig
+from memory_os.storage import FileSystemMemoryStorage
 
 class MemorySearcher:
     """Queries Memory OS nodes, codebase symbols, and traverses graph relations."""
@@ -13,12 +13,14 @@ class MemorySearcher:
         self.storage = storage or FileSystemMemoryStorage()
 
     def _load_nodes(self) -> List[Dict[str, Any]]:
-        nodes_file = self.config.memory_dir / "nodes.jsonl"
-        return self.storage.load_jsonl(nodes_file)
+        main_nodes = self.storage.load_jsonl(self.config.memory_dir / "nodes.jsonl")
+        internal_nodes = self.storage.load_jsonl(self.config.internal_memory_dir / "nodes.jsonl")
+        return main_nodes + internal_nodes
 
     def _load_edges(self) -> List[Dict[str, Any]]:
-        edges_file = self.config.memory_dir / "edges.jsonl"
-        return self.storage.load_jsonl(edges_file)
+        main_edges = self.storage.load_jsonl(self.config.memory_dir / "edges.jsonl")
+        internal_edges = self.storage.load_jsonl(self.config.internal_memory_dir / "edges.jsonl")
+        return main_edges + internal_edges
 
     def _load_snapshot(self) -> Dict[str, Any]:
         snapshot_file = self.config.snapshot_file

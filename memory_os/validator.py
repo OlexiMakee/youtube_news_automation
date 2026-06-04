@@ -2,9 +2,9 @@ import json
 from pathlib import Path
 from typing import List, Dict, Any, Iterable, Optional
 
-from app.services.memory_os.interfaces import IMemosConfig, IMemoryStorage
-from app.services.memory_os.config import MemosConfig
-from app.services.memory_os.storage import FileSystemMemoryStorage
+from memory_os.interfaces import IMemosConfig, IMemoryStorage
+from memory_os.config import MemosConfig
+from memory_os.storage import FileSystemMemoryStorage
 
 REQUIRED_CAPSULE_FIELDS = {
     "timestamp",

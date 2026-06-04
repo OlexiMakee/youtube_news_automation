@@ -11,7 +11,7 @@ MEMORY_DIR = ROOT / "memory"
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from app.services.memory_os import MemosConfig, LifecycleManager
+from memory_os import MemosConfig, LifecycleManager
 
 def load_jsonl(path: Path) -> List[Dict[str, Any]]:
     config = MemosConfig()

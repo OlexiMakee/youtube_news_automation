@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from app.services.memory_os import MemosConfig, MemoryValidator
+from memory_os import MemosConfig, MemoryValidator
 
 def validate_rows(lines: Iterable[str]) -> List[str]:
     config = MemosConfig()

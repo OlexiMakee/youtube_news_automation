@@ -4,9 +4,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Set, Any, Tuple, Optional
 
-from app.services.memory_os.interfaces import IMemosConfig, IMemoryStorage
-from app.services.memory_os.config import MemosConfig
-from app.services.memory_os.storage import FileSystemMemoryStorage
+from memory_os.interfaces import IMemosConfig, IMemoryStorage
+from memory_os.config import MemosConfig
+from memory_os.storage import FileSystemMemoryStorage
 
 class LifecycleManager:
     """Manages the lifecycle operations of Memory OS files (propose, transition, manifest, prune)."""
@@ -223,10 +223,14 @@ class LifecycleManager:
         pruned_nodes = []
         active_node_ids = set()
         pruned_count = 0
+        
+        archived_nodes_list = []
+        archived_edges_list = []
 
         for n in nodes:
             if n["status"] in ["stale", "superseded"]:
                 print(f"INFO: Pruning stale/superseded node '{n['id']}'.")
+                archived_nodes_list.append(n)
                 pruned_count += 1
             else:
                 pruned_nodes.append(n)
@@ -242,9 +246,21 @@ class LifecycleManager:
                 pruned_edges.append(e)
             else:
                 print(f"INFO: Pruning dangling edge: {e['source']} -> {e['target']} ({e['type']})")
+                archived_edges_list.append(e)
                 pruned_edges_count += 1
 
         self._write_jsonl(nodes_file, pruned_nodes)
         self._write_jsonl(edges_file, pruned_edges)
-        print(f"INFO: Pruning finished. Removed {pruned_count} nodes and {pruned_edges_count} edges.")
+        
+        if archived_nodes_list:
+            archived_nodes_file = self.config.memory_dir / "archived_nodes.jsonl"
+            for an in archived_nodes_list:
+                self._append_jsonl(archived_nodes_file, an)
+                
+        if archived_edges_list:
+            archived_edges_file = self.config.memory_dir / "archived_edges.jsonl"
+            for ae in archived_edges_list:
+                self._append_jsonl(archived_edges_file, ae)
+
+        print(f"INFO: Pruning finished. Archived {pruned_count} nodes and {len(archived_edges_list)} edges. Removed {pruned_edges_count - len(archived_edges_list)} invalid edges.")
         return 0

@@ -8,8 +8,8 @@ class MemoryOS:
 
     def __init__(self, db_path: str = None):
         if db_path is None:
-            # Default to isolated SQLite db file in data/
-            self.db_path = Path(__file__).resolve().parents[3] / "data" / "memory_os.db"
+            # Default: data/memory_os.db relative to the project root (two levels up from memory_os/)
+            self.db_path = Path(__file__).resolve().parents[1] / "data" / "memory_os.db"
         else:
             self.db_path = Path(db_path)
             

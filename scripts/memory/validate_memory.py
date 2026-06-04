@@ -10,7 +10,7 @@ MEMORY_DIR = ROOT / "memory"
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from app.services.memory_os import MemosConfig, MemoryValidator
+from memory_os import MemosConfig, MemoryValidator
 
 def log_error(msg: str):
     print(f"ERROR: {msg}", file=sys.stderr)

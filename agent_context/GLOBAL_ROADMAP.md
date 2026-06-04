@@ -40,16 +40,16 @@ Status: reformed on 2026-06-02 based on the autonomous_intelligence_hub_strategy
 - [x] **Entity Extraction**: Deploy models to extract political actors, organizations, and locations from descriptions.
 - [x] **Alias Dictionary**: Group name variations (e.g., "UATV", "UA TV") under single canonical entities.
 - [x] **Cross-Source Timeline**: Render a unified timeline showing when specific entities are mentioned across channels.
-- [/] **Cost & Quota Dashboard**: Expose real-time API call counts and model token budgets.
+- [x] **Cost & Quota Dashboard**: Expose real-time API call counts and model token budgets.
   - [x] **Scraper Workflows & Cost/Delay Estimation**: Integrate five workflows (super economical to ultra fast), budget constraints, and cost previews.
 
 
 ### Phase 3: Evidence & OSINT Mode
-- [ ] **Artifact Store**: Cache raw source data (HTML pages, video thumbnails, descriptions) with immutability hashes.
-- [ ] **Timestamp & Hash Verification**: Cryptographically timestamp exported summaries.
-- [ ] **Evidence Bundle Export**: Zip raw artifacts, screenshots, and logs into a single downloadable proof zip.
+- [x] **Artifact Store**: Cache raw source data (HTML pages, video thumbnails, descriptions) with immutability hashes.
+- [x] **Timestamp & Hash Verification**: Cryptographically timestamp exported summaries.
+- [x] **Evidence Bundle Export**: Zip raw artifacts, screenshots, and logs into a single downloadable proof zip.
 - [x] **Audit Logging**: Write critical user actions (source modifications, export triggers, credentials modifications, and scraper proposal approvals) to SQLite `audit_events` in `governance.db`.
-- [ ] **Retention Locks**: Implement auto-purge rules for high-risk Tier E scraper caches.
+- [x] **Retention Locks**: Implement auto-purge rules for high-risk Tier E scraper caches.
 - [ ] **Tri-View (Graph, Timeline, Table)**: Toggle workspace views between raw tables, chronologies, and entity connection maps.
 
 ### Phase 4: Controlled Automation

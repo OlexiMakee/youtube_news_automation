@@ -1,6 +1,6 @@
 """
 Prompt Formatter Service
-Governed Autonomous Intelligence Workspace - Memory OS
+Memory OS — Portable Agent Memory Kernel
 """
 
 import re

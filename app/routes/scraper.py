@@ -3,7 +3,7 @@
 import os
 from flask import Blueprint, jsonify, request
 from app.services.rbac import require_admin as _admin_required
-from app.services.memory_os.scraper_orchestrator import ScraperOrchestrator
+from app.services.scraper_orchestrator import ScraperOrchestrator
 from app.state import root_dir
 
 scraper_bp = Blueprint("scraper", __name__)

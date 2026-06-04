@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 
-from app.services.memory_os.interfaces import IMemosConfig
+from memory_os.interfaces import IMemosConfig
 
 class MemosConfig(IMemosConfig):
     """Manages the configuration and paths for Memory OS."""
@@ -18,7 +18,7 @@ class MemosConfig(IMemosConfig):
                 self.config_path = Path(env_path).resolve()
             else:
                 # Default to project root memos.config.json
-                self.config_path = Path(__file__).resolve().parents[3] / "memos.config.json"
+                self.config_path = Path(__file__).resolve().parents[1] / "memos.config.json"
 
         self.root_dir = self.config_path.parent
         self.data = self._load_config()
@@ -49,6 +49,14 @@ class MemosConfig(IMemosConfig):
     def memory_dir(self) -> Path:
         val = self.data.get("memory_dir", "memory")
         return (self.root_dir / val).resolve()
+
+    @property
+    def internal_memory_dir(self) -> Path:
+        return (self.root_dir / "memory_os" / "memory_graph").resolve()
+
+    @property
+    def persona_memory_dir(self) -> Path:
+        return (self.root_dir / "memory_os" / "user_persona").resolve()
 
     @property
     def capsules_file(self) -> Path:

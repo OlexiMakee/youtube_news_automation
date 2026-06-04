@@ -23,7 +23,7 @@ class ContextRegistry:
         """Redact potential secrets and credentials from index files."""
         secret_patterns = (
             re.compile(r"sk-[A-Za-z0-9_\-]{12,}"),
-            re.compile(r"(?i)(api[_-]?key|token|secret|password)\s*[:=]\s*['\"]?[^\s'\",}]+"),
+            re.compile(r"(?i)(api[_-]?key|token|secret|password)\s*[:=]\s*['\"]?[^\s'\"',}]+"),
             re.compile(r"postgresql://[^\s'\"]+"),
         )
         redacted = text
@@ -116,7 +116,7 @@ class ContextRegistry:
     @staticmethod
     def route_symbols(text: str) -> List[str]:
         """Regex parse python files for blueprints/flask routing definitions."""
-        routes = re.findall(r"@\w+_bp\.route\(['\"]([^'\"]+)['\"](?:,\s*methods=([^\)]*))?\)", text)
+        routes = re.findall(r"@\w+_bp\.route\(['\"]([^'\"]+)['\"](?:,\s*methods=([^\)]*))?\\)", text)
         return [f"{path} {methods or '[GET]'}" for path, methods in routes[:30]]
 
     def build_pointer(self, path: Path, text: str, max_preview_chars: int) -> Dict[str, Any]:

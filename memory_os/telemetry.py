@@ -1,4 +1,4 @@
-from app.services.memory_os.core import MemoryOS
+from memory_os.core import MemoryOS
 
 class TelemetryRecorder:
     """Logs LLM execution metrics (tokens, latency, cost, and statuses)."""

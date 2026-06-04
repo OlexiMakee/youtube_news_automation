@@ -1,4 +1,7 @@
-"""Background scraping task runner and proposal orchestrator."""
+"""Background scraping task runner and proposal orchestrator.
+Flask-app concern: orchestrates governance DB calls.
+Separated from the portable memory_os package.
+"""
 
 from __future__ import annotations
 
@@ -9,7 +12,7 @@ import threading
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from app.services.memory_os.core import MemoryOS
+from memory_os.core import MemoryOS
 from app.services.governance import run_source_ingestion, create_source, list_sources
 
 
@@ -30,7 +33,7 @@ class ScraperOrchestrator:
         if self._initialized:
             return
         self.memory_os = MemoryOS(db_path)
-        self.root_dir = root_dir or str(Path(__file__).resolve().parents[3])
+        self.root_dir = root_dir or str(Path(__file__).resolve().parents[2])
         self.active_tasks: Dict[str, Dict[str, Any]] = {}
         self.tasks_lock = threading.Lock()
         self._initialized = True

@@ -250,6 +250,9 @@ Format: short English bullets only. Keep durable facts.
 - Updated `SystemPromptBuilder` to query User-OS memories and inject them into system prompts in clean YAML format, applying a strict filter to exclude developer codebase metadata (guaranteeing zero codebase leakage).
 - Added comprehensive unit tests in `scratch/test_memos_cli_extensions.py` achieving 100% code coverage across new subcommands and prompt filtering rules.
 - Implemented Phase 3 Audit Logging tracking critical source creation, deletion, credentials storage, briefs/videos exports, and scraper proposal approvals inside SQLite `audit_events`. Added unit/integration test coverage, resolving test process hijacking during db_exporter imports (all 239 tests passing).
+- Implemented Phase 3 Evidence & OSINT features: configured ingestion artifact store in `data/evidence_cache/` to download thumbnails and save metadata/transcripts with SHA-256 content hashes recorded in `governance.db`; generated daily brief verification seals dynamically verifying cached files on retrieval; registered admin-gated ZIP evidence bundle download route `/api/briefs/<brief_id>/evidence-bundle` and frontend handlers; added `memos retention` subcommand and database/file purge routine; wrote comprehensive test suite in `scratch/test_osint_evidence.py` verifying all operations (all 244 tests passing).
+- Implemented Scheduled Watchers Configuration and Validation (Phase 4): created default `configs/watchers.config.json` listing example channels, intervals, and cost metrics; implemented `validate_watcher_config(payload)` in `app/services/governance.py` with validation bounds (e.g., minimum 15-minute crawl intervals to prevent rate limit overheating); covered with a dedicated unit test suite in `scratch/test_watchers_config.py` (all 253 tests passing).
+- Implemented Scheduled Watchers Execution Runner (Phase 4): created `execute_watchers(root_dir)` in `app/services/governance.py` that loads configurations, filters enabled watchers, validates their properties, runs mock/dry-run ingestions logging runs in `connector_runs` and audit logs in `audit_events` transactionally; covered with unit tests in `scratch/test_watchers_runner.py` (all 254 tests passing).
 
 
 ## Locked Decisions
@@ -260,5 +263,32 @@ Format: short English bullets only. Keep durable facts.
 - Avoid new dependencies unless approved.
 - Keep agent docs concise English.
 
+
 ## Open Work
 - See `agent_context/GLOBAL_ROADMAP.md`.
+
+## 2026-06-04
+- Extracted `app/services/memory_os/` → standalone `memory_os/` package at project root.
+- `app/services/memory_os/__init__.py` replaced with 3-line shim (`from memory_os import *`).
+- All 16 source files deleted from `app/services/memory_os/`; source of truth is now `memory_os/`.
+- Relocated `scraper_orchestrator.py` → `app/services/scraper_orchestrator.py` (Flask-app concern).
+- `app/routes/scraper.py` import updated to `from app.services.scraper_orchestrator`.
+- `memory_os/llm_service.py`: lazy-import `LLMClientFactory`; falls back to stdlib HTTP + env vars.
+- Scripts import rewritten: `from app.services.memory_os` → `from memory_os` in 8 scripts.
+- `memory_os/pyproject.toml` created; zero external dependencies.
+- `memory_os/docs/ARCHITECTURE.md` created; portability instructions documented.
+- Compile check: all 17 modules clean. Shim backward-compat verified. `memos.py validate` runs.
+- Portable: copy `memory_os/` + `memos.config.json` + `memory/` to any Python project; set API key env.
+- [A] Migrated evidence paths in `memory/nodes.jsonl`: `app/services/memory_os/X` → `memory_os/X`. `memos validate` now clean.
+- [B] Launchd agent registered: `com.newsresearch.memory_os.compact` runs `memos compact` daily at 03:00. Plist in `memory_os/`. Logs → `logs/memos_compact.log`.
+- [C] Portability smoke passed via system python3 (no project venv): MemoryOS SQLite init, memory write/read, MemoryValidator, parse_toml, wrap_in_xml all verified from `/tmp` isolation.
+
+## 2026-06-04
+
+- feat: Extracted Memory OS into a standalone portable package (`memory_os/`).
+- feat: Implemented Recursive Memory OS (graph isolates architecture vs project rules).
+- feat: Added semantic compaction (`memos compress`) and garbage collection (`memos prune`).
+- feat: Added YAML-based telemetry dashboard (`memos stats`).
+- feat: Added dynamic RAG context generation (`memos rag`).
+- feat: Isolated User Persona extraction to prevent system graph pollution (`memos persona-sync`).
+- chore: Bumped virtual version to pre-alpha 0.998.

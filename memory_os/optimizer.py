@@ -1,5 +1,5 @@
 from typing import Dict, Any, List, Optional
-from app.services.memory_os.core import MemoryOS
+from memory_os.core import MemoryOS
 
 class RouteOptimizer:
     """Analyzes execution metrics and recommends optimal models/configurations."""

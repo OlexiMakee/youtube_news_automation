@@ -1,6 +1,6 @@
 """
 TOML Parser Utility
-Governed Autonomous Intelligence Workspace - Memory OS
+Memory OS — Portable Agent Memory Kernel
 """
 
 from typing import Dict, Any

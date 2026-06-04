@@ -225,6 +225,37 @@ export async function exportBriefFromModal(format) {
     }
 }
 
+export async function downloadEvidenceBundle() {
+    if (!activeBriefId) return;
+
+    try {
+        const res = await adminFetch(`/api/briefs/${activeBriefId}/evidence-bundle`, {
+            method: "GET"
+        });
+        
+        if (!res.ok) {
+            window.alert("Failed to download evidence bundle.");
+            return;
+        }
+
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        
+        let filename = `evidence_bundle_brief_${activeBriefId}.zip`;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+    } catch (err) {
+        console.error("Download evidence bundle failed:", err);
+        window.alert("Connection error during evidence bundle download.");
+    }
+}
+
+
 async function fetchBriefExportText(briefId, format = "markdown") {
     const res = await adminFetch(`/api/briefs/${briefId}/export?format=${format}`, {
         method: "POST"
@@ -307,6 +338,7 @@ function escapeHtml(str) {
 window.viewBriefDetails = viewBriefDetails;
 window.closeBriefModal = closeBriefModal;
 window.exportBriefFromModal = exportBriefFromModal;
+window.downloadEvidenceBundle = downloadEvidenceBundle;
 window.copyBriefMarkdown = copyBriefMarkdown;
 window.copyBriefMarkdownFromModal = copyBriefMarkdownFromModal;
 window.generateDailyBrief = generateDailyBrief;

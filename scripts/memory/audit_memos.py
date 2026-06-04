@@ -20,7 +20,7 @@ if str(ROOT) not in sys.path:
 from scripts.validate_task_capsules import validate_rows
 from scripts.memory.validate_workflows import build_report as build_workflow_report
 from scripts.memory.validate_memory import validate_proposals_file
-from app.services.memory_os.config import MemosConfig
+from memory_os.config import MemosConfig
 
 STEP_NAMES = {
     1: "nano",
@@ -255,7 +255,7 @@ def auto_transition_proposals(root: Path) -> List[str]:
                 
         # Update manifest
         try:
-            from app.services.memory_os.lifecycle import LifecycleManager
+            from memory_os.lifecycle import LifecycleManager
             LifecycleManager(config).manifest()
         except Exception:
             pass

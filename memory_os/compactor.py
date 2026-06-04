@@ -4,10 +4,10 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Set, Any, Optional
 
-from app.services.memory_os.interfaces import IMemosConfig, IMemoryStorage, ILlmProviderService
-from app.services.memory_os.config import MemosConfig
-from app.services.memory_os.storage import FileSystemMemoryStorage
-from app.services.memory_os.llm_service import DefaultLlmProviderService
+from memory_os.interfaces import IMemosConfig, IMemoryStorage, ILlmProviderService
+from memory_os.config import MemosConfig
+from memory_os.storage import FileSystemMemoryStorage
+from memory_os.llm_service import DefaultLlmProviderService
 
 SYSTEM_PROMPT = """You are the Memory OS Knowledge Compactor.
 Your job is to analyze developer task logs (task capsules) and existing memory nodes, then extract new permanent knowledge nodes (rules, facts, configurations, or policies) and relationships (edges).
@@ -44,6 +44,34 @@ Your output must be ONLY a raw JSON block with the following schema:
       "source": "source_node_id",
       "target": "target_node_id",
       "type": "depends_on|triggers|refutes|overrides|configures|secures"
+    }
+  ]
+}
+Do not write markdown wraps like ```json or any other text before/after. Just the JSON object.
+"""
+
+COMPRESSION_PROMPT = """You are the Memory OS Graph Compressor.
+Your job is to read all currently verified knowledge nodes, identify semantic duplicates or overlapping rules, and propose new unified nodes that merge them.
+When you propose a new merged node, you MUST also output an "overrides" edge from the NEW node to ALL the OLD nodes it replaces, so the lifecycle manager knows to deprecate them.
+
+Guidelines:
+1. ONLY merge nodes if they conceptually overlap or represent the same underlying rule/fact.
+2. If a node is standalone and fine as is, leave it alone (do not output it).
+3. Output format is identical to standard compaction:
+{
+  "nodes": [
+    {
+      "id": "new.unified.node.id",
+      "type": "rule",
+      "summary": "Unified summary of the combined rules.",
+      "evidence": ["path1.py", "path2.py"]
+    }
+  ],
+  "edges": [
+    {
+      "source": "new.unified.node.id",
+      "target": "old.superseded.node.id",
+      "type": "overrides"
     }
   ]
 }
@@ -304,11 +332,12 @@ class MemoryCompactor:
         print(f"Compaction completed. Proposed {node_append_count} nodes, appended {edge_append_count} edges.")
 
         # Trigger lifecycle transitions and manifest compilation via classes
-        from app.services.memory_os.lifecycle import LifecycleManager
+        from memory_os.lifecycle import LifecycleManager
 
         print("Running lifecycle transition validations...")
         lifecycle = LifecycleManager(self.config, self.storage)
         lifecycle.transition(validator="memos_compactor")
+        lifecycle.prune()
         lifecycle.manifest()
 
         # Archive compacted capsules to prevent context bloat
@@ -327,6 +356,117 @@ class MemoryCompactor:
                 subprocess.run([sys.executable, str(compact_memory_script), "--write"], check=True)
         except Exception as exc:
             print(f"Warning: snapshot rebuild failed: {exc}", file=sys.stderr)
+
+        return 0
+
+    def compress_graph(self, provider: Optional[str] = None, model: Optional[str] = None) -> int:
+        nodes_path = self.config.memory_dir / "nodes.jsonl"
+        edges_path = self.config.memory_dir / "edges.jsonl"
+        events_path = self.config.memory_dir / "events.jsonl"
+
+        if not self.storage.exists(nodes_path):
+            print(f"Error: nodes.jsonl not found at {nodes_path}", file=sys.stderr)
+            return 1
+
+        nodes = self._load_jsonl(nodes_path)
+        verified_nodes = [n for n in nodes if n["status"] == "verified"]
+
+        if len(verified_nodes) < 2:
+            print("Not enough verified nodes to compress.")
+            return 0
+
+        print(f"Analyzing {len(verified_nodes)} verified nodes for compression...")
+
+        user_msg_data = {
+            "verified_nodes": [{"id": n["id"], "type": n["type"], "summary": n["summary"]} for n in verified_nodes]
+        }
+        user_message = json.dumps(user_msg_data, indent=2, ensure_ascii=False)
+
+        try:
+            response_text = self.llm_service.call_llm(user_message, COMPRESSION_PROMPT, provider, model)
+        except Exception as exc:
+            print(f"Error during LLM compression call: {exc}", file=sys.stderr)
+            return 1
+
+        json_text = self._clean_llm_json(response_text)
+        try:
+            payload = json.loads(json_text)
+        except json.JSONDecodeError as exc:
+            print(f"Error: LLM returned invalid JSON for compression: {exc}\nRaw Response:\n{response_text}", file=sys.stderr)
+            return 1
+
+        proposed_nodes = []
+        proposed_edges = []
+
+        if isinstance(payload, dict):
+            proposed_nodes = payload.get("nodes", [])
+            proposed_edges = payload.get("edges", [])
+        
+        if not proposed_nodes and not proposed_edges:
+            print("LLM did not propose any compressions. Graph is already optimal.")
+            return 0
+
+        existing_node_ids = {n["id"] for n in nodes}
+        new_node_ids = set()
+
+        node_append_count = 0
+        edge_append_count = 0
+
+        for node in proposed_nodes:
+            node_id = node.get("id")
+            if not node_id or node_id in existing_node_ids:
+                continue
+            
+            new_node = {
+                "id": node_id,
+                "type": node.get("type", "rule"),
+                "summary": node.get("summary", ""),
+                "evidence": node.get("evidence", []),
+                "status": "draft",
+                "freshness": datetime.now().isoformat(timespec="seconds"),
+                "trust": "unverified",
+                "related_nodes": []
+            }
+            self._append_jsonl(nodes_path, new_node)
+            new_node_ids.add(node_id)
+            node_append_count += 1
+            print(f"Proposed compressed node '{node_id}' added as draft.")
+
+            new_event = {
+                "timestamp": datetime.now().isoformat(timespec="seconds"),
+                "event": "memory.node.proposed",
+                "node_id": node_id,
+                "claim": f"Compressed rule: {new_node['summary']}",
+                "evidence": new_node["evidence"],
+                "validator": "memos_compressor",
+                "status": "pending"
+            }
+            self._append_jsonl(events_path, new_event)
+
+        for edge in proposed_edges:
+            if edge.get("source") in new_node_ids and edge.get("target") in existing_node_ids:
+                self._append_jsonl(edges_path, edge)
+                edge_append_count += 1
+                print(f"Appended compression edge: {edge['source']} -> {edge['target']} ({edge['type']})")
+
+        print(f"Compression completed. Proposed {node_append_count} merged nodes, appended {edge_append_count} override edges.")
+
+        if node_append_count > 0:
+            from memory_os.lifecycle import LifecycleManager
+            print("Running lifecycle transition validations to deprecate old nodes...")
+            lifecycle = LifecycleManager(self.config, self.storage)
+            lifecycle.transition(validator="memos_compressor")
+            lifecycle.prune()
+            lifecycle.manifest()
+
+            print("Updating memory snapshot...")
+            try:
+                import subprocess
+                compact_memory_script = self.config.root_dir / "scripts" / "compact_memory.py"
+                if self.storage.exists(compact_memory_script):
+                    subprocess.run([sys.executable, str(compact_memory_script), "--write"], check=True)
+            except Exception as exc:
+                print(f"Warning: snapshot rebuild failed: {exc}", file=sys.stderr)
 
         return 0
 

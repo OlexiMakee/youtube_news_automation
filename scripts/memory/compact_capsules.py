@@ -9,10 +9,10 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from app.services.memory_os import MemosConfig, MemoryCompactor
+from memory_os import MemosConfig, MemoryCompactor
 
 def call_llm(user_message: str, provider_override: Optional[str] = None, model_override: Optional[str] = None) -> str:
-    from app.services.memory_os.compactor import SYSTEM_PROMPT
+    from memory_os.compactor import SYSTEM_PROMPT
     from app.services.llm_clients import LLMClientFactory
     providers_to_try = [provider_override] if provider_override else ["gemini", "openrouter", "openai"]
     for provider in providers_to_try:

@@ -16,7 +16,17 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from app.services.memory_os import (
+# Load .env from project root so LLM API keys are available
+_env_file = ROOT / ".env"
+if _env_file.exists():
+    for _line in _env_file.read_text(encoding="utf-8").splitlines():
+        _line = _line.strip()
+        if not _line or _line.startswith("#") or "=" not in _line:
+            continue
+        _k, _, _v = _line.partition("=")
+        os.environ.setdefault(_k.strip(), _v.strip())
+
+from memory_os import (
     MemosConfig,
     MemoryValidator,
     MemoryCompactor,
@@ -266,6 +276,124 @@ def cmd_compact(args: argparse.Namespace) -> int:
     compactor = MemoryCompactor(config)
     return compactor.compact_capsules(provider=args.provider, model=args.model)
 
+def cmd_compress(args: argparse.Namespace) -> int:
+    root = Path(args.root).resolve()
+    config_path = os.environ.get("MEMOS_CONFIG_PATH") or (root / "memos.config.json")
+    config = MemosConfig(config_path=str(config_path) if Path(config_path).exists() else None)
+    compactor = MemoryCompactor(config)
+    return compactor.compress_graph(provider=args.provider, model=args.model)
+
+def cmd_prune(args: argparse.Namespace) -> int:
+    root = Path(args.root).resolve()
+    config_path = os.environ.get("MEMOS_CONFIG_PATH") or (root / "memos.config.json")
+    config = MemosConfig(config_path=str(config_path) if Path(config_path).exists() else None)
+    lifecycle = LifecycleManager(config)
+    return lifecycle.prune()
+
+def cmd_stats(args: argparse.Namespace) -> int:
+    import yaml
+    root = Path(args.root).resolve()
+    config_path = os.environ.get("MEMOS_CONFIG_PATH") or (root / "memos.config.json")
+    config = MemosConfig(config_path=str(config_path) if Path(config_path).exists() else None)
+    os_kernel = MemoryOS(str(root / "data" / "memory_os.db"))
+    conn = os_kernel.get_connection()
+    try:
+        cur = conn.cursor()
+        
+        cur.execute("SELECT COUNT(*), SUM(cost), SUM(input_tokens), SUM(output_tokens), AVG(latency_ms) FROM memory_os_telemetry")
+        total_row = cur.fetchone()
+        totals = {
+            "calls": total_row[0] or 0,
+            "cost_usd": round(total_row[1] or 0, 5) if total_row[1] else 0.0,
+            "input_tokens": total_row[2] or 0,
+            "output_tokens": total_row[3] or 0,
+            "avg_latency_ms": round(total_row[4] or 0, 1) if total_row[4] else 0.0
+        }
+        
+        cur.execute("SELECT provider_id, model_id, COUNT(*), SUM(cost) FROM memory_os_telemetry GROUP BY provider_id, model_id")
+        models = []
+        for row in cur.fetchall():
+            models.append({
+                "provider": row[0],
+                "model": row[1],
+                "calls": row[2],
+                "cost_usd": round(row[3] or 0, 5) if row[3] else 0.0
+            })
+            
+        cur.execute("SELECT prompt_name, COUNT(*), AVG(latency_ms) FROM memory_os_telemetry GROUP BY prompt_name")
+        prompts = []
+        for row in cur.fetchall():
+            prompts.append({
+                "prompt": row[0],
+                "calls": row[1],
+                "avg_latency_ms": round(row[2] or 0, 1) if row[2] else 0.0
+            })
+            
+        report = {
+            "Total": totals,
+            "By_Model": models,
+            "By_Prompt": prompts
+        }
+        print(yaml.safe_dump(report, default_flow_style=False, sort_keys=False))
+        return 0
+    finally:
+        conn.close()
+
+def cmd_rag(args: argparse.Namespace) -> int:
+    import yaml
+    root = Path(args.root).resolve()
+    config_path = os.environ.get("MEMOS_CONFIG_PATH") or (root / "memos.config.json")
+    config = MemosConfig(config_path=str(config_path) if Path(config_path).exists() else None)
+    searcher = MemorySearcher(config)
+    
+    results = searcher.search_memory(args.query, depth=1)
+    if not results:
+        print("No rules found for this context.")
+        return 0
+        
+    formatted = []
+    for r in results[:5]: # Take top 5 to save tokens
+        formatted.append({
+            "id": r.get("id"),
+            "summary": r.get("summary")
+        })
+        
+    output_path = root / "agent_context" / "active_memory.yaml"
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(output_path, "w", encoding="utf-8") as f:
+        yaml.safe_dump({"active_context": formatted}, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
+        
+    print(f"Wrote {len(formatted)} memory nodes to {output_path.relative_to(root)}")
+    return 0
+
+def cmd_persona_sync(args: argparse.Namespace) -> int:
+    from memory_os.persona import PersonaManager
+    root = Path(args.root).resolve()
+    config_path = os.environ.get("MEMOS_CONFIG_PATH") or (root / "memos.config.json")
+    config = MemosConfig(config_path=str(config_path) if Path(config_path).exists() else None)
+    
+    pm = PersonaManager(config.persona_memory_dir)
+    transcript_path = Path(args.log_file).resolve()
+    
+    print(f"Extracting persona from {transcript_path.name}...")
+    success = pm.sync_from_transcript(transcript_path, args.provider, args.model)
+    if success:
+        print(f"Persona successfully synced to {config.persona_memory_dir / 'persona.yaml'}")
+        return 0
+    else:
+        print("Failed to sync persona.")
+        return 1
+
+def cmd_persona(args: argparse.Namespace) -> int:
+    from memory_os.persona import PersonaManager
+    root = Path(args.root).resolve()
+    config_path = os.environ.get("MEMOS_CONFIG_PATH") or (root / "memos.config.json")
+    config = MemosConfig(config_path=str(config_path) if Path(config_path).exists() else None)
+    
+    pm = PersonaManager(config.persona_memory_dir)
+    print(pm.get_persona())
+    return 0
+
 def cmd_search(args: argparse.Namespace) -> int:
     root = Path(args.root).resolve()
     config_path = args.config or os.environ.get("MEMOS_CONFIG_PATH")
@@ -408,6 +536,38 @@ def cmd_context(args: argparse.Namespace) -> int:
     print(system_prompt)
     return 0
 
+def cmd_retention(args: argparse.Namespace) -> int:
+    root = Path(args.root).resolve()
+    from app.services.governance import purge_expired_data, _connect, _require_registry
+    
+    if args.dry_run:
+        conn = _connect(str(root))
+        try:
+            _require_registry(conn)
+            sources = conn.execute("SELECT id, name, retention_days FROM sources WHERE retention_days IS NOT NULL").fetchall()
+            total_expired = 0
+            for src in sources:
+                source_id = src["id"]
+                retention_days = src["retention_days"]
+                row = conn.execute(
+                    """
+                    SELECT COUNT(*) as count FROM source_records 
+                    WHERE source_id = ? AND datetime(captured_at) < datetime('now', ?)
+                    """,
+                    (source_id, f"-{retention_days} days")
+                ).fetchone()
+                count = row["count"] if row else 0
+                total_expired += count
+                print(f"Source '{src['name']}' (ID {source_id}): {count} expired records (older than {retention_days} days).")
+            print(f"Dry-run: {total_expired} records would be purged.")
+        finally:
+            conn.close()
+        return 0
+        
+    res = purge_expired_data(str(root))
+    print(f"Retention purge complete. Purged {res['purged_records']} database records and {res['purged_files']} cached raw files.")
+    return 0
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Memos project-local Memory OS CLI.")
     parser.add_argument("--root", default=str(ROOT), help="Project root")
@@ -465,6 +625,20 @@ def build_parser() -> argparse.ArgumentParser:
     compact_parser.add_argument("--model", help="Optional model override")
     compact_parser.set_defaults(func=cmd_compact)
 
+    compress_parser = subparsers.add_parser(
+        "compress",
+        help="Use LLM to semantically merge verified memory nodes.",
+    )
+    compress_parser.add_argument("--provider", help="Optional provider override (gemini, openrouter, openai)")
+    compress_parser.add_argument("--model", help="Optional model override")
+    compress_parser.set_defaults(func=cmd_compress)
+
+    prune_parser = subparsers.add_parser(
+        "prune",
+        help="Archive stale and superseded memory nodes and edges.",
+    )
+    prune_parser.set_defaults(func=cmd_prune)
+
     search_parser = subparsers.add_parser(
         "search",
         help="Query Memory OS nodes, codebase symbols, and traverse relations."
@@ -473,6 +647,34 @@ def build_parser() -> argparse.ArgumentParser:
     search_parser.add_argument("--depth", type=int, default=1, help="Graph traversal recursion depth.")
     search_parser.add_argument("--json", action="store_true", help="Output raw JSON instead of human-readable text.")
     search_parser.set_defaults(func=cmd_search)
+
+    stats_parser = subparsers.add_parser(
+        "stats",
+        help="Print LLM telemetry, costs, and latencies as a YAML dashboard.",
+    )
+    stats_parser.set_defaults(func=cmd_stats)
+
+    rag_parser = subparsers.add_parser(
+        "rag",
+        help="Search memory based on task description and output active_memory.yaml for RAG.",
+    )
+    rag_parser.add_argument("query", help="Task description to search memory for.")
+    rag_parser.set_defaults(func=cmd_rag)
+
+    persona_sync_parser = subparsers.add_parser(
+        "persona-sync",
+        help="Extract User Persona from a transcript log.",
+    )
+    persona_sync_parser.add_argument("log_file", help="Path to transcript.jsonl")
+    persona_sync_parser.add_argument("--provider", help="Optional provider override", default="gemini")
+    persona_sync_parser.add_argument("--model", help="Optional model override", default="")
+    persona_sync_parser.set_defaults(func=cmd_persona_sync)
+
+    persona_parser = subparsers.add_parser(
+        "persona",
+        help="Print the current User Persona profile.",
+    )
+    persona_parser.set_defaults(func=cmd_persona)
 
     user_mem_parser = subparsers.add_parser(
         "user-memory",
@@ -499,6 +701,14 @@ def build_parser() -> argparse.ArgumentParser:
     context_parser.add_argument("--end-date", help="End date (YYYY-MM-DD)")
     context_parser.add_argument("--limit", type=int, default=10, help="Max top videos to include")
     context_parser.set_defaults(func=cmd_context)
+
+    retention_parser = subparsers.add_parser(
+        "retention",
+        help="Manage data retention policy."
+    )
+    retention_parser.add_argument("--purge", action="store_true", help="Execute the purge (default if not dry-run)")
+    retention_parser.add_argument("--dry-run", action="store_true", help="Perform a dry run to see what would be purged")
+    retention_parser.set_defaults(func=cmd_retention)
 
     return parser
 

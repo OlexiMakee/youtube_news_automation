@@ -1,0 +1,24 @@
+active_context:
+- id: architecture.solid.dip_for_testability
+  summary: The Dependency Inversion Principle (DIP) using abstract classes and constructor
+    injection must be applied to complex orchestration modules in Python to enable
+    in-memory unit testing, improving speed, stability, and mock cleanliness.
+- id: llm.model_selection.dynamic_fallback
+  summary: Provider-specific generative model integrations must not hard-code single
+    model IDs but instead dynamically discover or configure candidate models with
+    a 404 fallback mechanism across candidates.
+- id: architecture.backward_compatibility.api_and_refactoring
+  summary: When refactoring core service modules or extending core APIs, maintain
+    backward-compatible facades and return type signatures to prevent breakage of
+    existing unit test mocks, legacy test consumers, and external integrations.
+- id: analytics.scoring_architecture.generic_and_source_agnostic
+  summary: Analytics scoring layers must be source-agnostic, isolating source-specific
+    logic into adapters to enable reuse of the metric engine across diverse data feeds
+    and tools (CLI, dashboards). When performing combined-source scoring, phrases
+    must be deduplicated per record to prevent inflated counts and ensure accurate
+    metric aggregation.
+- id: architecture.memory_os.isolation_and_separation
+  summary: The Memory OS architecture must strictly separate Developer Memory OS from
+    User-Facing Memory OS at the database level to prevent accidental leaks and ensure
+    data integrity. User-facing feedback (ratings, comments) must be persisted in
+    the isolated User-Facing Memory OS database as telemetry.

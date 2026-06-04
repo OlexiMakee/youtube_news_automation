@@ -2,7 +2,7 @@ import json
 import hashlib
 from pathlib import Path
 from typing import List, Dict, Any
-from app.services.memory_os.interfaces import IMemoryStorage
+from memory_os.interfaces import IMemoryStorage
 
 class FileSystemMemoryStorage(IMemoryStorage):
     """Concrete implementation of IMemoryStorage using the local filesystem."""

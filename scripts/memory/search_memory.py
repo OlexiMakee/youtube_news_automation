@@ -12,7 +12,7 @@ MEMORY_DIR = ROOT / "memory"
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from app.services.memory_os import MemosConfig, MemorySearcher
+from memory_os import MemosConfig, MemorySearcher
 
 def search_memory(query: str, depth: int = 1) -> List[Dict[str, Any]]:
     config = MemosConfig()

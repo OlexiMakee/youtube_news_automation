@@ -4,15 +4,15 @@ Status: mandatory routing contract. Language: concise English.
 
 Use two explicit workstreams:
 - `product`: client-facing Governed Autonomous Intelligence Workspace.
-- `memos`: Memory OS, agent workflow, development telemetry, repo analysis, and self-improvement tools.
+- `memory_os`: Memory OS, agent workflow, development telemetry, repo analysis, and self-improvement tools.
 
-Naming guard: `memos` is an internal command/workflow alias for Memory OS. It is
+Naming guard: `memory_os` is an internal command/workflow alias for Memory OS. It is
 not the final public product name and is unrelated to the existing Memos
 note-taking application.
 
 Accepted trigger forms:
 - `product nano`, `product mid step`, `product 8`, `product giant steps`.
-- `memos nano`, `memos light mid`, `memos 6`, `memos giant`.
+- `memory_os nano`, `memory_os light mid`, `memory_os 6`, `memory_os giant`.
 - If no workflow is named, infer from the task. If inference is mixed, update `HANDSHAKE.md` and finish the smaller blocking side first.
 
 ## 12-Step Scale
@@ -55,7 +55,7 @@ Default constraints:
 - Prefer migration-safe preview/API bridges before persistence.
 - UI click-through remains manual unless browser automation is requested or necessary.
 
-Typical tasks by score (Memos):
+Typical tasks by score (Memory OS):
 - 1 nano: read one config file; add one TODO to HANDSHAKE; classify one blocking issue.
 - 2 micro: inspect one memory file; add one-line safe timestamp; update one TODO status.
 - 3 tiny: add one lifecycle event entry; fix one JSON schema example; validate one audit log.
@@ -69,7 +69,7 @@ Typical tasks by score (Memos):
 - 11 large: design governance migration and rollout plan with rollback/test matrix.
 - 12 giant: restructure product roadmap or build a complete controlled automation subsystem.
 
-## Memos Workflow
+## Memory OS Workflow
 
 Purpose: improve development intelligence for the owner and agents.
 
@@ -103,7 +103,7 @@ Typical tasks by score:
 ## Mixed Tasks
 
 When a task touches both workflows:
-- Split into `product` and `memos` subtasks in `HANDSHAKE.md`.
-- Do not hide product risk inside memos work.
-- Do not let memos refactors block a small product fix.
+- Split into `product` and `memory_os` subtasks in `HANDSHAKE.md`.
+- Do not hide product risk inside memory_os work.
+- Do not let memory_os refactors block a small product fix.
 - If the user asks for "next" with no workflow, prefer the currently blocking handoff item.

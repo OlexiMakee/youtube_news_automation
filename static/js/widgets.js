@@ -1072,8 +1072,8 @@ class AnomalyAlertsWidget extends BaseWidget {
                     <span class="anomaly-confidence-badge ${confClass}">${pct}% conf</span>
                 </div>
                 <div class="anomaly-stats-bar">
-                    <span class="anomaly-stat-item">Views (24h): <strong>${formattedViews}</strong></span>
-                    <span class="anomaly-stat-item">Z-Score: <strong>${anom.z_score >= 0 ? '+' : ''}${anom.z_score.toFixed(2)}σ</strong></span>
+                    <span class="anomaly-stat-item" title="Views accumulated over the monitored period">Views (24h): <strong>${formattedViews}</strong></span>
+                    <span class="anomaly-stat-item" title="Z-Score (Standard Score): Indicates how many standard deviations the views are above the channel's average. &gt;2.0 means exceptionally high performance.">Z-Score: <strong>${anom.z_score >= 0 ? '+' : ''}${anom.z_score.toFixed(2)}σ</strong></span>
                 </div>
                 <div class="confidence-bar-container">
                     <div class="confidence-bar-outer">

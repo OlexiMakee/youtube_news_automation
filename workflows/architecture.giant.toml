@@ -1,6 +1,6 @@
 id = "architecture.giant"
 step_min = 9
-step_max = 12
+step_max = 13
 level_min = 65
 level_max = 100
 model_policy = "large_reasoning"

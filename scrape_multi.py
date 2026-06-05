@@ -28,8 +28,9 @@ utils.setup_and_run_venv(__file__)
 
 from scraper.db_client import DatabaseClient
 from scraper.scraper_engine import YouTubeScraperEngine
+from scraper.config import ScraperConfig
+from scraper.observer import CLIObserver
 import scraper.cli_progress as cli_progress
-from scraper.keypress import KeypressDetector
 
 # Maximum video limit per channel
 LIMIT_PER_CHANNEL = 17000
@@ -276,15 +277,28 @@ def run_multi_scraping(channels_list, days, stop_on_known=True, single_channel_m
 
         nickname, url = utils.normalize_url(channel_input)
 
+        # Bind progress display and pause-trigger callbacks
+        current_name = channel_handle or channel_name
+        progress_prefix = f"[{idx}/{len(channels_list)} - {current_name}]"
+        on_progress = cli_progress.make_progress_callback(history_cutoff, prefix=progress_prefix)
+        on_pause = cli_progress.make_pause_callback(channel_id, start_time, db_client)
+
+        from scraper.keypress import KeypressDetector
         detector = KeypressDetector(True)
+        observer = CLIObserver(silent=False, keypress_detector=detector, on_pause_callback=lambda: on_pause(scraper))
+        
+        # Override the observer's on_progress to use the cli_progress callback
+        observer.on_progress = lambda current_count, total_limit, last_added_time, **kwargs: on_progress(current_count, total_limit, last_added_time, **kwargs)
+
+        config = ScraperConfig(default_limit=LIMIT_PER_CHANNEL)
+        
         # Initialize scraper engine with the set limit and date constraint
         scraper = YouTubeScraperEngine(
             url,
             storage=db_client,
-            limit=LIMIT_PER_CHANNEL,
+            config=config,
+            observer=observer,
             date_after=history_cutoff,
-            silent=False,
-            keypress_detector=detector,
             on_auto_sync=make_auto_sync_callback(silent=False) if pg_configured and run_postgres else None
         )
 
@@ -318,13 +332,7 @@ def run_multi_scraping(channels_list, days, stop_on_known=True, single_channel_m
 
         start_time = time.time()
 
-        # Create a dynamic prefix for the progress bar containing the channel index and handle
-        current_name = channel_handle or channel_name
-        progress_prefix = f"[{idx}/{len(channels_list)} - {current_name}]"
-
-        # Bind progress display and pause-trigger callbacks
-        on_progress = cli_progress.make_progress_callback(history_cutoff, prefix=progress_prefix)
-        on_pause = cli_progress.make_pause_callback(channel_id, start_time, db_client)
+        # Callbacks already bound above
 
         # Set the starting offset index in the scraper engine
         scraper.start_index = start_index

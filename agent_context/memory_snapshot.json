@@ -1718,7 +1718,7 @@
         "layer": "domain-layer",
         "sha256_16": "dcad3c9a08e957d7"
       },
-      "vector_text": "scripts/validate_task_capsules.py validate_rows:16 validate_file:21 main:26 \"\"\"Validate agent task capsule JSONL files.\"\"\" from __future__ import annotations import argparse import sys from pathlib import Path from typing import Iterable, List ROOT = Path(__file__).resolve().parents[1] if str(ROOT) not in sys.path: sys.path.insert(0, str(ROOT)) from memory_os import MemosConfig, MemoryValidator def validate_rows(lines: Iterable[str]"
+      "vector_text": "scripts/validate_task_capsules.py validate_rows:16 validate_file:21 main:26 \"\"\"Validate agent task capsule JSONL files.\"\"\" from __future__ import annotations import argparse import sys from pathlib import Path from typing import Iterable, List ROOT = Path(__file__).resolve().parents[1] if str(ROOT) not in sys.path: sys.path.insert(0, str(ROOT)) from memory_os import MemoryOSConfig, MemoryValidator def validate_rows(lines: Iterable[str]"
     },
     {
       "meta": {
@@ -2034,7 +2034,7 @@
           "_first_match:84",
           "summarize_capsules:89",
           "inspect_memory_lifecycle:110",
-          "roadmap_memos_status:139",
+          "roadmap_system_status:139",
           "_looks_like_memos_item:153",
           "build_recommendations:158",
           "auto_transition_proposals:177",
@@ -2045,7 +2045,7 @@
         "layer": "domain-layer",
         "sha256_16": "e95145013c3e63dc"
       },
-      "vector_text": "scripts/memory/audit_memos.py read_text:41 load_jsonl:47 parse_handshake:67 _first_match:84 summarize_capsules:89 inspect_memory_lifecycle:110 roadmap_memos_status:139 _looks_like_memos_item:153 build_recommendations:158 auto_transition_proposals:177 audit:266 to_markdown:297 main:326 #!/usr/bin/env python3 \"\"\"Audit Memory OS workflow state and emit a compact report.\"\"\" from __future__ import annotations import argparse import json import re import sys from collections import Counter from datetime import datetime from pathlib import Path from typing import Any, Dict, Iterable, List, Tuple ROOT = Path(__file__).resolve().parents[2] if str("
+      "vector_text": "scripts/memory/audit_memos.py read_text:41 load_jsonl:47 parse_handshake:67 _first_match:84 summarize_capsules:89 inspect_memory_lifecycle:110 roadmap_system_status:139 _looks_like_memos_item:153 build_recommendations:158 auto_transition_proposals:177 audit:266 to_markdown:297 main:326 #!/usr/bin/env python3 \"\"\"Audit Memory OS workflow state and emit a compact report.\"\"\" from __future__ import annotations import argparse import json import re import sys from collections import Counter from datetime import datetime from pathlib import Path from typing import Any, Dict, Iterable, List, Tuple ROOT = Path(__file__).resolve().parents[2] if str("
     },
     {
       "meta": {
@@ -2070,7 +2070,7 @@
         "layer": "domain-layer",
         "sha256_16": "ba6846ede6ca9de7"
       },
-      "vector_text": "scripts/memory/compact_capsules.py call_llm:14 compact_capsules:37 main:51 #!/usr/bin/env python3 import sys import os import argparse from pathlib import Path from typing import Optional ROOT = Path(__file__).resolve().parents[2] if str(ROOT) not in sys.path: sys.path.insert(0, str(ROOT)) from memory_os import MemosConfig, MemoryCompactor def call_llm(user_message: str, provider_override: Optional[str] = None, model_override: Opti"
+      "vector_text": "scripts/memory/compact_capsules.py call_llm:14 compact_capsules:37 main:51 #!/usr/bin/env python3 import sys import os import argparse from pathlib import Path from typing import Optional ROOT = Path(__file__).resolve().parents[2] if str(ROOT) not in sys.path: sys.path.insert(0, str(ROOT)) from memory_os import MemoryOSConfig, MemoryCompactor def call_llm(user_message: str, provider_override: Optional[str] = None, model_override: Opti"
     },
     {
       "meta": {
@@ -2098,7 +2098,7 @@
         "layer": "domain-layer",
         "sha256_16": "b330a1c839c12e2b"
       },
-      "vector_text": "scripts/memory/lifecycle.py load_jsonl:16 append_jsonl:22 write_jsonl:28 cmd_propose:34 cmd_transition:48 cmd_manifest:55 cmd_prune:62 main:69 #!/usr/bin/env python3 import sys import os import argparse from pathlib import Path from typing import Optional, List, Dict, Any ROOT = Path(__file__).resolve().parents[2] MEMORY_DIR = ROOT / \"memory\" if str(ROOT) not in sys.path: sys.path.insert(0, str(ROOT)) from memory_os import MemosConfig, LifecycleManager def load_jsonl(path: Path) -> List[Dict[str, A"
+      "vector_text": "scripts/memory/lifecycle.py load_jsonl:16 append_jsonl:22 write_jsonl:28 cmd_propose:34 cmd_transition:48 cmd_manifest:55 cmd_prune:62 main:69 #!/usr/bin/env python3 import sys import os import argparse from pathlib import Path from typing import Optional, List, Dict, Any ROOT = Path(__file__).resolve().parents[2] MEMORY_DIR = ROOT / \"memory\" if str(ROOT) not in sys.path: sys.path.insert(0, str(ROOT)) from memory_os import MemoryOSConfig, LifecycleManager def load_jsonl(path: Path) -> List[Dict[str, A"
     },
     {
       "meta": {
@@ -2148,7 +2148,7 @@
         "layer": "domain-layer",
         "sha256_16": "92f37444461c917e"
       },
-      "vector_text": "scripts/memory/validate_memory.py log_error:15 validate_nodes:18 validate_edges:30 validate_events:42 validate_proposals_file:54 main:60 #!/usr/bin/env python3 import sys import os from pathlib import Path from typing import List ROOT = Path(__file__).resolve().parents[2] MEMORY_DIR = ROOT / \"memory\" if str(ROOT) not in sys.path: sys.path.insert(0, str(ROOT)) from memory_os import MemosConfig, MemoryValidator def log_error(msg: str): print(f\"ERROR: {msg}\", file=sys.stderr) def validate_nodes("
+      "vector_text": "scripts/memory/validate_memory.py log_error:15 validate_nodes:18 validate_edges:30 validate_events:42 validate_proposals_file:54 main:60 #!/usr/bin/env python3 import sys import os from pathlib import Path from typing import List ROOT = Path(__file__).resolve().parents[2] MEMORY_DIR = ROOT / \"memory\" if str(ROOT) not in sys.path: sys.path.insert(0, str(ROOT)) from memory_os import MemoryOSConfig, MemoryValidator def log_error(msg: str): print(f\"ERROR: {msg}\", file=sys.stderr) def validate_nodes("
     },
     {
       "meta": {
@@ -2203,7 +2203,7 @@
         "layer": "domain-layer",
         "sha256_16": "5ac7d7a596108a0e"
       },
-      "vector_text": "scripts/memory/search_memory.py search_memory:17 main:25 #!/usr/bin/env python3 import sys import os import json import argparse from pathlib import Path from typing import List, Dict, Any ROOT = Path(__file__).resolve().parents[2] MEMORY_DIR = ROOT / \"memory\" if str(ROOT) not in sys.path: sys.path.insert(0, str(ROOT)) from memory_os import MemosConfig, MemorySearcher def search_memory(query: str, depth: int = 1)"
+      "vector_text": "scripts/memory/search_memory.py search_memory:17 main:25 #!/usr/bin/env python3 import sys import os import json import argparse from pathlib import Path from typing import List, Dict, Any ROOT = Path(__file__).resolve().parents[2] MEMORY_DIR = ROOT / \"memory\" if str(ROOT) not in sys.path: sys.path.insert(0, str(ROOT)) from memory_os import MemoryOSConfig, MemorySearcher def search_memory(query: str, depth: int = 1)"
     },
     {
       "meta": {

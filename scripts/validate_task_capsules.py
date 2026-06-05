@@ -11,15 +11,15 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from memory_os import MemosConfig, MemoryValidator
+from memory_os import MemoryOSConfig, MemoryValidator
 
 def validate_rows(lines: Iterable[str]) -> List[str]:
-    config = MemosConfig()
+    config = MemoryOSConfig()
     validator = MemoryValidator(config)
     return validator.validate_rows(lines)
 
 def validate_file(path: Path) -> List[str]:
-    config = MemosConfig()
+    config = MemoryOSConfig()
     validator = MemoryValidator(config)
     return validator.validate_file(path)
 

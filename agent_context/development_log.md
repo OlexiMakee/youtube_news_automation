@@ -235,7 +235,7 @@ Format: short English bullets only. Keep durable facts.
 - Implemented User-Facing Memory OS likes/dislikes and optional comment feedback loop for streaming co-editor interactions, saving insights to isolated SQLite `data/memory_os.db` database.
 - Added client-side chat feedback controls (Thumbs-Up, Thumbs-Down, export to Markdown, and comment input fields) to bot message bubbles in the chat drawer.
 - Verified route and database persistence integration using a dedicated unit test suite (`scratch/test_chat_feedback.py`) and ran audit to automatically verify and transition the related proposals to done.
-- Refactored Memory OS modules (compactor, lifecycle, validator, search) to conform with the SOLID Dependency Inversion Principle (DIP) by introducing IMemosConfig, IMemoryStorage, and ILlmProviderService abstract base classes, decoupling core logic from direct filesystem calls and concrete LLM factories. Created FileSystemMemoryStorage and DefaultLlmProviderService concrete implementations, and verified in-memory isolation using new test_memory_os_dip.py unit tests.
+- Refactored Memory OS modules (compactor, lifecycle, validator, search) to conform with the SOLID Dependency Inversion Principle (DIP) by introducing IMemoryOSConfig, IMemoryStorage, and ILlmProviderService abstract base classes, decoupling core logic from direct filesystem calls and concrete LLM factories. Created FileSystemMemoryStorage and DefaultLlmProviderService concrete implementations, and verified in-memory isolation using new test_memory_os_dip.py unit tests.
 
 ## 2026-06-03
 - Registered `minified-stats`, `entity-timeline`, `system-status`, and `cost-quota` in `WIDGET_TYPES` in `app/services/widgets.py` to support layout database persistence.
@@ -278,7 +278,7 @@ Format: short English bullets only. Keep durable facts.
 - `memory_os/pyproject.toml` created; zero external dependencies.
 - `memory_os/docs/ARCHITECTURE.md` created; portability instructions documented.
 - Compile check: all 17 modules clean. Shim backward-compat verified. `memos.py validate` runs.
-- Portable: copy `memory_os/` + `memos.config.json` + `memory/` to any Python project; set API key env.
+- Portable: copy `memory_os/` + `memory_os.config.json` + `memory/` to any Python project; set API key env.
 - [A] Migrated evidence paths in `memory/nodes.jsonl`: `app/services/memory_os/X` → `memory_os/X`. `memos validate` now clean.
 - [B] Launchd agent registered: `com.newsresearch.memory_os.compact` runs `memos compact` daily at 03:00. Plist in `memory_os/`. Logs → `logs/memos_compact.log`.
 - [C] Portability smoke passed via system python3 (no project venv): MemoryOS SQLite init, memory write/read, MemoryValidator, parse_toml, wrap_in_xml all verified from `/tmp` isolation.
@@ -292,3 +292,14 @@ Format: short English bullets only. Keep durable facts.
 - feat: Added dynamic RAG context generation (`memos rag`).
 - feat: Isolated User Persona extraction to prevent system graph pollution (`memos persona-sync`).
 - chore: Bumped virtual version to pre-alpha 0.998.
+- fix: Repaired and pruned legacy test suites in `scratch/` that were broken by the deep structural decoupling of `memory_os` from the host app, resulting in 190/190 passing tests.
+- feat: Refactored `quantizer.py` and workflows to use L0-L13 scale, added `IMemoryModule`, `WorkflowManager`, and `TaskOrchestrator` to support dynamic multi-agent orchestrations.
+- feat: Implemented `giant-scan` CLI command (`memory_os/toolkit/giant_scan.py`) — full-context L13 audit tool that collects entire codebase + Memory OS graph and sends to large-context LLM for architectural review. Outputs proposals to `agent_proposals/giant_scan_proposals.jsonl`.
+- feat: Implemented Phase 4 Standalone Worker daemon (`scripts/watcher_worker.py`) that loops and triggers enabled watchers using `execute_watchers`.
+- feat: Updated `execute_watchers` to check watcher interval configurations and execute ingestion workflows, triggering autonomous brief generation (`BriefsService.generate_daily_brief`).
+- feat: Added `list_draft_briefs` and `update_brief_status` in `app/services/briefs.py` to support reviewing drafts.
+- feat: Added `/api/governance/review-queue` endpoints to list, approve, and reject items in the Human Review Queue.
+- feat: Added Human Review Queue section to the dashboard `templates/index.html` and bound client-side functions in `static/js/briefs.js` and `app.js`.
+- feat: Implemented Phase 4 Budget & Token Caps by enforcing `max_runs_per_day` and `cost_limit_usd` checks in `execute_watchers` against daily totals from `connector_runs`.
+- feat: Implemented Phase 4 Anomaly Alerts by invoking `detect_anomalies` natively inside `execute_watchers` for YouTube sources and dispatching alerts via `AlertsService.send_anomaly_alert`.
+- test: Added limit enforcement constraints in `scratch/test_watchers_runner.py` verifying test suite passes successfully (255/255 tests).

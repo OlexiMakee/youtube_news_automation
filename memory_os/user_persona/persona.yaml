@@ -1,9 +1,0 @@
-language: Ukrainian (primary), with English technical terms
-verbosity: Concise, but values informativeness; seeks token optimization for agents
-formatting: Values human-readability and structure; expresses interest in YAML for
-  structured data; prefers clear tables when appropriate
-tone: Direct, clear, provides specific instructions and asks direct questions
-custom_rules:
-- Output must be informative.
-- Output must be token-optimized for agents.
-- Output must be human-readable.

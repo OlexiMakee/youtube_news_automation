@@ -12,8 +12,7 @@ Rules:
 - Do not expose secrets or `.env` values.
 - Ask before destructive DB/file actions, schema changes, new deps, or broad refactors.
 - Keep changes scoped. Do not rewrite unrelated user work.
-- Route tasks through `product` or `memos` workflow and the 12-step scale in `agent_context/WORKFLOWS.md`.
-- Treat `memos` as an internal shorthand for Memory OS workflows. It is not the final product name and is unrelated to the existing Memos note-taking app.
+- Route tasks through `product` or `memory_os` workflow and the 12-step scale in `agent_context/WORKFLOWS.md`.
 - For UI work, provide the exact manual click path when not automating the browser.
 
 LLM provider contract:

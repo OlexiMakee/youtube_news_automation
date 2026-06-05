@@ -27,7 +27,7 @@ class TestTokenOptimizedRag(unittest.TestCase):
         self.test_dir = tempfile.mkdtemp()
         self.db_path = Path(self.test_dir) / "memory_os.db"
         
-        import scripts.memory.search_memory as search_mod
+        import memory_os.toolkit.search_cli as search_mod
         self.orig_search_root = search_mod.ROOT
         self.orig_search_mem = search_mod.MEMORY_DIR
         
@@ -223,7 +223,7 @@ class TestTokenOptimizedRag(unittest.TestCase):
             json.dump(snapshot_data, f)
             
         # Import search_memory
-        from scripts.memory.search_memory import search_memory
+        from memory_os.toolkit.search_cli import search_memory
         
         # Test exact class search
         res = search_memory("CredentialsStore")

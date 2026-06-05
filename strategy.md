@@ -107,7 +107,7 @@ Integrated within the product's chat assistant to enable the end-user (analyst, 
 
 ### 4.2 LLM Budget Tiers
 - Canonical routing lives in `agent_context/WORKFLOWS.md`.
-- Two workflows: `product` for customer-facing workspace, `memos` for Memory OS and development intelligence.
+- Two workflows: `product` for customer-facing workspace, `memory_os` for Memory OS and development intelligence.
 - Step scale: 1-12 from `nano` to `giant`; older `tiny/mid/giant` commands map into this scale.
 
 ### 4.3 Global Response Language Policy

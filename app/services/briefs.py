@@ -249,6 +249,82 @@ class BriefsService:
             conn.close()
 
     @staticmethod
+    def list_draft_briefs(
+        root_dir: str,
+        limit: int = 20,
+    ) -> Dict[str, Any]:
+        """List draft briefs for the human review queue.
+
+        Returns:
+            {"briefs": [...], "registry_ready": bool}
+        """
+        if not registry_ready(root_dir):
+            return {"briefs": [], "registry_ready": False}
+
+        conn = _connect_db(root_dir)
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT id, title, created_at, status
+                FROM ai_outputs
+                WHERE output_type = 'brief' AND status = 'draft'
+                ORDER BY id DESC
+                LIMIT ?
+                """,
+                (limit,)
+            )
+            rows = cursor.fetchall()
+            briefs = []
+            for r in rows:
+                briefs.append({
+                    "id": r["id"],
+                    "title": r["title"],
+                    "created_at": r["created_at"],
+                    "status": r["status"]
+                })
+            return {"briefs": briefs, "registry_ready": True}
+        finally:
+            conn.close()
+
+    @staticmethod
+    def update_brief_status(
+        root_dir: str,
+        brief_id: int,
+        new_status: str
+    ) -> bool:
+        """Update the status of a brief."""
+        if not registry_ready(root_dir):
+            raise GovernanceMigrationRequired("Governance registry migration is not applied.")
+            
+        if new_status not in ('draft', 'reviewed', 'approved', 'rejected', 'exported'):
+            raise ValueError(f"Invalid status: {new_status}")
+            
+        conn = _connect_db(root_dir)
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                "UPDATE ai_outputs SET status = ? WHERE id = ? AND output_type = 'brief'",
+                (new_status, brief_id)
+            )
+            affected = cursor.rowcount > 0
+            conn.commit()
+            
+            if affected:
+                from app.services.governance import add_audit_event
+                add_audit_event(
+                    root_dir=root_dir,
+                    action="brief.status_updated",
+                    object_type="ai_output",
+                    object_id=brief_id,
+                    metadata={"new_status": new_status},
+                    conn=conn
+                )
+            return affected
+        finally:
+            conn.close()
+
+    @staticmethod
     def get_brief_by_id(
         root_dir: str,
         brief_id: int,

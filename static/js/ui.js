@@ -1021,54 +1021,126 @@ window.handleWorkflowSelectChange = function(proposalId, sourceType) {
 
 function _renderScrapingTasks(data) {
     const target = document.getElementById("operator-scraping-tasks");
-    if (!target) return;
-
+    const ingestTarget = document.getElementById("active-ingest-jobs-list");
+    
     const tasks = data?.tasks || [];
-    if (!tasks.length) {
-        target.innerHTML = `<div class="operator-empty">No active tasks.</div>`;
-        return;
+    const regularTasks = tasks.filter(t => t.type !== "multi_scrape");
+    const multiTasks = tasks.filter(t => t.type === "multi_scrape");
+    
+    if (target) {
+        if (!regularTasks.length) {
+            target.innerHTML = `<div class="operator-empty">No active tasks.</div>`;
+        } else {
+            target.innerHTML = regularTasks.map(t => _buildTaskRowHtml(t)).join("");
+        }
+    }
+    
+    if (ingestTarget) {
+        if (!multiTasks.length) {
+            ingestTarget.innerHTML = `<div class="operator-empty">No active ingestion jobs.</div>`;
+        } else {
+            ingestTarget.innerHTML = multiTasks.map(t => _buildTaskRowHtml(t, true)).join("");
+        }
+    }
+}
+
+function _buildTaskRowHtml(t, isMultiScrape = false) {
+    let statusBadgeClass = "idle";
+    let statusText = t.status;
+    let progressHtml = "";
+    
+    if (t.status === "running") {
+        statusBadgeClass = "scraping";
+        statusText = "RUNNING";
+        let fillWidth = "50%";
+        if (isMultiScrape && t.progress) {
+            fillWidth = `${t.progress}%`;
+        }
+        progressHtml = `
+            <div class="progress-bar-container" style="background: var(--border-color); height: 6px; border-radius: 3px; margin-top: 4px; overflow: hidden; position: relative;">
+                <div class="progress-bar-fill" style="background: var(--accent-color); height: 100%; width: ${fillWidth}; border-radius: 3px; ${!isMultiScrape ? 'animation: pulse 1.5s infinite ease-in-out;' : ''}"></div>
+            </div>
+        `;
+    } else if (t.status === "completed") {
+        statusBadgeClass = "completed";
+        statusText = "COMPLETED";
+    } else if (t.status === "failed" || t.status === "error" || t.status === "cancelled") {
+        statusBadgeClass = "error";
+        statusText = (t.status || "FAILED").toUpperCase();
     }
 
-    target.innerHTML = tasks.map(t => {
-        let statusBadgeClass = "idle";
-        let statusText = t.status;
-        let progressHtml = "";
-        
-        if (t.status === "running") {
-            statusBadgeClass = "scraping";
-            statusText = "RUNNING";
-            progressHtml = `
-                <div class="progress-bar-container" style="background: var(--border-color); height: 6px; border-radius: 3px; margin-top: 4px; overflow: hidden; position: relative;">
-                    <div class="progress-bar-fill" style="background: var(--accent-color); height: 100%; width: 50%; border-radius: 3px; animation: pulse 1.5s infinite ease-in-out;"></div>
-                </div>
-            `;
-        } else if (t.status === "completed") {
-            statusBadgeClass = "completed";
-            statusText = "COMPLETED";
-        } else if (t.status === "failed") {
-            statusBadgeClass = "error";
-            statusText = "FAILED";
-        }
+    const elapsed = t.elapsed_sec != null ? `${t.elapsed_sec}s` : "-";
+    const fetched = t.records_fetched != null ? `${t.records_fetched} records` : (t.message ? t.message : "");
+    const detail = t.error ? `<div class="operator-source-meta" style="color: var(--danger-color); word-break: break-all;">Error: ${escapeHtml(t.error)}</div>` : "";
+    
+    let cancelBtn = "";
+    if (isMultiScrape && t.status === "running" && !t.cancel_requested) {
+        cancelBtn = `<button class="btn-dropdown-action" style="color: var(--danger-color); font-size: 10px; padding: 2px 4px; border: 1px solid var(--danger-color);" onclick="cancelMultiScrape('${t.task_id}')">Cancel</button>`;
+    } else if (isMultiScrape && t.cancel_requested) {
+        cancelBtn = `<span style="font-size: 10px; color: var(--danger-color);">Cancelling...</span>`;
+    }
 
-        const elapsed = t.elapsed_sec != null ? `${t.elapsed_sec}s` : "-";
-        const fetched = t.records_fetched != null ? `${t.records_fetched} records` : "";
-        const detail = t.error ? `<div class="operator-source-meta" style="color: var(--danger-color); word-break: break-all;">Error: ${escapeHtml(t.error)}</div>` : "";
-
-        return `
-            <article class="operator-source-row">
-                <div class="operator-source-main">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
-                        <strong>${escapeHtml(t.name || "Scrape Job")}</strong>
+    return `
+        <article class="operator-source-row">
+            <div class="operator-source-main">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+                    <strong>${escapeHtml(t.name || (isMultiScrape ? "Multi-Channel Sync" : "Scrape Job"))}</strong>
+                    <div style="display: flex; gap: 6px; align-items: center;">
+                        ${cancelBtn}
                         <span class="task-badge ${statusBadgeClass}" style="font-size: 8px; padding: 2px 4px;">${escapeHtml(statusText)}</span>
                     </div>
-                    <span class="operator-source-meta">Type: ${escapeHtml(t.source_type)} | Elapsed: ${escapeHtml(elapsed)} | ${escapeHtml(fetched)}</span>
-                    <span class="operator-source-meta">Started: ${escapeHtml(t.started_at)}</span>
-                    ${progressHtml}
-                    ${detail}
                 </div>
-            </article>
-        `;
-    }).join("");
+                <span class="operator-source-meta">Type: ${escapeHtml(t.type || t.source_type || "scraper")} | Elapsed: ${escapeHtml(elapsed)} | ${escapeHtml(fetched)}</span>
+                <span class="operator-source-meta">Started: ${escapeHtml(t.started_at)}</span>
+                ${progressHtml}
+                ${detail}
+            </div>
+        </article>
+    `;
+}
+
+export async function startMultiScrape() {
+    const channelsStr = document.getElementById("ingest-channels-input").value;
+    const days = document.getElementById("ingest-days-input").value;
+    
+    if (!channelsStr.trim()) {
+        alert("Please enter at least one channel.");
+        return;
+    }
+    
+    const channels = channelsStr.split(",").map(c => c.trim()).filter(c => c.length > 0);
+    try {
+        const res = await adminFetch("/api/scraper/ingestion/start", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ channels, days: parseInt(days) || 14 })
+        });
+        const data = await res.json();
+        if (data.ok) {
+            document.getElementById("ingest-channels-input").value = "";
+            loadOperatorRuntimePanel(); // Refresh tasks
+        } else {
+            alert("Error: " + (data.error || "Failed to start"));
+        }
+    } catch (err) {
+        console.error(err);
+        alert("Network error: " + err);
+    }
+}
+
+export async function cancelMultiScrape(taskId) {
+    try {
+        const res = await adminFetch(`/api/scraper/ingestion/cancel/${taskId}`, { method: "POST" });
+        const data = await res.json();
+        if (data.ok) {
+            loadOperatorRuntimePanel();
+        } else {
+            alert("Error: " + (data.error || "Failed to cancel"));
+        }
+    } catch (err) {
+        console.error(err);
+        alert("Network error: " + err);
+    }
 }
 
 export async function approveScrapingProposal(proposalId) {
@@ -2592,39 +2664,39 @@ export function exportChatMarkdown() {
     URL.revokeObjectURL(url);
 }
 
-export async function clearChatHistory() {
+export async function clearChatAction(mode) {
     const containerEl = document.getElementById("chat-messages");
     const inputEl = document.getElementById("chat-input");
-    const hasMessages = _getChatHistory().length > 0;
-    const hasStagedFiles = CHAT_STAGED_FILES.length > 0;
-    const hasInput = Boolean(inputEl && inputEl.value.trim());
-    if (!hasMessages && !hasStagedFiles && !hasInput) return;
-
-    const shouldClear = window.confirm("Очистити історію чату?");
-    if (!shouldClear) return;
-
-    if (containerEl) {
-        containerEl.innerHTML = "";
+    
+    if (mode === 'history' || mode === 'all') {
+        localStorage.removeItem(CHAT_STORAGE_HISTORY);
     }
-    if (inputEl) {
-        inputEl.value = "";
-        inputEl.disabled = false;
-        inputEl.placeholder = "Напишіть повідомлення...";
+
+    if (mode === 'context' || mode === 'all') {
+        if (containerEl) {
+            containerEl.innerHTML = "";
+        }
+        if (inputEl) {
+            inputEl.value = "";
+            inputEl.disabled = false;
+            inputEl.placeholder = "Напишіть повідомлення...";
+        }
+        _clearStagedFiles();
+        chatContextWarningShown = false;
+        
+        try {
+            await adminFetchSilent("/api/chat/clear-context", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ scope: "active_session" })
+            });
+        } catch (err) {
+            console.warn("[chat] clear-context endpoint unavailable:", err);
+        }
     }
-    _clearStagedFiles();
-    chatContextWarningShown = false;
-    localStorage.removeItem(CHAT_STORAGE_HISTORY);
+    
     window.chatUIManager?.updateContextMeter();
-
-    try {
-        await adminFetchSilent("/api/chat/clear-context", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ scope: "active_session" })
-        });
-    } catch (err) {
-        console.warn("[chat] clear-context endpoint unavailable:", err);
-    }
+    document.getElementById("chat-clear-opts")?.classList.remove("show");
 }
 
 function _renderChatMarkdown(targetEl, rawText) {
@@ -3529,6 +3601,7 @@ export class ChatUIManager {
     _ensureContextToast() {
         if (document.getElementById("chat-context-toast")) {
             this.contextToast = document.getElementById("chat-context-toast");
+            this.contextToastText = this.contextToast.querySelector('.toast-text');
             return;
         }
         const meter = document.getElementById("chat-context-meter");
@@ -3538,8 +3611,16 @@ export class ChatUIManager {
         toast.className = "chat-context-toast";
         toast.id = "chat-context-toast";
         toast.hidden = true;
+        toast.innerHTML = `<span class="toast-text"></span><button class="toast-close-btn" aria-label="Close" style="background:none; border:none; cursor:pointer; color:inherit; margin-left:8px; padding:0 4px;"><i class="fa-solid fa-times"></i></button>`;
         meter.appendChild(toast);
+        
+        const closeBtn = toast.querySelector(".toast-close-btn");
+        closeBtn.addEventListener("click", () => {
+            toast.hidden = true;
+        });
+
         this.contextToast = toast;
+        this.contextToastText = toast.querySelector(".toast-text");
     }
 
     _ensureFileChipTray() {
@@ -3828,7 +3909,12 @@ export class ChatUIManager {
     _showContextToast(estimatedTokens, rawPercent) {
         if (!this.contextToast) return;
         const percentText = Math.round(rawPercent);
-        this.contextToast.textContent = `Context ${percentText}% (${estimatedTokens.toLocaleString()} tok). Remove files or clear history.`;
+        const msg = `Context ${percentText}% (${estimatedTokens.toLocaleString()} tok). Remove files or clear history.`;
+        if (this.contextToastText) {
+            this.contextToastText.textContent = msg;
+        } else {
+            this.contextToast.textContent = msg;
+        }
         this.contextToast.hidden = false;
         chatContextWarningShown = true;
     }
@@ -4130,3 +4216,25 @@ export async function runIngest(sourceId) {
     prepareIngestSource(sourceId, { focus: true, preserveInput: true });
     return runIngestionPreview();
 }
+
+// Tri-View Workspace Switcher
+export function switchWorkspaceView(view) {
+    import('./state.js').then(({ state }) => {
+        state.activeWorkspaceView = view;
+        
+        // Update active tab UI
+        document.querySelectorAll('.workspace-view-tabs .btn-dropdown-action').forEach(btn => {
+            if (btn.getAttribute('data-view') === view) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+
+        // Re-render current chart in new view
+        import('./charts.js').then(({ renderActiveChart }) => {
+            renderActiveChart();
+        });
+    });
+}
+window.switchWorkspaceView = switchWorkspaceView;

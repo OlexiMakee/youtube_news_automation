@@ -44,7 +44,7 @@ import {
     closeChatDrawer,
     summarizeCurrentScreen,
     exportChatMarkdown,
-    clearChatHistory,
+    clearChatAction,
     handleSendChatMessage,
     selectSingleChannel,
     changeChatProvider,
@@ -98,7 +98,7 @@ import {
     toggleDropdown 
 } from './terminal.js';
 import { initDashboardWorkspace } from './widgets.js';
-import { loadBriefs, loadBriefSources } from './briefs.js';
+import { loadBriefs, loadBriefSources, loadReviewQueue } from './briefs.js';
 
 const DATE_SLIDER_FLOOR = "2022-02-24";
 let dateSliderApplyTimer = null;
@@ -258,7 +258,7 @@ window.openChatDrawer = openChatDrawer;
 window.closeChatDrawer = closeChatDrawer;
 window.summarizeCurrentScreen = summarizeCurrentScreen;
 window.exportChatMarkdown = exportChatMarkdown;
-window.clearChatHistory = clearChatHistory;
+window.clearChatAction = clearChatAction;
 window.handleSendChatMessage = handleSendChatMessage;
 window.selectSingleChannel = selectSingleChannel;
 window.changeChatProvider = changeChatProvider;
@@ -378,6 +378,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     initDashboardWorkspace();
     loadBriefs();
     loadBriefSources();
+    loadReviewQueue();
     
     // Start polling status
     checkProcessStatus();

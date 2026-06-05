@@ -30,6 +30,8 @@ utils.setup_and_run_venv(__file__)
 import re
 from scraper.db_client import DatabaseClient
 from scraper.scraper_engine import YouTubeScraperEngine
+from scraper.config import ScraperConfig
+from scraper.observer import CLIObserver
 import scraper.cli_progress as cli_progress
 
 # Global database client instance for script functions
@@ -148,11 +150,6 @@ def update_channel_via_api(channel_id, api_key, known_ids, silent):
                     tags = vd.get("snippet", {}).get("tags", [])
                     video_map[vid]["tags"] = ", ".join(tags) if tags else None
 
-    # Write new videos to the SQLite database
-    db_client.add_or_update_videos(list(video_map.values()))
-    return len(video_map)
-
-
 from scraper.keypress import KeypressDetector
 
 def update_channel_via_scraping(channel_id, known_ids, silent):
@@ -171,22 +168,24 @@ def update_channel_via_scraping(channel_id, known_ids, silent):
     """
     channel_url = f"https://www.youtube.com/channel/{channel_id}/videos"
     
-    detector = KeypressDetector(not silent)
-    # Initialize the scraper with a limit of 20 videos
-    scraper = YouTubeScraperEngine(
-        channel_url, 
-        storage=db_client,
-        limit=20, 
-        silent=silent,
-        keypress_detector=detector
-    )
-    
-    # Record the start time
-    start_time = time.time()
-    
     # Set up shared callbacks for progress and pausing
     on_progress = cli_progress.make_progress_callback(None) if not silent else None
     on_pause = cli_progress.make_pause_callback(channel_id, start_time, db_client) if not silent else None
+
+    detector = KeypressDetector(not silent)
+    observer = CLIObserver(silent=silent, keypress_detector=detector, on_pause_callback=lambda: on_pause(scraper) if on_pause else None)
+    if on_progress:
+        observer.on_progress = lambda current_count, total_limit, last_added_time, **kwargs: on_progress(current_count, total_limit, last_added_time, **kwargs)
+
+    config = ScraperConfig(default_limit=20)
+    
+    # Initialize the scraper
+    scraper = YouTubeScraperEngine(
+        channel_url, 
+        storage=db_client,
+        config=config,
+        observer=observer
+    )
     
     # Run the scraping process with stop_on_known=True (stop when encountering an already cached video)
     success = scraper.run_archive_scraping(
@@ -215,7 +214,7 @@ def run_update(target_channel_input=None, silent=False):
     if target_channel_input:
         # Normalize and fetch metadata for the specified channel
         nickname, url = utils.normalize_url(target_channel_input)
-        temp_engine = YouTubeScraperEngine(url, silent=True)
+        temp_engine = YouTubeScraperEngine(url, storage=db_client)
         info = temp_engine.fetch_channel_info()
         if not info or not info["channel_id"]:
             print(f"[!] Error: Could not find channel matching input '{target_channel_input}'")

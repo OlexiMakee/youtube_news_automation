@@ -83,3 +83,28 @@ def get_scraper_tasks():
     tasks = orchestrator.get_active_tasks()
     return jsonify({"ok": True, "tasks": tasks})
 
+
+@scraper_bp.route("/api/scraper/ingestion/start", methods=["POST"])
+@_admin_required
+def start_ingestion():
+    body = request.get_json()
+    channels = body.get("channels", [])
+    days_back = int(body.get("days", 14))
+    
+    if not channels:
+        return jsonify({"error": "No channels provided."}), 400
+        
+    db_path = os.path.join(root_dir, "data", "memory_os.db")
+    orchestrator = ScraperOrchestrator(db_path=db_path, root_dir=root_dir)
+    
+    task_id = orchestrator.start_multi_scrape(channels, days_back)
+    return jsonify({"ok": True, "task_id": task_id})
+
+@scraper_bp.route("/api/scraper/ingestion/cancel/<task_id>", methods=["POST"])
+@_admin_required
+def cancel_ingestion(task_id):
+    db_path = os.path.join(root_dir, "data", "memory_os.db")
+    orchestrator = ScraperOrchestrator(db_path=db_path, root_dir=root_dir)
+    if orchestrator.cancel_task(task_id):
+        return jsonify({"ok": True})
+    return jsonify({"error": "Task not found."}), 404

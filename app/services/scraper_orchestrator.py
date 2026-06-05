@@ -12,7 +12,7 @@ import threading
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from memory_os.core import MemoryOS
+from memory_os import MemoryOS
 from app.services.governance import run_source_ingestion, create_source, list_sources
 
 
@@ -198,3 +198,51 @@ class ScraperOrchestrator:
                 task["status"] = "failed"
                 task["error"] = str(exc)
                 task["elapsed_sec"] = int(time.time() - started_time)
+
+    def start_multi_scrape(self, channels_list: List[str], days_back: int) -> str:
+        """Start a multi-channel YouTube scraper background task."""
+        task_id = f"task.multiscrape.{uuid.uuid4().hex[:8]}"
+        
+        with self.tasks_lock:
+            self.active_tasks[task_id] = {
+                "task_id": task_id,
+                "type": "multi_scrape",
+                "status": "running",
+                "progress": 0.0,
+                "current_count": 0,
+                "total_limit": 0,
+                "message": "Initializing...",
+                "throttle_active": False,
+                "throttle_remaining": 0.0,
+                "started_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+                "elapsed_sec": 0,
+                "error": None,
+                "cancel_requested": False,
+                "channels": channels_list
+            }
+            
+        from app.services.multi_scraper import run_multi_scrape_job
+        
+        def run_job():
+            started_time = time.time()
+            state_ref = self.active_tasks[task_id]
+            try:
+                run_multi_scrape_job(task_id, channels_list, days_back, state_ref, self.root_dir)
+            finally:
+                with self.tasks_lock:
+                    if state_ref["status"] == "running":
+                        state_ref["status"] = "completed"
+                    state_ref["elapsed_sec"] = int(time.time() - started_time)
+            
+        t = threading.Thread(target=run_job)
+        t.daemon = True
+        t.start()
+        return task_id
+        
+    def cancel_task(self, task_id: str) -> bool:
+        """Flag a background task to be cancelled."""
+        with self.tasks_lock:
+            if task_id in self.active_tasks:
+                self.active_tasks[task_id]["cancel_requested"] = True
+                return True
+        return False

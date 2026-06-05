@@ -6,6 +6,7 @@ export const state = {
     activeChartInstance: null,
     chartRawData: null,
     activeChartType: 'top_viewed',
+    activeWorkspaceView: 'chart', // chart | timeline | table
     chartLimit: parseInt(localStorage.getItem("chart_limit")) || 50,
 
     // Video Details Modal State

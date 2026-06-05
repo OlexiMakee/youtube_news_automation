@@ -1,9 +1,0 @@
-{
-  "version": "0.1",
-  "profile": "developer",
-  "memory_dir": "memory",
-  "capsules_file": "agent_context/task_capsules.jsonl",
-  "snapshot_file": "agent_context/memory_snapshot.json",
-  "workflows": ["product", "memos"],
-  "step_scale": "1..12"
-}

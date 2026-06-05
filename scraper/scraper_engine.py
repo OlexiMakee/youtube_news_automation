@@ -3,30 +3,17 @@ Scraper Engine module for YouTube.
 
 This module contains the YouTubeScraperEngine class, which is responsible for fetching
 channel metadata and sequentially downloading video history via the yt-dlp library.
-It supports pausing the process with the Spacebar, writing to the database in chunks,
-automatic cooldowns when throttling is detected, and detailed error logging.
+It delegates progress reporting, pausing, and throttling to an injected observer,
+and uses a configurable ScraperConfig for its delays and behaviors.
 """
 
-import sys
 import time
 import random
 import yt_dlp
 from abc import ABC, abstractmethod
 from scraper.db_client import BaseStorage
-from scraper.keypress import BaseKeypressDetector, KeypressDetector
-
-
-# --- ANTI-BAN CONFIGURATION (DELAY SETTINGS) ---
-# Delay in seconds before querying each individual video (sleep_interval)
-SLEEP_INTERVAL_BETWEEN_VIDEOS = 3
-# Maximum delay in seconds (for interval randomization)
-MAX_SLEEP_INTERVAL_BETWEEN_VIDEOS = 7
-
-# Pause in seconds between video chunks (every 30-40 videos)
-SLEEP_INTERVAL_BETWEEN_CHUNKS_MIN = 3.0
-# Maximum pause in seconds between chunks
-SLEEP_INTERVAL_BETWEEN_CHUNKS_MAX = 5.0
-# ------------------------------------------------------------------------
+from scraper.config import ScraperConfig
+from scraper.observer import BaseScraperObserver
 
 
 class StopScrapingException(BaseException):
@@ -57,7 +44,7 @@ class BaseScraper(ABC):
         pass
 
     @abstractmethod
-    def run_archive_scraping(self, on_progress=None, on_pause=None, stop_on_known=False):
+    def run_archive_scraping(self, stop_on_known=False):
         """Starts the scraping process and commits data to storage."""
         pass
 
@@ -68,31 +55,27 @@ class YouTubeScraperEngine(BaseScraper):
     It reads video metadata and saves the structured information to the storage.
     """
 
-    def __init__(self, url, storage: BaseStorage = None, limit=2000, start_index=1,
-                 date_after=None, silent=False, keypress_detector: BaseKeypressDetector = None,
-                 on_auto_sync=None):
+    def __init__(self, url: str, storage: BaseStorage, config: ScraperConfig = None,
+                 observer: BaseScraperObserver = None, date_after=None, on_auto_sync=None):
         """
         Creates a scraper engine object.
 
         Parameters:
             url (str): YouTube channel URL.
-            storage (BaseStorage, optional): Storage client implementation to save video data.
-            limit (int): Maximum number of videos to fetch.
-            start_index (int): Index offset to start history retrieval from.
-            date_after (str, optional): Date limit in YYYYMMDD format (e.g., 20260101).
-            silent (bool): If True, suppresses terminal output.
-            keypress_detector (BaseKeypressDetector, optional): Detector for manual pausing.
+            storage (BaseStorage): Storage client implementation to save video data.
+            config (ScraperConfig, optional): Configuration for delays and logic.
+            observer (BaseScraperObserver, optional): Observer for feedback and UI events.
+            date_after (str, optional): Date limit in YYYYMMDD format.
             on_auto_sync (callable, optional): Callback triggered when 200 records accumulate.
         """
         self.url = url
-        self.limit = limit
-        self.start_index = start_index
-        self.date_after = date_after
-        self.silent = silent
-        
-        # Dependency injection for storage, detector and sync
         self.db_client = storage
-        self.keypress_detector = keypress_detector
+        self.config = config or ScraperConfig()
+        self.observer = observer
+        
+        self.limit = self.config.default_limit
+        self.start_index = 1
+        self.date_after = date_after
         self.on_auto_sync = on_auto_sync
         
         # Execution result status
@@ -113,13 +96,12 @@ class YouTubeScraperEngine(BaseScraper):
         self.start_time = None
         self.aborted = False
 
+        # State for Adaptive Backoff
+        self.current_cooldown = self.config.base_throttle_cooldown_sec
+
     def fetch_channel_info(self):
         """
         Retrieves basic channel metadata (name, ID, handle) via a quick yt-dlp fetch.
-
-        Returns:
-            dict or None: Metadata dictionary with channel_id, channel_name, and channel_handle
-                keys, or None if the channel could not be resolved.
         """
         ydl_opts = {
             'extract_flat': True,
@@ -142,7 +124,6 @@ class YouTubeScraperEngine(BaseScraper):
                 self.channel_name = data.get("uploader") or data.get("channel") or "Unknown Channel"
                 self.channel_id = data.get("channel_id") or data.get("uploader_id")
                 
-                # Extract channel handle (e.g., @UATVEnglish) from uploader_url
                 uploader_url = data.get("uploader_url") or ""
                 if "/@" in uploader_url:
                     self.channel_handle = "@" + uploader_url.split("/@")[1].split("/")[0]
@@ -156,19 +137,12 @@ class YouTubeScraperEngine(BaseScraper):
                 }
         except Exception as e:
             self.error_msg = f"Failed to retrieve channel metadata: {str(e)}"
+            if self.observer:
+                self.observer.on_error(self.error_msg)
             return None
 
     def parse_video_data(self, v):
-        """
-        Normalizes raw yt-dlp video metadata dictionary to the database schema structure.
-
-        Parameters:
-            v (dict): Raw video metadata from yt-dlp.
-
-        Returns:
-            dict: Structured data ready for database insertion.
-        """
-        # Convert date format from YYYYMMDD to YYYY-MM-DD
+        """Normalizes raw yt-dlp video metadata dictionary to the database schema structure."""
         raw_date = str(v.get("upload_date", ""))
         formatted_date = f"{raw_date[:4]}-{raw_date[4:6]}-{raw_date[6:]}" if len(raw_date) == 8 else None
         
@@ -188,41 +162,23 @@ class YouTubeScraperEngine(BaseScraper):
             "tags": tags_str
         }
 
-    def run_archive_scraping(self, on_progress=None, on_pause=None, stop_on_known=False):
-        """
-        Starts the video retrieval loop. Processes videos in chunks, provides real-time progress callbacks,
-        allows manual pauses via KeypressDetector, introduces random delays (3-5s) between chunks, and triggers
-        a 40-second cool-down period if potential API throttling is detected.
-
-        Parameters:
-            on_progress (callable, optional): Callback to update scraping progress.
-            on_pause (callable, optional): Callback triggered when pause menu is activated.
-            stop_on_known (bool): If True, halts execution immediately when a video ID already present
-                in the database is encountered.
-
-        Returns:
-            bool: True if completed successfully, False otherwise.
-        """
+    def run_archive_scraping(self, stop_on_known=False):
+        """Starts the video retrieval loop."""
         if self.db_client is None:
-            raise ValueError("A storage client (BaseStorage) must be provided to execute archive scraping.")
+            raise ValueError("A storage client (BaseStorage) must be provided.")
 
         self.success = True
         self.error_msg = ""
         
-        # Initialize database tables
         self.db_client.init_db()
         
-        # Ensure channel metadata is resolved
         if not self.channel_id:
             info = self.fetch_channel_info()
             if not info or not info["channel_id"]:
                 self.success = False
                 return False
                 
-        # Register/update channel record
         self.db_client.add_or_update_channel(self.channel_id, self.channel_name, self.channel_handle)
-        
-        # Load already cached video IDs for duplication checks
         known_ids = self.db_client.get_known_video_ids(self.channel_id)
         
         self.buffer = []
@@ -232,28 +188,25 @@ class YouTubeScraperEngine(BaseScraper):
         last_added_time = self.start_time
         self.durations = []
         
-        # Use injected detector or fall back to default
-        detector = self.keypress_detector
-        if detector is None:
-            detector = KeypressDetector(not self.silent)
+        if self.observer:
+            self.observer.on_start(self)
         
         def video_callback(info_dict):
-            nonlocal last_added_time, detector
+            nonlocal last_added_time
             
-            # Verify if resource is a video
             if not info_dict or info_dict.get('_type') == 'playlist':
                 return
                 
-            # 1. DETECT THROTTLING AND COOLDOWN (if response delay > 40 seconds)
+            # 1. DETECT THROTTLING AND COOLDOWN
             now = time.time()
             elapsed_since_last = now - last_added_time
-            if elapsed_since_last > 40.0:
-                if not self.silent:
-                    sys.stdout.write(f"\n\n[!] Video response time exceeded {elapsed_since_last:.1f}s (possible throttling).")
-                    sys.stdout.write(f"\n[*] Initiating automatic 40-second cooldown period...\n")
-                    sys.stdout.flush()
+            if self.config.adaptive_timeout_enabled and elapsed_since_last > self.config.throttle_detection_threshold_sec:
                 
-                detector.restore()
+                # Apply adaptive penalty
+                cooldown = self.current_cooldown
+                if self.observer:
+                    self.observer.on_throttle_start(cooldown, elapsed_since_last)
+                
                 # Save cached buffer before pausing
                 if self.buffer:
                     self.db_client.add_or_update_videos(self.buffer)
@@ -262,38 +215,33 @@ class YouTubeScraperEngine(BaseScraper):
                     
                 # Active wait loop during cooldown
                 cooldown_start = time.time()
-                while time.time() - cooldown_start < 40.0:
-                    remaining = 40.0 - (time.time() - cooldown_start)
-                    if not self.silent:
-                        sys.stdout.write(f"\r\033[K[*] [Cooldown] Remaining: {remaining:.1f}s...")
-                        sys.stdout.flush()
+                while time.time() - cooldown_start < cooldown:
+                    remaining = cooldown - (time.time() - cooldown_start)
+                    if self.observer:
+                        self.observer.on_throttle_tick(remaining)
                     time.sleep(0.1)
                     
-                if not self.silent:
-                    sys.stdout.write(f"\r\033[K[*] [Cooldown] Finished! Resuming scraping flow...\n")
-                    sys.stdout.flush()
+                if self.observer:
+                    self.observer.on_throttle_end()
                     
-                # Re-initialize keypress detector if it was active
-                if self.keypress_detector is None:
-                    detector = KeypressDetector(not self.silent)
-                else:
-                    detector = self.keypress_detector
-                    if hasattr(detector, "__init__"):
-                        # If needed, some detectors re-bind in their constructor
-                        pass
+                # Exponential backoff for next time
+                self.current_cooldown = min(self.config.max_throttle_cooldown_sec, self.current_cooldown * self.config.throttle_multiplier)
                 last_added_time = time.time()
+            else:
+                # Reset cooldown if successful request within normal limits
+                self.current_cooldown = self.config.base_throttle_cooldown_sec
                 
-            # 2. CHECK FOR DUPLICATES (for incremental updates)
+            # 2. CHECK FOR DUPLICATES
             video_id = info_dict.get("id")
             if stop_on_known and video_id in known_ids:
                 raise StopScrapingException()
                 
-            # 3. DATE CHECK (for fetching starting from a specific point)
+            # 3. DATE CHECK
             upload_date = info_dict.get("upload_date")
             if self.date_after and upload_date and upload_date < self.date_after:
                 raise StopScrapingException()
                 
-            # 4. PARSE AND ACCUMULATE TO BUFFER
+            # 4. PARSE AND ACCUMULATE
             parsed_v = self.parse_video_data(info_dict)
             self.buffer.append(parsed_v)
             self.current_count += 1
@@ -302,28 +250,29 @@ class YouTubeScraperEngine(BaseScraper):
             self.durations.append(now - last_added_time)
             last_added_time = now
             
-            # Progress reporting callback
-            if not self.silent and on_progress:
-                on_progress(self.current_count, self.limit, last_added_time, upload_date=upload_date, date_after=self.date_after)
+            # Progress reporting
+            if self.observer:
+                self.observer.on_progress(
+                    self.current_count, self.limit, last_added_time, 
+                    upload_date=upload_date, date_after=self.date_after,
+                    video_id=video_id
+                )
                 
-            # 5. LIMIT REACHED STOP
+            # 5. LIMIT REACHED
             if not self.date_after and self.current_count >= self.limit:
                 raise StopScrapingException()
                 
-            # 6. MANUAL PAUSE INTERCEPTION (Spacebar)
-            if detector.check_space():
-                detector.restore()
-                # Immediately save remaining items in buffer
-                if self.buffer:
-                    self.db_client.add_or_update_videos(self.buffer)
-                    self.total_saved += len(self.buffer)
-                    self.buffer = []
-                    
-                if on_pause:
-                    action = on_pause(self)
+            # 6. MANUAL PAUSE / INTERRUPT CHECK
+            if self.observer:
+                action = self.observer.check_interrupt()
+                if action:
+                    # Immediately save remaining items
+                    if self.buffer:
+                        self.db_client.add_or_update_videos(self.buffer)
+                        self.total_saved += len(self.buffer)
+                        self.buffer = []
+                        
                     if action == 1:
-                        if self.keypress_detector is None:
-                            detector = KeypressDetector(not self.silent)
                         last_added_time = time.time()
                     elif isinstance(action, tuple) and action[0] == 2:
                         new_limit = action[1]
@@ -331,22 +280,16 @@ class YouTubeScraperEngine(BaseScraper):
                             raise StopScrapingException()
                         else:
                             self.limit = new_limit
-                            if self.keypress_detector is None:
-                                detector = KeypressDetector(not self.silent)
                             last_added_time = time.time()
                     elif isinstance(action, tuple) and action[0] == 4:
                         new_date_after = action[1]
                         self.date_after = new_date_after
-                        if self.keypress_detector is None:
-                            detector = KeypressDetector(not self.silent)
                         last_added_time = time.time()
                     elif action == 3:
                         self.aborted = True
                         raise StopScrapingException()
 
-        # Run within active database client transaction
         active = True
-        # Check if db_client supports context manager methods
         has_context = hasattr(self.db_client, "__enter__") and hasattr(self.db_client, "__exit__")
         
         if has_context:
@@ -354,8 +297,8 @@ class YouTubeScraperEngine(BaseScraper):
             
         try:
             while active and (self.current_count < self.limit or self.date_after):
-                # Randomize chunk sizes (30-40 videos)
-                chunk_size = random.randint(30, 40)
+                # Randomize chunk sizes
+                chunk_size = random.randint(self.config.chunk_size_min, self.config.chunk_size_max)
                 
                 if not self.date_after:
                     remaining_limit = self.limit - self.current_count
@@ -365,10 +308,8 @@ class YouTubeScraperEngine(BaseScraper):
                 if chunk_size <= 0:
                     break
                     
-                # Calculate segment bounds
                 chunk_start = self.start_index + self.current_count
                 chunk_end = chunk_start + chunk_size - 1
-                
                 playlist_items = f"{chunk_start}-{chunk_end}"
                 
                 ydl_opts = {
@@ -383,8 +324,8 @@ class YouTubeScraperEngine(BaseScraper):
                     'ignoreerrors': True,
                     'socket_timeout': 30,
                     'video_callback': video_callback,
-                    'sleep_interval': SLEEP_INTERVAL_BETWEEN_VIDEOS,
-                    'max_sleep_interval': MAX_SLEEP_INTERVAL_BETWEEN_VIDEOS,
+                    'sleep_interval': self.config.sleep_interval_between_videos,
+                    'max_sleep_interval': self.config.max_sleep_interval_between_videos,
                 }
                 if self.date_after:
                     ydl_opts['dateafter'] = self.date_after
@@ -394,12 +335,10 @@ class YouTubeScraperEngine(BaseScraper):
                 with CustomYoutubeDL(ydl_opts) as ydl:
                     ydl.extract_info(self.url, download=False)
                     
-                # Break loop if no videos were resolved for the current segment
                 if self.current_count == chunk_videos_before:
                     active = False
                     break
                     
-                # Commit buffer to DB at segment end
                 if self.buffer:
                     new_videos_count = len(self.buffer)
                     self.db_client.add_or_update_videos(self.buffer)
@@ -407,47 +346,38 @@ class YouTubeScraperEngine(BaseScraper):
                     self.unsynced_saved += new_videos_count
                     self.buffer = []
                     
-                # Auto-sync trigger (every 200 records)
+                # Auto-sync trigger
                 if self.unsynced_saved >= 200 and self.on_auto_sync:
-                    if not self.silent:
-                        sys.stdout.write(f"\n[*] Accumulated {self.unsynced_saved} new records. Triggering auto-sync...\n")
-                        sys.stdout.flush()
-                    # Temporarily close session during sync
                     if has_context:
                         self.db_client.__exit__(None, None, None)
                     try:
                         self.on_auto_sync(self.db_client)
                         self.unsynced_saved = 0
+                        if self.observer:
+                            self.observer.on_auto_sync(200, True)
                     except Exception as sync_err:
-                        if not self.silent:
-                            print(f"[!] Auto-sync callback failed: {sync_err}")
+                        if self.observer:
+                            self.observer.on_auto_sync(self.unsynced_saved, False, str(sync_err))
                     if has_context:
                         self.db_client.__enter__()
                     
                 # Cooldown break between chunks
                 if active and (self.current_count < self.limit or self.date_after):
-                    sleep_time = random.uniform(SLEEP_INTERVAL_BETWEEN_CHUNKS_MIN, SLEEP_INTERVAL_BETWEEN_CHUNKS_MAX)
-                    if not self.silent:
-                        sys.stdout.write("\n")
-                        sys.stdout.flush()
+                    sleep_time = random.uniform(self.config.sleep_interval_between_chunks_min, self.config.sleep_interval_between_chunks_max)
                     
-                    detector.restore()
+                    if self.observer:
+                        self.observer.on_chunk_pause_start(sleep_time)
                     
                     start_sleep = time.time()
                     while time.time() - start_sleep < sleep_time:
                         elapsed = time.time() - start_sleep
                         remaining = max(0.0, sleep_time - elapsed)
-                        if not self.silent:
-                            sys.stdout.write(f"\r\033[K[*] Throttling protection delay: {remaining:.1f}s...")
-                            sys.stdout.flush()
+                        if self.observer:
+                            self.observer.on_chunk_pause_tick(remaining)
                         time.sleep(0.05)
                         
-                    if not self.silent:
-                        sys.stdout.write(f"\r\033[K[*] Throttling protection delay finished. Resuming...\n")
-                        sys.stdout.flush()
-                        
-                    if self.keypress_detector is None:
-                        detector = KeypressDetector(not self.silent)
+                    if self.observer:
+                        self.observer.on_chunk_pause_end()
                     last_added_time = time.time()
                     
         except StopScrapingException:
@@ -455,9 +385,12 @@ class YouTubeScraperEngine(BaseScraper):
         except Exception as e:
             self.success = False
             self.error_msg = f"Scraping error: {str(e)}"
+            if self.observer:
+                self.observer.on_error(self.error_msg)
         finally:
-            detector.restore()
-            # Clear remainder of the buffer
+            if self.observer:
+                self.observer.restore_interrupt()
+                
             if self.buffer:
                 new_videos_count = len(self.buffer)
                 self.db_client.add_or_update_videos(self.buffer)
@@ -465,19 +398,17 @@ class YouTubeScraperEngine(BaseScraper):
                 self.unsynced_saved += new_videos_count
                 self.buffer = []
                 
-            # Final remainder sync verification
             if self.unsynced_saved >= 200 and self.on_auto_sync:
-                if not self.silent:
-                    sys.stdout.write(f"\n[*] Accumulated {self.unsynced_saved} new records. Triggering auto-sync...\n")
-                    sys.stdout.flush()
                 if has_context:
                     self.db_client.__exit__(None, None, None)
                 try:
                     self.on_auto_sync(self.db_client)
                     self.unsynced_saved = 0
+                    if self.observer:
+                        self.observer.on_auto_sync(self.unsynced_saved, True)
                 except Exception as sync_err:
-                    if not self.silent:
-                        print(f"[!] Auto-sync failed: {sync_err}")
+                    if self.observer:
+                        self.observer.on_auto_sync(self.unsynced_saved, False, str(sync_err))
                 if has_context:
                     self.db_client.__enter__()
             

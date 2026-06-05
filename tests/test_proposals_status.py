@@ -67,12 +67,12 @@ class TestProposalStatus(unittest.TestCase):
         res = self.client.post("/api/proposals/submit", json={
             "type": "feature",
             "desc": "Check workspace status",
-            "workflow": "memos",
+            "workflow": "memory_os",
             "role_tier": "developer"
         })
         self.assertEqual(res.status_code, 200)
         data = res.get_json()["proposal"]
-        self.assertEqual(data["workflow"], "memos")
+        self.assertEqual(data["workflow"], "memory_os")
         self.assertEqual(data["role_tier"], "developer")
 
         # 2. Test default fallback tagging
@@ -92,7 +92,7 @@ class TestProposalStatus(unittest.TestCase):
             "workflow": "invalid_wf"
         })
         self.assertEqual(res_invalid_wf.status_code, 400)
-        self.assertIn("workflow must be 'product' or 'memos'", res_invalid_wf.get_json()["error"])
+        self.assertIn("workflow must be 'product' or 'memory_os'", res_invalid_wf.get_json()["error"])
 
         # 4. Test invalid role_tier value
         res_invalid_role = self.client.post("/api/proposals/submit", json={

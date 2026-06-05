@@ -2,6 +2,8 @@ import { state } from './state.js';
 import { translations } from './translations.js';
 import { openVideoModal } from './ui.js';
 import { isD3ChartType, renderD3Chart, hideD3Tooltip } from './d3-charts.js';
+import { renderTableView } from './table-view.js';
+import { renderTimelineView } from './timeline-view.js';
 
 export const CHART_DEFS = [
     // Group 1: Stats split-buttons (video metrics)
@@ -193,8 +195,10 @@ export function renderActiveChart(dashboardCard, chartState = state) {
     if (!chartRawData || !chartType) return;
     
     const card = dashboardCard || document.getElementById('card-visualizations-container');
-    const d3Root = card ? card.querySelector('.d3-chart-root') : document.getElementById('d3-chart-root');
-    const canvasEl = card ? card.querySelector('canvas') : document.getElementById('analytics-chart');
+    const d3Root = card ? (card.querySelector('#d3-chart-root') || card.querySelector('.d3-chart-root')) : document.getElementById('d3-chart-root');
+    const canvasEl = card ? (card.querySelector('#analytics-chart') || card.querySelector('canvas')) : document.getElementById('analytics-chart');
+    const tableRoot = card ? (card.querySelector('#table-view-root') || card.querySelector('.table-view-root')) : document.getElementById('table-view-root');
+    const timelineRoot = card ? (card.querySelector('#timeline-view-root') || card.querySelector('.timeline-view-root')) : document.getElementById('timeline-view-root');
     const container = card ? card.querySelector('.chart-container') : document.querySelector('.chart-container');
     
     // Destroy previous Chart.js instance
@@ -211,22 +215,51 @@ export function renderActiveChart(dashboardCard, chartState = state) {
             el.classList.toggle('active', el.getAttribute('data-chart-id') === chartType);
         });
     }
+
+    const currentView = chartState.activeWorkspaceView || 'chart';
+
+    // Hide all roots first
+    if (d3Root) { d3Root.style.display = 'none'; d3Root.innerHTML = ''; }
+    if (canvasEl) canvasEl.style.display = 'none';
+    if (tableRoot) { tableRoot.style.display = 'none'; tableRoot.innerHTML = ''; }
+    if (timelineRoot) { timelineRoot.style.display = 'none'; timelineRoot.innerHTML = ''; }
+
+    // Restore canvas from scroll wrapper if needed
+    if (container) {
+        const wrapper = container.querySelector('.chart-scroll-inner');
+        if (wrapper) {
+            container.insertBefore(canvasEl, wrapper);
+            container.removeChild(wrapper);
+        }
+    }
+
+    const chartDef = CHART_DEFS.find(d => d.id === chartType);
+
+    if (currentView === 'table') {
+        if (tableRoot) tableRoot.style.display = 'block';
+        let raw = chartRawData;
+        if (chartType === 'best_promo_title_words' || chartType === 'worst_promo_title_words' || chartType === 'top_tags') {
+            raw = chartRawData.data || chartRawData;
+        } else {
+            raw = chartRawData.top_videos || chartRawData.worst_videos || chartRawData.videos || [];
+        }
+        renderTableView(raw, chartDef, tableRoot);
+        return;
+    }
+
+    if (currentView === 'timeline') {
+        if (timelineRoot) timelineRoot.style.display = 'block';
+        if (!chartRawData.timeline) {
+            if (timelineRoot) timelineRoot.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-muted); font-size: 12px;">No timeline data available.</div>';
+            return;
+        }
+        renderTimelineView(chartRawData.timeline, chartDef, timelineRoot);
+        return;
+    }
     
     // ── D3 route: video charts ──────────────────────────────
     if (isD3ChartType(chartType)) {
-        // Show D3 root, hide canvas
         if (d3Root) d3Root.style.display = 'block';
-        if (canvasEl) canvasEl.style.display = 'none';
-        
-        // Restore canvas from scroll wrapper if needed
-        if (container) {
-            const wrapper = container.querySelector('.chart-scroll-inner');
-            if (wrapper) {
-                container.insertBefore(canvasEl, wrapper);
-                container.removeChild(wrapper);
-            }
-        }
-        
         renderD3Chart(chartType, d3Root, chartState);
         return;
     }

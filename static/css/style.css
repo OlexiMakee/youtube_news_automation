@@ -647,7 +647,7 @@ body.sidebar-collapsed .sidebar {
     padding: 20px;
     display: flex;
     flex-direction: column;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     transition: background-color 0.3s, border-color 0.3s, box-shadow 0.3s;
 }
 
@@ -4201,4 +4201,58 @@ body.chat-drawer-open #chat-toggle-btn {
     font-weight: 700;
     color: var(--text-muted);
     text-transform: uppercase;
+}
+
+/* Tri-View Workspace Table */
+.workspace-data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+    color: var(--text-color);
+}
+
+.workspace-data-table th, .workspace-data-table td {
+    padding: 6px 10px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.workspace-data-table th {
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    position: sticky;
+    top: 0;
+    background: var(--card-bg);
+    z-index: 10;
+    cursor: pointer;
+}
+
+.workspace-data-table th:hover {
+    color: var(--accent-color);
+}
+
+.workspace-data-table tr:hover {
+    background-color: var(--bg-hover);
+}
+
+.workspace-data-table td.truncate {
+    max-width: 250px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.table-thumbnail {
+    width: 48px;
+    height: 36px;
+    object-fit: cover;
+    border-radius: 4px;
+    display: block;
+}
+
+.workspace-view-tabs .btn-dropdown-action.active {
+    background: var(--accent-color);
+    color: white;
+    border-color: var(--accent-color);
 }

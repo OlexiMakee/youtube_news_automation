@@ -1118,7 +1118,7 @@ def validate_watcher_config(payload: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def execute_watchers(root_dir: str) -> Dict[str, Any]:
-    """Load, validate, and execute all enabled scheduled watchers.
+    """Load, validate, execute all enabled scheduled watchers, and generate autonomous drafts.
     
     Logs connector_runs and audit_events for each enabled watcher.
     """
@@ -1142,7 +1142,8 @@ def execute_watchers(root_dir: str) -> Dict[str, Any]:
     conn = _connect(root_dir)
     try:
         _require_registry(conn)
-        now = datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
+        now_dt = datetime.utcnow().replace(microsecond=0)
+        now_str = now_dt.isoformat() + "Z"
         
         for w in watchers:
             if not isinstance(w, dict):
@@ -1152,17 +1153,102 @@ def execute_watchers(root_dir: str) -> Dict[str, Any]:
                 
             # Validate configuration boundaries
             clean = validate_watcher_config(w)
+            source_id = clean["source_id"]
+            interval = clean["interval_minutes"]
+            
+            # Check interval
+            last_run = conn.execute(
+                "SELECT ended_at FROM connector_runs WHERE job_type='watcher' AND source_id=? ORDER BY id DESC LIMIT 1",
+                (source_id,)
+            ).fetchone()
+
+            should_run = False
+            if not last_run or not last_run["ended_at"]:
+                should_run = True
+            else:
+                last_ended = datetime.fromisoformat(last_run["ended_at"].replace('Z', '+00:00'))
+                if (now_dt.replace(tzinfo=None) - last_ended.replace(tzinfo=None)).total_seconds() >= interval * 60:
+                    should_run = True
+
+            if not should_run:
+                continue
+
+            # Check max_runs_per_day and cost_limit_usd
+            today_start = now_dt.strftime("%Y-%m-%dT00:00:00Z")
+            today_end = now_dt.strftime("%Y-%m-%dT23:59:59Z")
+            
+            stats_row = conn.execute(
+                """
+                SELECT COUNT(id) as runs_today, SUM(cost_estimate) as cost_today
+                FROM connector_runs
+                WHERE job_type='watcher' AND source_id=?
+                  AND started_at >= ? AND started_at <= ?
+                """,
+                (source_id, today_start, today_end)
+            ).fetchone()
+            
+            runs_today = stats_row["runs_today"] or 0
+            cost_today = stats_row["cost_today"] or 0.0
+
+            if runs_today >= clean["max_runs_per_day"]:
+                continue
+                
+            if cost_today >= clean["cost_limit_usd"]:
+                continue
+
+            try:
+                # 1. Run actual ingestion
+                ingest_res = run_source_ingestion(root_dir, {
+                    "source_id": source_id,
+                    "persist": True,
+                    "allow_tier_e": True
+                })
+                
+                # 2. Check anomalies / generate drafts via briefs
+                from app.services.briefs import BriefsService
+                today_str = now_dt.strftime("%Y-%m-%d")
+                BriefsService.generate_daily_brief(root_dir, today_str, source_ids=[source_id])
+                
+                # 3. Trigger Anomaly Detection (only for YouTube sources)
+                source_row = conn.execute("SELECT type, external_id FROM sources WHERE id=?", (source_id,)).fetchone()
+                if source_row and source_row["type"] == "youtube" and source_row["external_id"]:
+                    try:
+                        from scripts.analytics.anomaly_detector import detect_anomalies
+                        from app.services.alerts import AlertsService
+                        
+                        channel_id = source_row["external_id"]
+                        anomalies, summary = detect_anomalies(channel=channel_id, db_path=str(Path(root_dir) / "data" / "youtube_news.db"))
+                        for anomaly in anomalies:
+                            if anomaly.is_anomaly and anomaly.confidence >= 0.5:
+                                AlertsService.send_anomaly_alert(
+                                    root_dir=root_dir,
+                                    video_id=anomaly.video_id,
+                                    z_score=anomaly.z_score,
+                                    threshold=2.5
+                                )
+                    except Exception as e:
+                        import sys
+                        print(f"Anomaly detection failed for source {source_id}: {e}", file=sys.stderr)
+                
+                status = 'succeeded'
+                error_msg = None
+            except Exception as e:
+                import traceback, sys
+                traceback.print_exc(file=sys.stderr)
+                status = 'failed'
+                error_msg = str(e)
+                ingest_res = {}
             
             # Log run in connector_runs
             conn.execute(
                 """
                 INSERT INTO connector_runs (
                     source_id, job_type, status, records_seen, records_created,
-                    records_updated, cost_estimate, started_at, ended_at
+                    records_updated, cost_estimate, error_message, started_at, ended_at
                 )
-                VALUES (?, 'watcher', 'succeeded', 0, 0, 0, 0.0, ?, ?)
+                VALUES (?, 'watcher', ?, 0, ?, 0, 0.0, ?, ?, ?)
                 """,
-                (clean["source_id"], now, now)
+                (source_id, status, ingest_res.get("records_created", 0), error_msg, now_str, now_str)
             )
             
             # Log audit event
@@ -1172,7 +1258,8 @@ def execute_watchers(root_dir: str) -> Dict[str, Any]:
                 object_type="watcher",
                 object_id=clean["id"],
                 metadata={
-                    "source_id": clean["source_id"],
+                    "source_id": source_id,
+                    "status": status,
                     "max_runs_per_day": clean["max_runs_per_day"],
                     "cost_limit_usd": clean["cost_limit_usd"]
                 },

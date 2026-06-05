@@ -879,8 +879,8 @@ def submit_agent_proposal():
         return jsonify({"error": "desc is required."}), 400
 
     workflow = (data.get("workflow") or "product").strip().lower()
-    if workflow not in {"product", "memos"}:
-        return jsonify({"error": "workflow must be 'product' or 'memos'."}), 400
+    if workflow not in {"product", "memory_os"}:
+        return jsonify({"error": "workflow must be 'product' or 'memory_os'."}), 400
 
     role_tier = (data.get("role_tier") or "admin").strip().lower()
     valid_roles = {"developer", "automated", "master_admin", "admin", "user"}

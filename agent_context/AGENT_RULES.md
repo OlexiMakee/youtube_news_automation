@@ -32,9 +32,9 @@ Owner Intervention:
 Agents must adjust response density, edit scope, and autonomy to explicit session triggers.
 
 Primary routing is defined in `WORKFLOWS.md`:
-- Workflows: `product` for customer-facing product work; `memos` for Memory OS and agent/development intelligence.
+- Workflows: `product` for customer-facing product work; `memory_os` for Memory OS and agent/development intelligence.
 - Step scale: 1-12, named `nano`, `micro`, `tiny`, `little`, `pretty little`, `light mid`, `mid`, `high mid`, `mid high`, `big`, `large`, `giant`.
-- Accept triggers like `product 7`, `memos tiny`, `product high mid`, `memos giant steps`.
+- Accept triggers like `product 7`, `memory_os tiny`, `product high mid`, `memory_os giant steps`.
 - If older agent-specific triggers conflict with workflow triggers, workflow + 12-step scale wins.
 
 Claude tiers:
@@ -48,7 +48,7 @@ Codex tiers:
 - `codex low limits` or `codex tiny steps`: diff-only mode; do not rewrite whole files; output minimal safe diffs or raw line replacements.
 
 Gemini tiers:
-- `gemini max limits` / `memos giant`: global repo auditor; ingest full repository, map dependencies, emit macro memory snapshots, route next agent batch.
+- `gemini max limits` / `memory_os giant`: global repo auditor; ingest full repository, map dependencies, emit macro memory snapshots, route next agent batch.
 - `gemini medium limits`: domain isolator; audit one directory or blueprint without parsing adjacent modules.
 - `gemini tiny steps`: context compactor; convert logs/errors into token-efficient JSON summaries.
 
@@ -77,7 +77,7 @@ Do not store raw code chunks in vector memory by default. Prefer structural poin
 ```
 
 - **Strict Isolation**: Never mix Developer Memory OS (codebase structure, task capsules, code symbols) with User-Facing Memory OS (analytical dashboard summaries, news facts, user rules). Dev-OS is for agent coding assistance; User-OS is for product-level user personalization.
-- **CLI/Agent-Centric Priority**: Memory OS is primarily an agent assistance tool. Visual dashboard panels are deprioritized. Optimize for CLI-first design (like `memos.py` commands) and LLM-readable RAG context.
+- **CLI/Agent-Centric Priority**: Memory OS is primarily an agent assistance tool. Visual dashboard panels are deprioritized. Optimize for CLI-first design (like `python -m memory_os` commands) and LLM-readable RAG context.
 
 
 

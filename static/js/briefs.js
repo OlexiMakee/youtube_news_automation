@@ -344,3 +344,88 @@ window.copyBriefMarkdownFromModal = copyBriefMarkdownFromModal;
 window.generateDailyBrief = generateDailyBrief;
 window.loadBriefs = loadBriefs;
 window.loadBriefSources = loadBriefSources;
+
+export async function loadReviewQueue() {
+    const list = document.getElementById("review-queue-list");
+    if (!list) return;
+
+    try {
+        const res = await adminFetchSilent("/api/governance/review-queue");
+        const data = await res.json();
+        
+        if (!res.ok || data.error) {
+            list.innerHTML = `<div class="operator-empty">Failed to load review queue.</div>`;
+            return;
+        }
+
+        if (!data.registry_ready) {
+            list.innerHTML = `<div class="operator-empty">Governance registry pending. Please apply migration.</div>`;
+            return;
+        }
+
+        if (!data.briefs || data.briefs.length === 0) {
+            const emptyLabel = state.currentLang === "ua" ? "Черга на перевірку порожня." : "No drafts pending review.";
+            list.innerHTML = `<div class="operator-empty">${emptyLabel}</div>`;
+            return;
+        }
+
+        list.innerHTML = data.briefs.map(b => {
+            const dateStr = b.created_at ? b.created_at.substring(0, 19).replace('T', ' ') : 'no date';
+            return `
+                <article class="operator-source-row" style="padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-color); display: flex; flex-direction: column; gap: 8px;">
+                    <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;" onclick="viewBriefDetails(${b.id})" style="cursor: pointer;">
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <strong style="color: var(--text-color); font-size: 13px;">${escapeHtml(b.title || 'Untitled Draft')}</strong>
+                            <span style="font-size: 11px; color: var(--text-muted);">${dateStr} | Status: <span style="color: var(--yellow-color);">${escapeHtml(b.status)}</span></span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <i class="fa-solid fa-chevron-right" style="color: var(--text-muted); font-size: 12px;"></i>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn-primary" type="button" onclick="approveReviewItem(${b.id})" style="padding: 4px 8px; font-size: 10px; flex: 1;">Approve</button>
+                        <button class="btn-danger" type="button" onclick="rejectReviewItem(${b.id})" style="padding: 4px 8px; font-size: 10px; flex: 1; background-color: var(--danger-color); border-color: var(--danger-color); color: #fff;">Reject</button>
+                    </div>
+                </article>
+            `;
+        }).join("");
+
+    } catch (err) {
+        console.error("Failed to load review queue:", err);
+        list.innerHTML = `<div class="operator-empty">Error loading review queue.</div>`;
+    }
+}
+
+export async function approveReviewItem(id) {
+    if (!window.confirm("Approve this draft?")) return;
+    try {
+        const res = await adminFetch(`/api/governance/review-queue/${id}/approve`, { method: "POST" });
+        if (res.ok) {
+            loadReviewQueue();
+            loadBriefs();
+        } else {
+            window.alert("Approval failed.");
+        }
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+export async function rejectReviewItem(id) {
+    if (!window.confirm("Reject this draft?")) return;
+    try {
+        const res = await adminFetch(`/api/governance/review-queue/${id}/reject`, { method: "POST" });
+        if (res.ok) {
+            loadReviewQueue();
+            loadBriefs();
+        } else {
+            window.alert("Rejection failed.");
+        }
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+window.loadReviewQueue = loadReviewQueue;
+window.approveReviewItem = approveReviewItem;
+window.rejectReviewItem = rejectReviewItem;

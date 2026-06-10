@@ -10,7 +10,7 @@ Purpose: compact map for agents. Prefer this plus `agent_context/CONTEXT.md`; av
 | Shared state | `app/state.py` |
 | AI assistant | `app/services/agent.py`, `cloud_rotation.py`, `chief_editor_core.md` |
 | Telemetry | `app/services/telemetry.py`, `system_metrics` table |
-| Scraping | `scrape_multi.py`, `update_db.py`, `update_views.py`, `scraper/` |
+| Scraping | `scrape_multi.py`, `update_db.py`, `update_views.py`, `news_scraper/` |
 | Frontend | `templates/index.html`, `static/js/*.js`, `static/css/style.css` |
 | Data | `data/youtube_news.db`, `channels_to_scrape.txt` |
 
@@ -38,7 +38,7 @@ Purpose: compact map for agents. Prefer this plus `agent_context/CONTEXT.md`; av
 - **Brief generation service**: `app/services/briefs.py` (stub; awaiting implementation)
 - **Brief routes**: `POST /api/briefs/generate`, `GET /api/briefs`, export to markdown/html/pdf
 - **Source registry UI**: Admin dashboard to add/list/status sources (not yet built)
-- **Ingestion connectors**: YouTube, RSS, manual upload (architecture sketch in `scraper/README.md`)
+- **Ingestion connectors**: YouTube, RSS, manual upload (architecture sketch in `news_scraper/README.md`)
 - **Grid layout v1**: Resizable widgets with localStorage persistence (frontend sketch)
 - **Role model**: Reader, Analyst, Admin (entitlement-gated, not yet UI-implemented)
 - See: `agent_context/PHASE_1_KICKOFF_CHECKLIST.md` (task breakdown), `knowledge_base/learnings/PHASE_1_HANDOFF.md` (deliverables).

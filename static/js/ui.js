@@ -2667,6 +2667,8 @@ export function exportChatMarkdown() {
 export async function clearChatAction(mode) {
     const containerEl = document.getElementById("chat-messages");
     const inputEl = document.getElementById("chat-input");
+    const dropdownEl = document.getElementById("chat-clear-opts");
+    if (dropdownEl) dropdownEl.style.display = 'none';
     
     if (mode === 'history' || mode === 'all') {
         localStorage.removeItem(CHAT_STORAGE_HISTORY);

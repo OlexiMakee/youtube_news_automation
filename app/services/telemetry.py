@@ -87,7 +87,9 @@ class TelemetryDaemon(threading.Thread):
         }
         
         if psutil is None:
-            logger.warning("psutil not installed, skipping CPU/RAM/Disk metrics")
+            if getattr(self, "_psutil_warned", False) is False:
+                logger.warning("psutil not installed, skipping CPU/RAM/Disk metrics")
+                self._psutil_warned = True
             return metrics
         
         try:

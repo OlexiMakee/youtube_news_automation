@@ -1,13 +1,13 @@
 {
   "counts": {
-    "items": 119,
+    "items": 120,
     "layers": {
       "domain-layer": 85,
-      "meta-layer": 34
+      "meta-layer": 35
     },
     "skipped": 2
   },
-  "generated_at": "2026-06-04T12:07:01",
+  "generated_at": "2026-06-08T19:24:47",
   "items": [
     {
       "meta": {
@@ -28,7 +28,7 @@
     },
     {
       "meta": {
-        "bytes": 3477,
+        "bytes": 3487,
         "file": "INDEX.md",
         "headings": [
           "Governed Autonomous Intelligence Workspace Index",
@@ -40,7 +40,7 @@
           "Planning"
         ],
         "layer": "meta-layer",
-        "sha256_16": "0407ef2ef35bed30"
+        "sha256_16": "64bb59d0a4800be1"
       },
       "vector_text": "INDEX.md Governed Autonomous Intelligence Workspace Index Runtime Current Implemented State Phase 0 Complete ✅ Phase 1 In Progress 🚀 Not Yet Implemented (Phase 2+) Planning # Governed Autonomous Intelligence Workspace Index Purpose: compact map for agents. Prefer this plus `agent_context/CONTEXT.md`; avoid old broad scans. ## Runtime | Area | Files | |---|---| | Entry | `web_app.py`, `app/__init__.py` | | Routes | `app/routes/main.py`, `stats.py`, `videos.py`, `charts.py`, `actions.py` | | Shared state | `app/state.py` | | AI a"
     },
@@ -117,7 +117,7 @@
     },
     {
       "meta": {
-        "bytes": 34052,
+        "bytes": 43046,
         "file": "agent_context/development_log.md",
         "headings": [
           "Development Log",
@@ -133,16 +133,22 @@
           "2026-06-03",
           "Locked Decisions",
           "Open Work",
-          "2026-06-04"
+          "2026-06-04",
+          "2026-06-04",
+          "2026-06-08",
+          "2026-06-08",
+          "2026-06-08",
+          "2026-06-08",
+          "2026-06-08"
         ],
         "layer": "meta-layer",
-        "sha256_16": "330e041f43e7ca96"
+        "sha256_16": "337be7233bd84f99"
       },
-      "vector_text": "agent_context/development_log.md Development Log 2026-05-27 2026-05-28 2026-05-29 2026-05-30 2026-05-31 2026-06-01 2026-06-02 2026-06-02 2026-06-03 2026-06-03 Locked Decisions Open Work 2026-06-04 # Development Log Format: short English bullets only. Keep durable facts. ## 2026-05-27 - Built Flask dashboard MVP: stats, channels, charts, video table, modal, exports, actions. - Added 4 themes and UA/EN i18n. - Added video detail scraping and MP4 download flow. ## 2026-05-28 - Added SQLite indexes for channel/date/views/likes/comments/sync queries. - Ref"
+      "vector_text": "agent_context/development_log.md Development Log 2026-05-27 2026-05-28 2026-05-29 2026-05-30 2026-05-31 2026-06-01 2026-06-02 2026-06-02 2026-06-03 2026-06-03 Locked Decisions Open Work 2026-06-04 2026-06-04 2026-06-08 2026-06-08 2026-06-08 2026-06-08 2026-06-08 # Development Log Format: short English bullets only. Keep durable facts. ## 2026-05-27 - Built Flask dashboard MVP: stats, channels, charts, video table, modal, exports, actions. - Added 4 themes and UA/EN i18n. - Added video detail scraping and MP4 download flow. ## 2026-05-28 - Added SQLite indexes for channel/date/views/likes/comments/sync queries. - Ref"
     },
     {
       "meta": {
-        "bytes": 4493,
+        "bytes": 11012,
         "file": "agent_context/task_capsules.jsonl",
         "layer": "meta-layer",
         "recent_rows": [
@@ -177,16 +183,16 @@
             "type": "unknown"
           }
         ],
-        "row_count": 5,
-        "sha256_16": "bed1db79242f2e9a",
+        "row_count": 11,
+        "sha256_16": "fca25c0ea7320a96",
         "status_counts": {
-          "active": 5
+          "active": 11
         },
         "type_counts": {
-          "unknown": 5
+          "unknown": 11
         }
       },
-      "vector_text": "agent_context/task_capsules.jsonl {\"timestamp\": \"2026-06-03T19:50:00Z\", \"workflow\": \"memos\", \"step_score\": 12, \"step_name\": \"giant\", \"task\": \"Memory OS CLI Extensions & Prompt Context Injection\", \"files_modified\": [\"app/services/prompt_builder.py\", \"scripts/memos.py\", \"scratch/test_memos_cli_extensions.py\", \"agent_context/memory_snapshot.json\", \"agent_context/task_capsules.jsonl\", \"agent_con"
+      "vector_text": "agent_context/task_capsules.jsonl {\"timestamp\": \"2026-06-03T19:50:00Z\", \"workflow\": \"memory_os\", \"step_score\": 12, \"step_name\": \"giant\", \"task\": \"Memory OS CLI Extensions & Prompt Context Injection\", \"files_modified\": [\"app/services/prompt_builder.py\", \"scripts/memos.py\", \"scratch/test_memos_cli_extensions.py\", \"agent_context/memory_snapshot.json\", \"agent_context/task_capsules.jsonl\", \"agent"
     },
     {
       "meta": {
@@ -210,7 +216,7 @@
     },
     {
       "meta": {
-        "bytes": 6701,
+        "bytes": 5828,
         "file": "agent_context/AGENT_RULES.md",
         "headings": [
           "Agent Rules",
@@ -226,9 +232,9 @@
           "Development Log & Handover"
         ],
         "layer": "meta-layer",
-        "sha256_16": "3fb81cfa6679f489"
+        "sha256_16": "1ad9a90389816a10"
       },
-      "vector_text": "agent_context/AGENT_RULES.md Agent Rules Behavior Autonomy Token-Budget And Step Tiers Memory And RAG Indexing Testing LLM Providers Secrets Navigation Project Constraints Development Log & Handover # Agent Rules Status: mandatory. Language: concise English. ## Behavior - No default praise. Use critical, project-aware analysis. - Offer options only when choices matter. Format: `A1`, `A2`, `B1`. - State assumptions, risks, verification, and remaining gaps. - Keep docs and handoffs short. Remove narrative. - Respond in the user's language, except Russian."
+      "vector_text": "agent_context/AGENT_RULES.md Agent Rules Behavior Autonomy Token-Budget And Step Tiers Memory And RAG Indexing Testing LLM Providers Secrets Navigation Project Constraints Development Log & Handover # Agent Rules Status: mandatory. Language: concise English. ## Behavior - No default praise. Use critical, project-aware analysis. - Offer options only when choices matter. Format: `A1`, `A2`, `B1`. - State assumptions, risks, verification, and remaining gaps. - Keep docs and handoffs short. Remove narrative. ## Autonomy Allowed without approval: - Read/sear"
     },
     {
       "meta": {
@@ -244,7 +250,7 @@
     },
     {
       "meta": {
-        "bytes": 4435,
+        "bytes": 2370,
         "file": "agent_context/HANDSHAKE.md",
         "headings": [
           "Agent Handshake",
@@ -255,13 +261,13 @@
           "Last Change"
         ],
         "layer": "meta-layer",
-        "sha256_16": "afc3a03ff45a25e4"
+        "sha256_16": "f8a7555d521fbd2a"
       },
-      "vector_text": "agent_context/HANDSHAKE.md Agent Handshake Current Session Status Completed Today Blocked / Pending Next Handoff Last Change # Agent Handshake ## Current Session Status - Active Agent: Antigravity - Budget Tier applied: `memos giant` / score 12 - Target: Phase 4 Scheduled Watchers Execution Runner. ## Completed Today - [x] Ingestion Artifact Store: Implemented caching of metadata JSON, transcripts (if present), and thumbnails (if downloaded and size > 100 bytes) under `data/eviden"
+      "vector_text": "agent_context/HANDSHAKE.md Agent Handshake Current Session Status Completed Today Blocked / Pending Next Handoff Last Change # Agent Handshake ## Current Session Status - Active Agent: Antigravity - Budget Tier applied: `memory_os giant` / score 12 - Target: Phase 4 Budget & Token Caps + Anomaly Alerts. ## Completed Today - [x] Implemented `scripts/watcher_worker.py` daemon loop. - [x] Updated `execute_watchers` to respect interval constraints and generate autonomous drafts. - [x]"
     },
     {
       "meta": {
-        "bytes": 10071,
+        "bytes": 10075,
         "file": "agent_context/GLOBAL_ROADMAP.md",
         "headings": [
           "Global Roadmap: Governed Autonomous Intelligence Workspace",
@@ -277,22 +283,22 @@
           "Memory OS Operations"
         ],
         "layer": "meta-layer",
-        "sha256_16": "1133e9c974393729"
+        "sha256_16": "dd316c370e3da2c2"
       },
       "vector_text": "agent_context/GLOBAL_ROADMAP.md Global Roadmap: Governed Autonomous Intelligence Workspace Strategic Phases Phase 0: Strategy & Category Alignment Phase 1: Editorial MVP Phase 2: Dense Workspace & Entity Tracking Phase 3: Evidence & OSINT Mode Phase 4: Controlled Automation Phase 5: Enterprise Hardening Code Refactoring & Memory OS SOLID Cleanups Memory OS Operations # Global Roadmap: Governed Autonomous Intelligence Workspace Status: reformed on 2026-06-02 based on the autonomous_intelligence_hub_strategy_v3.md GTM directive and deep-research-report.md memory model. --- ## Strategic Phases ### Phase 0: Strategy & Category Alignment - [x] Rename category to **Governed Autonomous Intelligence Workspace** across "
     },
     {
       "meta": {
-        "bytes": 140376,
+        "bytes": 138988,
         "file": "agent_context/memory_snapshot.json",
         "layer": "meta-layer",
-        "sha256_16": "499cfe35fc3a6ed9"
+        "sha256_16": "15bb18048f5b7fd7"
       },
-      "vector_text": "agent_context/memory_snapshot.json { \"counts\": { \"items\": 119, \"layers\": { \"domain-layer\": 85, \"meta-layer\": 34 }, \"skipped\": 2 }, \"generated_at\": \"2026-06-04T11:53:36\", \"items\": [ { \"meta\": { \"bytes\": 2144, \"file\": \"README.md\", \"headings\": [ \"Governed Autonomous Intelligence Workspace\", \"Start\", \"Read Order\", \"Current Architecture\", \"Main Paths\", \"Locked Rules\" ], \"layer\": \"meta-layer\", \"sha"
+      "vector_text": "agent_context/memory_snapshot.json { \"counts\": { \"items\": 120, \"layers\": { \"domain-layer\": 85, \"meta-layer\": 35 }, \"skipped\": 2 }, \"generated_at\": \"2026-06-08T19:20:32\", \"items\": [ { \"meta\": { \"bytes\": 2144, \"file\": \"README.md\", \"headings\": [ \"Governed Autonomous Intelligence Workspace\", \"Start\", \"Read Order\", \"Current Architecture\", \"Main Paths\", \"Locked Rules\" ], \"layer\": \"meta-layer\", \"sha"
     },
     {
       "meta": {
-        "bytes": 55906,
+        "bytes": 56038,
         "file": "agent_context/archived_task_capsules.jsonl",
         "layer": "meta-layer",
         "recent_rows": [
@@ -328,7 +334,7 @@
           }
         ],
         "row_count": 57,
-        "sha256_16": "f1816be85f2e779f",
+        "sha256_16": "af10ee46a979ba25",
         "status_counts": {
           "active": 57
         },
@@ -364,6 +370,15 @@
         "sha256_16": "7633b518343cd1e6"
       },
       "vector_text": "agent_context/implementation_plan.md Implementation Plan: Analytics Suite Phase 1 & 2 User Review Required Open Questions Proposed Changes 1. Analytics Core Module [MODIFY] [anomaly_detector.py](file:///Users/oleksii/Documents/News%20Research%20Automation/scripts/analytics/anomaly_detector.py) 2. Command Line Interface [MODIFY] [cli.py](file:///Users/oleksii/Documents/News%20Research%20Automation/scripts/analytics/cli.py) 3. Flask API Integration [NEW] [analytics.py](file:///Users/oleksii/Documents/News%20Research%20Automation/app/routes/analytics.py) [MODIFY] [__init__.py](file:///Users/oleksii/Documents/News%20Research%20Automation/app/__init__.py) 4. Test Suite [NEW] [test_anomaly_detector.py](file:///Users/"
+    },
+    {
+      "meta": {
+        "bytes": 1676,
+        "file": "agent_context/active_memory.yaml",
+        "layer": "meta-layer",
+        "sha256_16": "091e0292f4af4645"
+      },
+      "vector_text": "agent_context/active_memory.yaml active_context: - id: architecture.solid.dip_for_testability summary: The Dependency Inversion Principle (DIP) using abstract classes and constructor injection must be applied to complex orchestration modules in Python to enable in-memory unit testing, improving speed, stability, and mock cleanliness. - id: llm.model_selection.dynamic_fallback summary: Provi"
     },
     {
       "meta": {
@@ -559,15 +574,15 @@
     },
     {
       "meta": {
-        "bytes": 8355,
+        "bytes": 8365,
         "classes": [
           "LogRedirector:178"
         ],
         "dependencies": [
           "datetime",
+          "news_scraper.db_client",
+          "news_scraper.postgres_sync",
           "os",
-          "scraper.db_client",
-          "scraper.postgres_sync",
           "subprocess",
           "sys",
           "threading",
@@ -588,9 +603,9 @@
           "isatty:184"
         ],
         "layer": "domain-layer",
-        "sha256_16": "b9d0aba386525e68"
+        "sha256_16": "e5399732226f4a4a"
       },
-      "vector_text": "app/state.py get_entitlement_state:65 background_daemons_disabled:75 get_sqlite_conn:82 check_active_tasks:88 trigger_background_update:115 bg_sync_worker:155 trigger_background_views_update:205 log_write:160 write:179 flush:182 isatty:184 LogRedirector:178 import os import sys import time import subprocess import threading from datetime import datetime from scraper.db_client import DatabaseClient from scraper.postgres_sync import PostgresSyncClient # Calculate root directory relative to this file app_dir = os.path.dirname(os.path.abspath(__file__)) root_dir = os.path.dirname(app_dir) SCRAPE_LOG_PATH = os.path."
+      "vector_text": "app/state.py get_entitlement_state:65 background_daemons_disabled:75 get_sqlite_conn:82 check_active_tasks:88 trigger_background_update:115 bg_sync_worker:155 trigger_background_views_update:205 log_write:160 write:179 flush:182 isatty:184 LogRedirector:178 import os import sys import time import subprocess import threading from datetime import datetime from news_scraper.db_client import DatabaseClient from news_scraper.postgres_sync import PostgresSyncClient # Calculate root directory relative to this file app_dir = os.path.dirname(os.path.abspath(__file__)) root_dir = os.path.dirname(app_dir) SCRAPE_LOG_PATH"
     },
     {
       "meta": {
@@ -629,7 +644,7 @@
     },
     {
       "meta": {
-        "bytes": 3318,
+        "bytes": 4296,
         "classes": [],
         "dependencies": [
           "app.services.governance",
@@ -645,18 +660,22 @@
           "get_scraper_proposals:13",
           "approve_scraper_proposal:22",
           "get_scraper_workflows:45",
-          "get_scraper_tasks:79"
+          "get_scraper_tasks:79",
+          "start_ingestion:89",
+          "cancel_ingestion:105"
         ],
         "layer": "domain-layer",
         "routes": [
           "/api/scraper/proposals [\"GET\"]",
           "/api/scraper/proposals/<proposal_id>/approve [\"POST\"]",
           "/api/scraper/workflows [\"GET\"]",
-          "/api/scraper/tasks [\"GET\"]"
+          "/api/scraper/tasks [\"GET\"]",
+          "/api/scraper/ingestion/start [\"POST\"]",
+          "/api/scraper/ingestion/cancel/<task_id> [\"POST\"]"
         ],
-        "sha256_16": "b6cadf3d7f1270a1"
+        "sha256_16": "a4a39e4b800da64d"
       },
-      "vector_text": "app/routes/scraper.py get_scraper_proposals:13 approve_scraper_proposal:22 get_scraper_workflows:45 get_scraper_tasks:79 \"\"\"Scraper routes for managing scraping proposals and background tasks.\"\"\" import os from flask import Blueprint, jsonify, request from app.services.rbac import require_admin as _admin_required from app.services.scraper_orchestrator import ScraperOrchestrator from app.state import root_dir scraper_bp = Blueprint(\"scraper\", __name__) @scraper_bp.route(\"/api/s"
+      "vector_text": "app/routes/scraper.py get_scraper_proposals:13 approve_scraper_proposal:22 get_scraper_workflows:45 get_scraper_tasks:79 start_ingestion:89 cancel_ingestion:105 \"\"\"Scraper routes for managing scraping proposals and background tasks.\"\"\" import os from flask import Blueprint, jsonify, request from app.services.rbac import require_admin as _admin_required from app.services.scraper_orchestrator import ScraperOrchestrator from app.state import root_dir scraper_bp = Blueprint(\"scraper\", __name__) @scraper_bp.route(\"/api/s"
     },
     {
       "meta": {
@@ -691,13 +710,12 @@
     },
     {
       "meta": {
-        "bytes": 38265,
+        "bytes": 36126,
         "classes": [],
         "dependencies": [
           "app.services.agent",
           "app.services.cloud_rotation",
           "app.services.health",
-          "app.services.memory_os.core",
           "app.services.rbac",
           "app.services.widgets",
           "app.state",
@@ -716,41 +734,40 @@
           "sys",
           "termios",
           "threading",
-          "time",
-          "uuid"
+          "time"
         ],
         "file": "app/routes/actions.py",
         "functions": [
-          "_proposal_inbox_path:36",
-          "_read_proposal_rows:42",
-          "_write_proposal_rows:71",
-          "auth_status:81",
-          "auth_session_create:95",
-          "auth_session_destroy:119",
-          "add_channel_route:129",
-          "start_scrape:178",
-          "start_sync:215",
-          "start_update:247",
-          "start_views_update:266",
-          "get_action_status:281",
-          "admin_health:305",
-          "admin_quota_metrics:314",
-          "admin_system_metrics:411",
-          "widgets_registry:447",
-          "widgets_state_get:478",
-          "widgets_state_put:487",
-          "widgets_layouts_get:501",
-          "widgets_layouts_create:509",
-          "widgets_layouts_delete:526",
-          "widgets_layouts_activate:540",
-          "cleanup_terminal:560",
-          "start_terminal:594",
-          "terminal_stream:638",
-          "trigger_server_shutdown:676",
-          "terminal_input:708",
-          "terminal_resize:728",
-          "agent_models:751",
-          "agent_chat:764"
+          "_proposal_inbox_path:37",
+          "_read_proposal_rows:43",
+          "_write_proposal_rows:72",
+          "auth_status:82",
+          "auth_session_create:96",
+          "auth_session_destroy:120",
+          "add_channel_route:130",
+          "start_scrape:179",
+          "start_sync:216",
+          "start_update:248",
+          "start_views_update:267",
+          "get_action_status:282",
+          "admin_health:306",
+          "_sqlite_table_exists:313",
+          "_quota_since_clause:321",
+          "admin_quota_metrics:337",
+          "admin_system_metrics:420",
+          "widgets_registry:450",
+          "widgets_state_get:473",
+          "widgets_state_put:482",
+          "widgets_layouts_get:496",
+          "widgets_layouts_create:504",
+          "widgets_layouts_delete:521",
+          "widgets_layouts_activate:535",
+          "cleanup_terminal:555",
+          "start_terminal:589",
+          "terminal_stream:633",
+          "trigger_server_shutdown:671",
+          "terminal_input:703",
+          "terminal_resize:723"
         ],
         "layer": "domain-layer",
         "routes": [
@@ -785,9 +802,9 @@
           "/api/chat/clear-context ['POST']",
           "/api/chat/feedback ['POST']"
         ],
-        "sha256_16": "9740f51a43cb7904"
+        "sha256_16": "f5f6f817ab8dd0e7"
       },
-      "vector_text": "app/routes/actions.py _proposal_inbox_path:36 _read_proposal_rows:42 _write_proposal_rows:71 auth_status:81 auth_session_create:95 auth_session_destroy:119 add_channel_route:129 start_scrape:178 start_sync:215 start_update:247 start_views_update:266 get_action_status:281 admin_health:305 admin_quota_metrics:314 admin_system_metrics:411 widgets_registry:447 widgets_state_get:478 widgets_state_put:487 widgets_layouts_get:501 widgets_layouts_create:509 widgets_layouts_delete:526 widgets_layouts_activate:540 cleanup_terminal:560 start_terminal:594 terminal_stream:638 trigger_server_shutdown:676 terminal_input:708 terminal_resize:728 agent_models:751 agent_chat:764 import os import sys import json import subprocess "
+      "vector_text": "app/routes/actions.py _proposal_inbox_path:37 _read_proposal_rows:43 _write_proposal_rows:72 auth_status:82 auth_session_create:96 auth_session_destroy:120 add_channel_route:130 start_scrape:179 start_sync:216 start_update:248 start_views_update:267 get_action_status:282 admin_health:306 _sqlite_table_exists:313 _quota_since_clause:321 admin_quota_metrics:337 admin_system_metrics:420 widgets_registry:450 widgets_state_get:473 widgets_state_put:482 widgets_layouts_get:496 widgets_layouts_create:504 widgets_layouts_delete:521 widgets_layouts_activate:535 cleanup_terminal:555 start_terminal:589 terminal_stream:633 trigger_server_shutdown:671 terminal_input:703 terminal_resize:723 import os import sys import json i"
     },
     {
       "meta": {
@@ -929,7 +946,7 @@
     },
     {
       "meta": {
-        "bytes": 24710,
+        "bytes": 26481,
         "classes": [],
         "dependencies": [
           "app.services.governance",
@@ -950,6 +967,7 @@
           "sys",
           "threading",
           "time",
+          "youtube_transcript_api",
           "yt_dlp"
         ],
         "file": "app/routes/videos.py",
@@ -964,7 +982,7 @@
           "get_video_transcript_route:563",
           "process_batch:402",
           "run_tokenization:367",
-          "sub_priority:616"
+          "sub_priority:654"
         ],
         "layer": "domain-layer",
         "routes": [
@@ -977,15 +995,16 @@
           "/api/videos/<video_id>/download ['GET']",
           "/api/videos/<video_id>/transcript ['GET']"
         ],
-        "sha256_16": "1c5f80a6a0ace843"
+        "sha256_16": "19ae089aa8527da9"
       },
-      "vector_text": "app/routes/videos.py get_videos:17 get_video_by_id:147 export_videos:172 scrape_video_details_route:246 ocr_thumbnails_batch_route:395 get_video_formats:449 download_video_route:494 get_video_transcript_route:563 process_batch:402 run_tokenization:367 sub_priority:616 import os import sys import time import json import csv from io import StringIO from datetime import datetime from flask import Blueprint, jsonify, request, send_file, make_response from scraper.db_client import DatabaseClient from app.services.rbac import require_admin as _admin_required from app.state import get_sqlite_conn, root_dir videos_bp = Blueprint("
+      "vector_text": "app/routes/videos.py get_videos:17 get_video_by_id:147 export_videos:172 scrape_video_details_route:246 ocr_thumbnails_batch_route:395 get_video_formats:449 download_video_route:494 get_video_transcript_route:563 process_batch:402 run_tokenization:367 sub_priority:654 import os import sys import time import json import csv from io import StringIO from datetime import datetime from flask import Blueprint, jsonify, request, send_file, make_response from scraper.db_client import DatabaseClient from app.services.rbac import require_admin as _admin_required from app.state import get_sqlite_conn, root_dir videos_bp = Blueprint("
     },
     {
       "meta": {
-        "bytes": 8950,
+        "bytes": 10496,
         "classes": [],
         "dependencies": [
+          "app.services.briefs",
           "app.services.credentials",
           "app.services.governance",
           "app.services.rbac",
@@ -994,21 +1013,24 @@
         ],
         "file": "app/routes/governance.py",
         "functions": [
-          "get_governance_policy:27",
-          "get_governance_readiness:34",
-          "get_sources:41",
-          "get_connector_runs:57",
-          "get_source_records:73",
-          "get_audit_events:95",
-          "get_evidence_links:111",
-          "get_source_credential_status:128",
-          "post_source:144",
-          "delete_source_route:157",
-          "post_source_credential:173",
-          "get_governance_entitlements:204",
-          "get_source_connectors:211",
-          "post_source_ingest:218",
-          "_ingest_payload_from_request:238"
+          "get_governance_policy:28",
+          "get_governance_readiness:35",
+          "get_sources:42",
+          "get_connector_runs:58",
+          "get_source_records:74",
+          "get_audit_events:96",
+          "get_evidence_links:112",
+          "get_source_credential_status:129",
+          "post_source:145",
+          "delete_source_route:158",
+          "post_source_credential:174",
+          "get_governance_entitlements:205",
+          "get_review_queue:212",
+          "approve_review_queue_item:223",
+          "reject_review_queue_item:236",
+          "get_source_connectors:249",
+          "post_source_ingest:256",
+          "_ingest_payload_from_request:276"
         ],
         "layer": "domain-layer",
         "routes": [
@@ -1024,12 +1046,15 @@
           "/api/sources/<int:source_id> [\"DELETE\"]",
           "/api/source-credentials [\"POST\"]",
           "/api/governance/entitlements [\"GET\"]",
+          "/api/governance/review-queue [\"GET\"]",
+          "/api/governance/review-queue/<int:brief_id>/approve [\"POST\"]",
+          "/api/governance/review-queue/<int:brief_id>/reject [\"POST\"]",
           "/api/source-connectors [\"GET\"]",
           "/api/sources/ingest [\"POST\"]"
         ],
-        "sha256_16": "c90bc6a43fc9e430"
+        "sha256_16": "7f6609e92def3750"
       },
-      "vector_text": "app/routes/governance.py get_governance_policy:27 get_governance_readiness:34 get_sources:41 get_connector_runs:57 get_source_records:73 get_audit_events:95 get_evidence_links:111 get_source_credential_status:128 post_source:144 delete_source_route:157 post_source_credential:173 get_governance_entitlements:204 get_source_connectors:211 post_source_ingest:218 _ingest_payload_from_request:238 from flask import Blueprint, jsonify, request from app.services.governance import ( ConnectorValidationError, GovernanceMigrationRequired, connector_metadata, create_source, list_audit_events, list_connector_runs, list_evidence_links, list_source_records, list_source_credential_status, list_sources, policy_summary, registry_"
+      "vector_text": "app/routes/governance.py get_governance_policy:28 get_governance_readiness:35 get_sources:42 get_connector_runs:58 get_source_records:74 get_audit_events:96 get_evidence_links:112 get_source_credential_status:129 post_source:145 delete_source_route:158 post_source_credential:174 get_governance_entitlements:205 get_review_queue:212 approve_review_queue_item:223 reject_review_queue_item:236 get_source_connectors:249 post_source_ingest:256 _ingest_payload_from_request:276 from flask import Blueprint, jsonify, request from app.services.governance import ( ConnectorValidationError, GovernanceMigrationRequired, connector_metadata, create_source, list_audit_events, list_connector_runs, list_evidence_links, list_source"
     },
     {
       "meta": {
@@ -1055,7 +1080,7 @@
     },
     {
       "meta": {
-        "bytes": 20384,
+        "bytes": 16069,
         "classes": [
           "BriefsService:24"
         ],
@@ -1063,10 +1088,7 @@
           "__future__",
           "app.services.governance",
           "datetime",
-          "hashlib",
           "html",
-          "json",
-          "pathlib",
           "re",
           "sqlite3",
           "typing"
@@ -1075,17 +1097,19 @@
         "functions": [
           "_connect_db:17",
           "generate_daily_brief:28",
-          "list_briefs:213",
-          "get_brief_by_id:252",
-          "export_brief:371",
-          "format_brief_markdown:423",
-          "redact_brief:470",
-          "scrub:494"
+          "list_briefs:155",
+          "list_draft_briefs:194",
+          "update_brief_status:219",
+          "get_brief_by_id:244",
+          "export_brief:315",
+          "format_brief_markdown:367",
+          "redact_brief:394",
+          "scrub:418"
         ],
         "layer": "domain-layer",
-        "sha256_16": "4c387c393bf7b1c9"
+        "sha256_16": "71e162f24dc28cd0"
       },
-      "vector_text": "app/services/briefs.py _connect_db:17 generate_daily_brief:28 list_briefs:213 get_brief_by_id:252 export_brief:371 format_brief_markdown:423 redact_brief:470 scrub:494 BriefsService:24 \"\"\"Brief generation and export service for Phase 1 Editorial MVP. Implemented with governance patterns (redaction, admin-gated, migration-safe). \"\"\" from __future__ import annotations import sqlite3 import datetime import re from typing import Any, Dict, List, Optional from html import escape as html_escape from app.services.governance import GovernanceMigra"
+      "vector_text": "app/services/briefs.py _connect_db:17 generate_daily_brief:28 list_briefs:155 list_draft_briefs:194 update_brief_status:219 get_brief_by_id:244 export_brief:315 format_brief_markdown:367 redact_brief:394 scrub:418 BriefsService:24 \"\"\"Brief generation and export service for Phase 1 Editorial MVP. Implemented with governance patterns (redaction, admin-gated, migration-safe). \"\"\" from __future__ import annotations import sqlite3 import datetime import re from typing import Any, Dict, List, Optional from html import escape as html_escape from app.services.governance import GovernanceMigra"
     },
     {
       "meta": {
@@ -1226,6 +1250,36 @@
         "sha256_16": "4d0ca576dbb6b2aa"
       },
       "vector_text": "app/services/health.py _safe_loadavg:28 _memory_summary:36 _table_exists:48 _table_counts:56 _db_summary:66 _provider_summary:93 build_admin_health:109 \"\"\"Non-secret admin health summary helpers.\"\"\" from __future__ import annotations import os import platform import resource import shutil import sqlite3 from datetime import datetime from pathlib import Path from typing import Any, Dict, Iterable COUNT_TABLES = ( \"channels\", \"videos\", \"video_phrases\", \"agent_chats\", \"users\", \"user_invites\", \"system_metrics\","
+    },
+    {
+      "meta": {
+        "bytes": 3616,
+        "classes": [],
+        "dependencies": [
+          "datetime",
+          "os",
+          "scraper.config",
+          "scraper.db_client",
+          "scraper.observer",
+          "scraper.postgres_sync",
+          "scraper.scraper_engine",
+          "scraper.utils",
+          "sys",
+          "time",
+          "traceback",
+          "typing"
+        ],
+        "file": "app/services/multi_scraper.py",
+        "functions": [
+          "get_history_cutoff_yyyymmdd:12",
+          "run_multi_scrape_job:15",
+          "check_cancel:49",
+          "on_auto_sync:31"
+        ],
+        "layer": "domain-layer",
+        "sha256_16": "db65734d7eb57f2e"
+      },
+      "vector_text": "app/services/multi_scraper.py get_history_cutoff_yyyymmdd:12 run_multi_scrape_job:15 check_cancel:49 on_auto_sync:31 import time import os import sys from typing import List, Dict, Any from datetime import date, timedelta from scraper.config import ScraperConfig from scraper.observer import WebTaskObserver from scraper.db_client import DatabaseClient from scraper.scraper_engine import YouTubeScraperEngine from scraper.utils import normalize_url def get_history_cutoff_yyyym"
     },
     {
       "meta": {
@@ -1444,15 +1498,16 @@
     },
     {
       "meta": {
-        "bytes": 7608,
+        "bytes": 9732,
         "classes": [
           "ScraperOrchestrator:19"
         ],
         "dependencies": [
           "__future__",
           "app.services.governance",
+          "app.services.multi_scraper",
           "json",
-          "memory_os.core",
+          "memory_os",
           "pathlib",
           "threading",
           "time",
@@ -1464,16 +1519,19 @@
         "functions": [
           "__new__:25",
           "__init__:32",
-          "get_proposals:41",
-          "create_proposal:60",
-          "approve_proposal:79",
-          "get_active_tasks:140",
-          "_run_scraping_task:151"
+          "get_proposals:44",
+          "create_proposal:63",
+          "approve_proposal:82",
+          "get_active_tasks:143",
+          "_run_scraping_task:154",
+          "start_multi_scrape:205",
+          "cancel_task:245",
+          "run_job:229"
         ],
         "layer": "domain-layer",
-        "sha256_16": "c62c5e514f1c9efb"
+        "sha256_16": "6b5e3a27fc17a057"
       },
-      "vector_text": "app/services/scraper_orchestrator.py __new__:25 __init__:32 get_proposals:41 create_proposal:60 approve_proposal:79 get_active_tasks:140 _run_scraping_task:151 ScraperOrchestrator:19 \"\"\"Background scraping task runner and proposal orchestrator. Flask-app concern: orchestrates governance DB calls. Separated from the portable memory_os package. \"\"\" from __future__ import annotations import json import time import uuid import threading from pathlib import Path from typing import Any, Dict, List, Optional from memory_os.core import MemoryOS"
+      "vector_text": "app/services/scraper_orchestrator.py __new__:25 __init__:32 get_proposals:44 create_proposal:63 approve_proposal:82 get_active_tasks:143 _run_scraping_task:154 start_multi_scrape:205 cancel_task:245 run_job:229 ScraperOrchestrator:19 \"\"\"Background scraping task runner and proposal orchestrator. Flask-app concern: orchestrates governance DB calls. Separated from the portable memory_os package. \"\"\" from __future__ import annotations import json import time import uuid import threading from pathlib import Path from typing import Any, Dict, List, Optional from memory_os import MemoryOS from"
     },
     {
       "meta": {
@@ -1521,60 +1579,57 @@
     },
     {
       "meta": {
-        "bytes": 45554,
+        "bytes": 44177,
         "classes": [
-          "GovernanceMigrationRequired:54"
+          "GovernanceMigrationRequired:55"
         ],
         "dependencies": [
           "__future__",
           "app.services.credentials",
           "datetime",
-          "hashlib",
           "json",
+          "news_scraper.connectors",
           "pathlib",
-          "requests",
-          "scraper.connectors",
           "sqlite3",
-          "sys",
           "typing"
         ],
         "file": "app/services/governance.py",
         "functions": [
-          "db_path_for_root:58",
-          "_initialize_schema:62",
-          "_connect:236",
-          "_table_exists:251",
-          "_object_names:259",
-          "_applied_migrations:271",
-          "registry_ready:278",
-          "registry_readiness:292",
-          "policy_summary:333",
-          "_require_registry:341",
-          "_clean_text:349",
-          "validate_source_payload:358",
-          "_rows_to_dicts:407",
-          "connector_metadata:411",
-          "list_sources:416",
-          "_safe_limit:433",
-          "list_connector_runs:441",
-          "list_source_records:465",
-          "list_audit_events:511",
-          "list_evidence_links:530",
-          "list_source_credential_status:592",
-          "run_source_ingestion:618",
-          "_connector_context_from_payload:671",
-          "_persist_ingestion_result:723",
-          "_source_record_preview:855",
-          "create_source:872",
-          "delete_source:923",
-          "add_audit_event:948",
-          "purge_expired_data:976",
-          "validate_watcher_config:1046"
+          "db_path_for_root:59",
+          "_initialize_schema:63",
+          "_connect:237",
+          "_table_exists:252",
+          "_object_names:260",
+          "_applied_migrations:272",
+          "registry_ready:279",
+          "registry_readiness:293",
+          "policy_summary:334",
+          "_require_registry:342",
+          "_clean_text:350",
+          "validate_source_payload:359",
+          "_rows_to_dicts:408",
+          "_json_dumps_safe:412",
+          "add_audit_event:416",
+          "_positive_int:464",
+          "validate_watcher_config:474",
+          "_watchers_config_path:525",
+          "_load_watchers_config:529",
+          "_watcher_daily_totals:541",
+          "_watcher_last_run:558",
+          "execute_watchers:580",
+          "connector_metadata:649",
+          "list_sources:654",
+          "_safe_limit:671",
+          "list_connector_runs:679",
+          "list_source_records:703",
+          "list_audit_events:749",
+          "list_evidence_links:768",
+          "list_source_credential_status:830"
         ],
         "layer": "domain-layer",
-        "sha256_16": "4a5f9e6d3db30fb7"
+        "sha256_16": "f62ef7646b2c4e46"
       },
-      "vector_text": "app/services/governance.py db_path_for_root:58 _initialize_schema:62 _connect:236 _table_exists:251 _object_names:259 _applied_migrations:271 registry_ready:278 registry_readiness:292 policy_summary:333 _require_registry:341 _clean_text:349 validate_source_payload:358 _rows_to_dicts:407 connector_metadata:411 list_sources:416 _safe_limit:433 list_connector_runs:441 list_source_records:465 list_audit_events:511 list_evidence_links:530 list_source_credential_status:592 run_source_ingestion:618 _connector_context_from_payload:671 _persist_ingestion_result:723 _source_record_preview:855 create_source:872 delete_source:923 add_audit_event:948 purge_expired_data:976 validate_watcher_config:1046 GovernanceMigrationReq"
+      "vector_text": "app/services/governance.py db_path_for_root:59 _initialize_schema:63 _connect:237 _table_exists:252 _object_names:260 _applied_migrations:272 registry_ready:279 registry_readiness:293 policy_summary:334 _require_registry:342 _clean_text:350 validate_source_payload:359 _rows_to_dicts:408 _json_dumps_safe:412 add_audit_event:416 _positive_int:464 validate_watcher_config:474 _watchers_config_path:525 _load_watchers_config:529 _watcher_daily_totals:541 _watcher_last_run:558 execute_watchers:580 connector_metadata:649 list_sources:654 _safe_limit:671 list_connector_runs:679 list_source_records:703 list_audit_events:749 list_evidence_links:768 list_source_credential_status:830 GovernanceMigrationRequired:55 \"\"\"Govern"
     },
     {
       "meta": {
@@ -1656,6 +1711,48 @@
     },
     {
       "meta": {
+        "bytes": 3310,
+        "classes": [],
+        "dependencies": [
+          "argparse",
+          "datetime",
+          "json",
+          "os",
+          "pathlib"
+        ],
+        "file": "scripts/memory_os_link.py",
+        "functions": [
+          "ensure_integration_dir:12",
+          "report_bug:19",
+          "request_feature:33",
+          "read_changelog:47"
+        ],
+        "layer": "domain-layer",
+        "sha256_16": "c4ae9df48cf02e5a"
+      },
+      "vector_text": "scripts/memory_os_link.py ensure_integration_dir:12 report_bug:19 request_feature:33 read_changelog:47 #!/usr/bin/env python3 import json import os import argparse from datetime import datetime from pathlib import Path # Assuming memory_os is parallel to the current project DEFAULT_SDK_PATH = Path(os.environ.get(\"MEMORY_OS_PATH\", Path(__file__).resolve().parent.parent.parent / \"memory_os\")) INTEGRATION_DIR = DEFAULT_SDK_PATH / \"integration\" def ensure_integra"
+    },
+    {
+      "meta": {
+        "bytes": 790,
+        "classes": [],
+        "dependencies": [
+          "app.services.governance",
+          "pathlib",
+          "sys",
+          "time"
+        ],
+        "file": "scripts/watcher_worker.py",
+        "functions": [
+          "main:10"
+        ],
+        "layer": "domain-layer",
+        "sha256_16": "36e6e89c6b590b76"
+      },
+      "vector_text": "scripts/watcher_worker.py main:10 import sys import time from pathlib import Path # Add project root to path sys.path.insert(0, str(Path(__file__).resolve().parent.parent)) from app.services.governance import execute_watchers def main(): root_dir = sys.argv[1] if len(sys.argv) > 1 else \".\" print(f\"Starting Standalone Watcher Worker targeting {root_dir}...\") while True: try: res = execute_wat"
+    },
+    {
+      "meta": {
         "bytes": 2894,
         "classes": [],
         "dependencies": [
@@ -1699,7 +1796,7 @@
     },
     {
       "meta": {
-        "bytes": 1174,
+        "bytes": 1183,
         "classes": [],
         "dependencies": [
           "__future__",
@@ -1716,9 +1813,9 @@
           "main:26"
         ],
         "layer": "domain-layer",
-        "sha256_16": "dcad3c9a08e957d7"
+        "sha256_16": "8c7804f3b56fd31e"
       },
-      "vector_text": "scripts/validate_task_capsules.py validate_rows:16 validate_file:21 main:26 \"\"\"Validate agent task capsule JSONL files.\"\"\" from __future__ import annotations import argparse import sys from pathlib import Path from typing import Iterable, List ROOT = Path(__file__).resolve().parents[1] if str(ROOT) not in sys.path: sys.path.insert(0, str(ROOT)) from memory_os import MemoryOSConfig, MemoryValidator def validate_rows(lines: Iterable[str]"
+      "vector_text": "scripts/validate_task_capsules.py validate_rows:16 validate_file:21 main:26 \"\"\"Validate agent task capsule JSONL files.\"\"\" from __future__ import annotations import argparse import sys from pathlib import Path from typing import Iterable, List ROOT = Path(__file__).resolve().parents[1] if str(ROOT) not in sys.path: sys.path.insert(0, str(ROOT)) from memory_os import MemoryOSConfig, MemoryValidator def validate_rows(lines: Iterable[s"
     },
     {
       "meta": {
@@ -1904,52 +2001,47 @@
     },
     {
       "meta": {
-        "bytes": 24957,
+        "bytes": 8128,
         "classes": [],
         "dependencies": [
-          "__future__",
           "app.services.governance",
           "app.services.prompt_builder",
           "argparse",
           "datetime",
-          "json",
           "memory_os",
           "os",
           "pathlib",
-          "scripts.analytics.method_review_proposals",
-          "scripts.memory.audit_memos",
-          "scripts.memory.quantize_task",
-          "scripts.memory.validate_workflows",
-          "subprocess",
-          "sys",
-          "typing"
+          "sys"
         ],
-        "file": "scripts/memos.py",
+        "file": "scripts/manage.py",
         "functions": [
-          "write_if_missing:115",
-          "append_if_absent:123",
-          "cmd_init:135",
-          "cmd_integrate:164",
-          "cmd_audit:173",
-          "cmd_validate:181",
-          "cmd_snapshot:205",
-          "cmd_method_proposals:214",
-          "cmd_quantize:233",
-          "cmd_workflows:259",
-          "cmd_compact:272",
-          "cmd_compress:279",
-          "cmd_prune:286",
-          "cmd_search:293",
-          "cmd_user_memory:340",
-          "cmd_context:420",
-          "cmd_retention:435",
-          "build_parser:467",
-          "main:583"
+          "cmd_user_memory:19",
+          "cmd_context:100",
+          "cmd_retention:115",
+          "main:147"
         ],
         "layer": "domain-layer",
-        "sha256_16": "bec285edaf25b724"
+        "sha256_16": "6f85a19d831e9418"
       },
-      "vector_text": "scripts/memos.py write_if_missing:115 append_if_absent:123 cmd_init:135 cmd_integrate:164 cmd_audit:173 cmd_validate:181 cmd_snapshot:205 cmd_method_proposals:214 cmd_quantize:233 cmd_workflows:259 cmd_compact:272 cmd_compress:279 cmd_prune:286 cmd_search:293 cmd_user_memory:340 cmd_context:420 cmd_retention:435 build_parser:467 main:583 #!/usr/bin/env python3 \"\"\"Portable Memos control CLI for project-local Memory OS operations.\"\"\" from __future__ import annotations import argparse import json import subprocess import sys import os from datetime import datetime from pathlib import Path from typing import Any, Dict, List ROOT = Path(__file__).resolve().parents[1] if str(ROOT) not in sys.path:"
+      "vector_text": "scripts/manage.py cmd_user_memory:19 cmd_context:100 cmd_retention:115 main:147 #!/usr/bin/env python3 \"\"\" Product Management CLI Contains project-specific tools (context, retention, user-memory) that depend on the host app, moving them out of the portable memory_os package. \"\"\" import argparse import sys import os from pathlib import Path from datetime import datetime ROOT = Path(__file__).resolve().parents[1] if str(ROOT) not in sys.p"
+    },
+    {
+      "meta": {
+        "bytes": 2556,
+        "classes": [],
+        "dependencies": [
+          "json",
+          "pathlib"
+        ],
+        "file": "scripts/memos_extract_os.py",
+        "functions": [
+          "is_os_node:11",
+          "extract:25"
+        ],
+        "layer": "domain-layer",
+        "sha256_16": "e0fbf01daa92acd8"
+      },
+      "vector_text": "scripts/memos_extract_os.py is_os_node:11 extract:25 \"\"\" Extract Memory OS specific nodes and edges into memory_os/memory_graph. \"\"\" import json from pathlib import Path ROOT = Path(__file__).resolve().parents[1] MAIN_MEMORY = ROOT / \"memory\" OS_MEMORY = ROOT / \"memory_os\" / \"memory_graph\" def is_os_node(node_id: str) -> bool: prefixes = [ \"architecture.memory_os.\", \"memos.\", \"memory.compaction.\", \"workflow.co"
     },
     {
       "meta": {
@@ -2004,206 +2096,6 @@
         "sha256_16": "c999e69cbd45dffa"
       },
       "vector_text": "scripts/init_db.py execute_scraping_flow:38 handle_cli_mode:91 run_interactive_flow_for_channel:161 run_interactive_flow_new_channel:195 run_interactive_main:226 main:278 \"\"\" Main entry point for database initialization and initial channel history scraping (init_db.py). This script allows the user to enter a channel URL or handle (@nickname) and choose the video history scraping mode: 1. Download the last N videos (e.g., 2000). 2. Download videos starting from a specific date. It supports command line arguments for easier scr"
-    },
-    {
-      "meta": {
-        "bytes": 13603,
-        "classes": [],
-        "dependencies": [
-          "__future__",
-          "argparse",
-          "collections",
-          "datetime",
-          "json",
-          "memory_os.config",
-          "memory_os.lifecycle",
-          "pathlib",
-          "re",
-          "scripts.memory.validate_memory",
-          "scripts.memory.validate_workflows",
-          "scripts.validate_task_capsules",
-          "subprocess",
-          "sys",
-          "typing"
-        ],
-        "file": "scripts/memory/audit_memos.py",
-        "functions": [
-          "read_text:41",
-          "load_jsonl:47",
-          "parse_handshake:67",
-          "_first_match:84",
-          "summarize_capsules:89",
-          "inspect_memory_lifecycle:110",
-          "roadmap_system_status:139",
-          "_looks_like_memos_item:153",
-          "build_recommendations:158",
-          "auto_transition_proposals:177",
-          "audit:266",
-          "to_markdown:297",
-          "main:326"
-        ],
-        "layer": "domain-layer",
-        "sha256_16": "e95145013c3e63dc"
-      },
-      "vector_text": "scripts/memory/audit_memos.py read_text:41 load_jsonl:47 parse_handshake:67 _first_match:84 summarize_capsules:89 inspect_memory_lifecycle:110 roadmap_system_status:139 _looks_like_memos_item:153 build_recommendations:158 auto_transition_proposals:177 audit:266 to_markdown:297 main:326 #!/usr/bin/env python3 \"\"\"Audit Memory OS workflow state and emit a compact report.\"\"\" from __future__ import annotations import argparse import json import re import sys from collections import Counter from datetime import datetime from pathlib import Path from typing import Any, Dict, Iterable, List, Tuple ROOT = Path(__file__).resolve().parents[2] if str("
-    },
-    {
-      "meta": {
-        "bytes": 2516,
-        "classes": [],
-        "dependencies": [
-          "app.services.llm_clients",
-          "argparse",
-          "memory_os",
-          "memory_os.compactor",
-          "os",
-          "pathlib",
-          "sys",
-          "typing"
-        ],
-        "file": "scripts/memory/compact_capsules.py",
-        "functions": [
-          "call_llm:14",
-          "compact_capsules:37",
-          "main:51"
-        ],
-        "layer": "domain-layer",
-        "sha256_16": "ba6846ede6ca9de7"
-      },
-      "vector_text": "scripts/memory/compact_capsules.py call_llm:14 compact_capsules:37 main:51 #!/usr/bin/env python3 import sys import os import argparse from pathlib import Path from typing import Optional ROOT = Path(__file__).resolve().parents[2] if str(ROOT) not in sys.path: sys.path.insert(0, str(ROOT)) from memory_os import MemoryOSConfig, MemoryCompactor def call_llm(user_message: str, provider_override: Optional[str] = None, model_override: Opti"
-    },
-    {
-      "meta": {
-        "bytes": 3814,
-        "classes": [],
-        "dependencies": [
-          "argparse",
-          "memory_os",
-          "os",
-          "pathlib",
-          "sys",
-          "typing"
-        ],
-        "file": "scripts/memory/lifecycle.py",
-        "functions": [
-          "load_jsonl:16",
-          "append_jsonl:22",
-          "write_jsonl:28",
-          "cmd_propose:34",
-          "cmd_transition:48",
-          "cmd_manifest:55",
-          "cmd_prune:62",
-          "main:69"
-        ],
-        "layer": "domain-layer",
-        "sha256_16": "b330a1c839c12e2b"
-      },
-      "vector_text": "scripts/memory/lifecycle.py load_jsonl:16 append_jsonl:22 write_jsonl:28 cmd_propose:34 cmd_transition:48 cmd_manifest:55 cmd_prune:62 main:69 #!/usr/bin/env python3 import sys import os import argparse from pathlib import Path from typing import Optional, List, Dict, Any ROOT = Path(__file__).resolve().parents[2] MEMORY_DIR = ROOT / \"memory\" if str(ROOT) not in sys.path: sys.path.insert(0, str(ROOT)) from memory_os import MemoryOSConfig, LifecycleManager def load_jsonl(path: Path) -> List[Dict[str, A"
-    },
-    {
-      "meta": {
-        "bytes": 5238,
-        "classes": [],
-        "dependencies": [
-          "argparse",
-          "json",
-          "sys",
-          "typing"
-        ],
-        "file": "scripts/memory/quantize_task.py",
-        "functions": [
-          "calculate_score:38",
-          "legacy_score_to_step_score:67",
-          "calculate_step_score:76",
-          "_workflow_for_step:86",
-          "_model_policy_for_step:97",
-          "resolve_profile:107",
-          "main:132"
-        ],
-        "layer": "domain-layer",
-        "sha256_16": "e951f8d677ceeda7"
-      },
-      "vector_text": "scripts/memory/quantize_task.py calculate_score:38 legacy_score_to_step_score:67 calculate_step_score:76 _workflow_for_step:86 _model_policy_for_step:97 resolve_profile:107 main:132 #!/usr/bin/env python3 import sys import json import argparse from typing import Dict, Any, List, Tuple STEP_SCALE = { 1: \"nano\", 2: \"micro\", 3: \"tiny\", 4: \"little\", 5: \"pretty little\", 6: \"light mid\", 7: \"mid\", 8: \"high mid\", 9: \"mid high\", 10: \"big\", 11: \"large\", 12: \"giant\", } LEGACY_BANDS: List[Tuple[int, int, int]] = [ (1, 10, 1), (11, 18, 2), (19, 25,"
-    },
-    {
-      "meta": {
-        "bytes": 2230,
-        "classes": [],
-        "dependencies": [
-          "memory_os",
-          "os",
-          "pathlib",
-          "sys",
-          "typing"
-        ],
-        "file": "scripts/memory/validate_memory.py",
-        "functions": [
-          "log_error:15",
-          "validate_nodes:18",
-          "validate_edges:30",
-          "validate_events:42",
-          "validate_proposals_file:54",
-          "main:60"
-        ],
-        "layer": "domain-layer",
-        "sha256_16": "92f37444461c917e"
-      },
-      "vector_text": "scripts/memory/validate_memory.py log_error:15 validate_nodes:18 validate_edges:30 validate_events:42 validate_proposals_file:54 main:60 #!/usr/bin/env python3 import sys import os from pathlib import Path from typing import List ROOT = Path(__file__).resolve().parents[2] MEMORY_DIR = ROOT / \"memory\" if str(ROOT) not in sys.path: sys.path.insert(0, str(ROOT)) from memory_os import MemoryOSConfig, MemoryValidator def log_error(msg: str): print(f\"ERROR: {msg}\", file=sys.stderr) def validate_nodes("
-    },
-    {
-      "meta": {
-        "bytes": 8172,
-        "classes": [],
-        "dependencies": [
-          "__future__",
-          "argparse",
-          "datetime",
-          "json",
-          "memory_os",
-          "pathlib",
-          "scripts.memory.quantize_task",
-          "sys",
-          "typing"
-        ],
-        "file": "scripts/memory/validate_workflows.py",
-        "functions": [
-          "utc_now_iso:35",
-          "load_specs:39",
-          "validate_specs:59",
-          "build_report:131",
-          "write_manifest:164",
-          "to_markdown:169",
-          "_as_int:195",
-          "_coverage:202",
-          "main:210"
-        ],
-        "layer": "domain-layer",
-        "sha256_16": "92d61bf540e61b20"
-      },
-      "vector_text": "scripts/memory/validate_workflows.py utc_now_iso:35 load_specs:39 validate_specs:59 build_report:131 write_manifest:164 to_markdown:169 _as_int:195 _coverage:202 main:210 #!/usr/bin/env python3 \"\"\"Validate Memory OS workflow TOML specs against the 12-step contract.\"\"\" from __future__ import annotations import argparse import json import sys from datetime import datetime from pathlib import Path from typing import Any, Dict, Iterable, List, Optional, Tuple ROOT = Path(__file__).resolve().parents[2] if str(ROOT) not in sys.path"
-    },
-    {
-      "meta": {
-        "bytes": 3201,
-        "classes": [],
-        "dependencies": [
-          "argparse",
-          "json",
-          "memory_os",
-          "os",
-          "pathlib",
-          "sys",
-          "typing"
-        ],
-        "file": "scripts/memory/search_memory.py",
-        "functions": [
-          "search_memory:17",
-          "main:25"
-        ],
-        "layer": "domain-layer",
-        "sha256_16": "5ac7d7a596108a0e"
-      },
-      "vector_text": "scripts/memory/search_memory.py search_memory:17 main:25 #!/usr/bin/env python3 import sys import os import json import argparse from pathlib import Path from typing import List, Dict, Any ROOT = Path(__file__).resolve().parents[2] MEMORY_DIR = ROOT / \"memory\" if str(ROOT) not in sys.path: sys.path.insert(0, str(ROOT)) from memory_os import MemoryOSConfig, MemorySearcher def search_memory(query: str, depth: int = 1)"
     },
     {
       "meta": {
@@ -2274,10 +2166,10 @@
     },
     {
       "meta": {
-        "bytes": 17122,
+        "bytes": 19281,
         "classes": [
-          "PhraseRecord:32",
-          "PhraseMetric:41"
+          "PhraseRecord:46",
+          "PhraseMetric:55"
         ],
         "dependencies": [
           "__future__",
@@ -2293,27 +2185,27 @@
         ],
         "file": "scripts/analytics/phrase_performance.py",
         "functions": [
-          "tokenize:50",
-          "generate_ngrams:69",
-          "analyze_records:82",
-          "load_youtube_records:181",
-          "youtube_rows_to_phrase_records:241",
-          "analyze_youtube_phrases:284",
-          "to_json:317",
-          "to_markdown:321",
-          "_empty_report:363",
-          "_metric_baselines:380",
-          "_stats:388",
-          "_percentile:409",
-          "_sample_records:424",
-          "_sort_value:437",
-          "_safe_float:445",
-          "_row_get:454"
+          "tokenize:64",
+          "generate_ngrams:83",
+          "analyze_records:96",
+          "load_youtube_records:199",
+          "youtube_rows_to_phrase_records:259",
+          "analyze_youtube_phrases:302",
+          "to_json:335",
+          "to_markdown:339",
+          "_empty_report:381",
+          "_metric_baselines:398",
+          "_stats:406",
+          "_percentile:433",
+          "_sample_records:448",
+          "_sort_value:461",
+          "_safe_float:469",
+          "_row_get:478"
         ],
         "layer": "domain-layer",
-        "sha256_16": "bce57aa168d2985f"
+        "sha256_16": "2a0b9ca916703a74"
       },
-      "vector_text": "scripts/analytics/phrase_performance.py tokenize:50 generate_ngrams:69 analyze_records:82 load_youtube_records:181 youtube_rows_to_phrase_records:241 analyze_youtube_phrases:284 to_json:317 to_markdown:321 _empty_report:363 _metric_baselines:380 _stats:388 _percentile:409 _sample_records:424 _sort_value:437 _safe_float:445 _row_get:454 PhraseRecord:32 PhraseMetric:41 \"\"\"Generic n-gram performance analytics. The core scorer works on arbitrary records with text fields and numeric metrics. The YouTube adapter only maps SQLite video rows into that generic shape. \"\"\" from __future__ import annotations import json import math import re import sqlite3 from dataclasses import asdict, dataclass from datetime import date"
+      "vector_text": "scripts/analytics/phrase_performance.py tokenize:64 generate_ngrams:83 analyze_records:96 load_youtube_records:199 youtube_rows_to_phrase_records:259 analyze_youtube_phrases:302 to_json:335 to_markdown:339 _empty_report:381 _metric_baselines:398 _stats:406 _percentile:433 _sample_records:448 _sort_value:461 _safe_float:469 _row_get:478 PhraseRecord:46 PhraseMetric:55 \"\"\"Generic n-gram performance analytics. The core scorer works on arbitrary records with text fields and numeric metrics. The YouTube adapter only maps SQLite video rows into that generic shape. \"\"\" from __future__ import annotations import json import math import re import sqlite3 from dataclasses import asdict, dataclass from datetime import date"
     },
     {
       "meta": {
@@ -2590,10 +2482,10 @@
     },
     {
       "meta": {
-        "bytes": 81533,
+        "bytes": 79475,
         "file": "templates/index.html",
         "layer": "domain-layer",
-        "sha256_16": "5dfc6ded0dd136e0"
+        "sha256_16": "1b471f9c911eb10b"
       },
       "vector_text": "templates/index.html <!DOCTYPE html> <html lang=\"en\"> <head> <meta charset=\"UTF-8\"> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"> <title>Governed Autonomous Intelligence Workspace | Dashboard</title> <!-- FontAwesome icons --> <link rel=\"stylesheet\" href=\"https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css\"> <!-- Main Stylesheet -->"
     },
@@ -2623,10 +2515,10 @@
     },
     {
       "meta": {
-        "bytes": 88552,
+        "bytes": 89652,
         "file": "static/css/style.css",
         "layer": "domain-layer",
-        "sha256_16": "61b53648ccdf06b3"
+        "sha256_16": "ddbf8bf584988ff1"
       },
       "vector_text": "static/css/style.css /* Kaggle-style CSS variables and layout */ @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap'); :root { /* DEFAULT THEME: LIGHT WHITE */ --bg-color: #f7f9fa; --card-bg: #ffffff; --bg-card: #ffffff; --border-color: #e2e8f0; --text-color: #202124; --text-muted: #5f6368; --accent-color: #008abb; /* Kaggle Blue */"
     },
@@ -2644,7 +2536,7 @@
     },
     {
       "meta": {
-        "bytes": 164979,
+        "bytes": 169418,
         "classes": [
           "ChatUIManager"
         ],
@@ -2690,7 +2582,7 @@
           "_renderSourceRecords"
         ],
         "layer": "domain-layer",
-        "sha256_16": "1a28b06aaa5f7938"
+        "sha256_16": "e75bd232c8350e9a"
       },
       "vector_text": "static/js/ui.js escapeHtml changeLanguage changeTheme normalizeUiRole applyRoleVisibility applyEntitlementsUI switchSection setSidebarCollapsed toggleSidebar closeSidebar _renderProposalActions _renderProposalInbox loadProposalInbox updateProposalStatus initProposalInbox _formatPolicyAction _safeExternalUrl _setOperatorStatus _renderPolicyTiers _operatorText _operatorSources _findOperatorSource _connectorHelp _renderConnectorSummary _renderSourceRegistry _renderIngestionConsole _summarizeMissing _renderMigrationReadiness _renderConnectorRuns _renderSourceRecords ChatUIManager import { state, DEFAULT_COLORS } from './state.js'; import { translations } from './translations.js'; import { loadStats, loadChannelStat"
     },
@@ -2719,7 +2611,24 @@
     },
     {
       "meta": {
-        "bytes": 12903,
+        "bytes": 5422,
+        "classes": [],
+        "dependencies": [
+          "./state.js",
+          "./utils.js"
+        ],
+        "file": "static/js/timeline-view.js",
+        "functions": [
+          "renderTimelineView"
+        ],
+        "layer": "domain-layer",
+        "sha256_16": "6abbd9dcbe58a482"
+      },
+      "vector_text": "static/js/timeline-view.js renderTimelineView import { state } from './state.js'; import { formatNumber, escapeHtml } from './utils.js'; export function renderTimelineView(data, chartDef, rootNode) { const root = rootNode || document.getElementById(\"timeline-view-root\"); if (!root) return; if (!data || data.length === 0) { root.innerHTML = '<div style=\"padding: 20px; text-align: center; color: var(--tex"
+    },
+    {
+      "meta": {
+        "bytes": 16833,
         "classes": [],
         "dependencies": [
           "./state.js",
@@ -2740,12 +2649,15 @@
           "showBriefCopyStatus",
           "copyBriefMarkdown",
           "copyBriefMarkdownFromModal",
-          "escapeHtml"
+          "escapeHtml",
+          "loadReviewQueue",
+          "approveReviewItem",
+          "rejectReviewItem"
         ],
         "layer": "domain-layer",
-        "sha256_16": "8af960a41f1aea90"
+        "sha256_16": "bbd5fc755156c3b3"
       },
-      "vector_text": "static/js/briefs.js briefText loadBriefs loadBriefSources generateDailyBrief viewBriefDetails closeBriefModal exportBriefFromModal downloadEvidenceBundle fetchBriefExportText writeClipboardText showBriefCopyStatus copyBriefMarkdown copyBriefMarkdownFromModal escapeHtml import { state } from './state.js'; import { adminFetch, adminFetchSilent } from './auth.js'; let activeBriefId = null; function briefText(key, fallback) { const dict = { copy_brief: { ua: \"Копіювати\", en: \"Copy\", }, copied: { ua: \"Дайджест скопійовано в буфер.\", en: \"Brief copied to clipboard.\", }, copy_failed: { ua: \"Не вдалося скопіювати дайджест.\", en: \""
+      "vector_text": "static/js/briefs.js briefText loadBriefs loadBriefSources generateDailyBrief viewBriefDetails closeBriefModal exportBriefFromModal downloadEvidenceBundle fetchBriefExportText writeClipboardText showBriefCopyStatus copyBriefMarkdown copyBriefMarkdownFromModal escapeHtml loadReviewQueue approveReviewItem rejectReviewItem import { state } from './state.js'; import { adminFetch, adminFetchSilent } from './auth.js'; let activeBriefId = null; function briefText(key, fallback) { const dict = { copy_brief: { ua: \"Копіювати\", en: \"Copy\", }, copied: { ua: \"Дайджест скопійовано в буфер.\", en: \"Brief copied to clipboard.\", }, copy_failed: { ua: \"Не вдалося скопіювати дайджест.\", en: \""
     },
     {
       "meta": {
@@ -2772,13 +2684,15 @@
     },
     {
       "meta": {
-        "bytes": 32433,
+        "bytes": 34231,
         "classes": [],
         "dependencies": [
           "./state.js",
           "./translations.js",
           "./ui.js",
-          "./d3-charts.js"
+          "./d3-charts.js",
+          "./table-view.js",
+          "./timeline-view.js"
         ],
         "file": "static/js/charts.js",
         "functions": [
@@ -2791,21 +2705,21 @@
           "renderModalViewsChart"
         ],
         "layer": "domain-layer",
-        "sha256_16": "e666c9e78483cb78"
+        "sha256_16": "3805e5c2e1f29692"
       },
-      "vector_text": "static/js/charts.js initChartUI selectChart selectPromoChart formatChartValue truncateChartTitle renderActiveChart renderModalViewsChart import { state } from './state.js'; import { translations } from './translations.js'; import { openVideoModal } from './ui.js'; import { isD3ChartType, renderD3Chart, hideD3Tooltip } from './d3-charts.js'; export const CHART_DEFS = [ // Group 1: Stats split-buttons (video metrics) { id: 'top_viewed', group: 'stats', pair: 'left', pairId: 'worst_viewed', icon"
+      "vector_text": "static/js/charts.js initChartUI selectChart selectPromoChart formatChartValue truncateChartTitle renderActiveChart renderModalViewsChart import { state } from './state.js'; import { translations } from './translations.js'; import { openVideoModal } from './ui.js'; import { isD3ChartType, renderD3Chart, hideD3Tooltip } from './d3-charts.js'; import { renderTableView } from './table-view.js'; import { renderTimelineView } from './timeline-view.js'; export const CHART_DEFS = [ // Group 1: Stats"
     },
     {
       "meta": {
-        "bytes": 1964,
+        "bytes": 2026,
         "classes": [],
         "dependencies": [],
         "file": "static/js/state.js",
         "functions": [],
         "layer": "domain-layer",
-        "sha256_16": "65291fddc38fbe48"
+        "sha256_16": "2ca46b62e9f898df"
       },
-      "vector_text": "static/js/state.js // Global App State for Governed Autonomous Intelligence Workspace export const state = { currentLang: localStorage.getItem(\"app_lang\") || \"ua\", currentTheme: localStorage.getItem(\"app_theme\") || \"light\", currentSection: \"analytics-tab\", activeChartInstance: null, chartRawData: null, activeChartType: 'top_viewed', chartLimit: parseInt(localStorage.getItem(\"c"
+      "vector_text": "static/js/state.js // Global App State for Governed Autonomous Intelligence Workspace export const state = { currentLang: localStorage.getItem(\"app_lang\") || \"ua\", currentTheme: localStorage.getItem(\"app_theme\") || \"light\", currentSection: \"analytics-tab\", activeChartInstance: null, chartRawData: null, activeChartType: 'top_viewed', activeWorkspaceView: 'chart', // chart | tim"
     },
     {
       "meta": {
@@ -2837,6 +2751,21 @@
     },
     {
       "meta": {
+        "bytes": 632,
+        "classes": [],
+        "dependencies": [],
+        "file": "static/js/utils.js",
+        "functions": [
+          "formatNumber",
+          "escapeHtml"
+        ],
+        "layer": "domain-layer",
+        "sha256_16": "1f9867db7fd39341"
+      },
+      "vector_text": "static/js/utils.js formatNumber escapeHtml /** * Format a number into a readable short string (e.g. 1.2M, 4.5k) */ export function formatNumber(num) { if (num === undefined || num === null) return '0'; if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M'; if (num >= 1000) return (num / 1000).toFixed(1) + 'k'; return num.toLocaleString(); } /** * Safely escape HTML characters to prevent XSS */"
+    },
+    {
+      "meta": {
         "bytes": 26843,
         "classes": [],
         "dependencies": [
@@ -2865,9 +2794,10 @@
     },
     {
       "meta": {
-        "bytes": 104357,
+        "bytes": 106649,
         "classes": [
           "BaseWidget",
+          "YouTubeMetricsWidget",
           "ChannelAnalyticsWidget",
           "AnomalyAlertsWidget",
           "DailyBriefsWidget",
@@ -2897,13 +2827,30 @@
           "initDashboardWorkspace"
         ],
         "layer": "domain-layer",
-        "sha256_16": "fbcd458a0ad74f37"
+        "sha256_16": "2f3f3bd8866367ec"
       },
-      "vector_text": "static/js/widgets.js escapeHtml readDateRange findUatvEnglishChannel defaultChannelIds chartLabel parsePixelSize formatMetricLine getPresetDateRange getPresetDateRangeForDays initDashboardWorkspace BaseWidget ChannelAnalyticsWidget AnomalyAlertsWidget DailyBriefsWidget MinifiedStatCardsWidget EntityTimelineTracksWidget SystemStatusIndicatorWidget CostQuotaDashboardWidget DashboardWorkspace import { state } from './state.js'; import { translations } from './translations.js'; import { CHART_DEFS, initChartUI, renderActiveChart } from './charts.js'; import { adminFetch, adminFetchSilent } from './auth.js'; const STORAGE_KEY = 'dashboard_widgets_v1'; const WIDGETS_STATE_ENDPOINT = '/api/widgets/state'; const MIN_WI"
+      "vector_text": "static/js/widgets.js escapeHtml readDateRange findUatvEnglishChannel defaultChannelIds chartLabel parsePixelSize formatMetricLine getPresetDateRange getPresetDateRangeForDays initDashboardWorkspace BaseWidget YouTubeMetricsWidget ChannelAnalyticsWidget AnomalyAlertsWidget DailyBriefsWidget MinifiedStatCardsWidget EntityTimelineTracksWidget SystemStatusIndicatorWidget CostQuotaDashboardWidget DashboardWorkspace import { state } from './state.js'; import { translations } from './translations.js'; import { CHART_DEFS, initChartUI, renderActiveChart } from './charts.js'; import { adminFetch, adminFetchSilent } from './auth.js'; const STORAGE_KEY = 'dashboard_widgets_v1'; const WIDGETS_STATE_ENDPOINT = '/api/widgets"
     },
     {
       "meta": {
-        "bytes": 15520,
+        "bytes": 2279,
+        "classes": [],
+        "dependencies": [
+          "./state.js",
+          "./utils.js"
+        ],
+        "file": "static/js/table-view.js",
+        "functions": [
+          "renderTableView"
+        ],
+        "layer": "domain-layer",
+        "sha256_16": "a76069d4f0498adb"
+      },
+      "vector_text": "static/js/table-view.js renderTableView import { state } from './state.js'; import { formatNumber, escapeHtml } from './utils.js'; export function renderTableView(data, chartDef, rootNode) { const root = rootNode || document.getElementById(\"table-view-root\"); if (!root) return; if (!data || data.length === 0) { root.innerHTML = '<div style=\"padding: 20px; text-align: center; color: var(--text-mute"
+    },
+    {
+      "meta": {
+        "bytes": 15557,
         "classes": [],
         "dependencies": [
           "./state.js",
@@ -2927,7 +2874,7 @@
           "syncTopBarHeight"
         ],
         "layer": "domain-layer",
-        "sha256_16": "473cd091109e6501"
+        "sha256_16": "a6fdcce7b98edf49"
       },
       "vector_text": "static/js/app.js dateToDay dayToDate clearQuickDateSelection updateDateRangeSliderLabels syncDateRangeSliderFromInputs applyDateRangeFromSlider scheduleDateSliderApply initDateRangeSlider syncTopBarHeight import { state } from './state.js'; import { changeLanguage, changeTheme, switchSection, toggleSidebar, closeSidebar, toggleChannelsDropdown, onChannelCheckboxChange, onChannelColorChange, toggleSelectAllChannels, getSelectedChannels, updateActiveChannelNameLabel, renderChannelsMenu, renderTable, toggleSort, debounceFilter, resetFilters, setDateRange, toggle"
     },

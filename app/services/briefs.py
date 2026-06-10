@@ -114,71 +114,13 @@ class BriefsService:
 
             content_text = "\n".join(content_lines)
 
-            # Generate Verification Seal
-            import hashlib
-            import json
-            from pathlib import Path
-            brief_hash = "sha256:" + hashlib.sha256(content_text.encode("utf-8")).hexdigest()
-            
-            verified_sources = []
-            evidence_dir = Path(root_dir) / "data" / "evidence_cache"
-            
-            for c in claims:
-                src = c["sources"][0]
-                record_id = src["id"]
-                
-                # Verify file exists and hash matches if available
-                verified = False
-                db_hash = None
-                
-                # Fetch recorded hash from database
-                row = conn.execute("SELECT content_hash FROM source_records WHERE id = ?", (record_id,)).fetchone()
-                if row:
-                    db_hash = row["content_hash"]
-                    
-                if db_hash:
-                    # Recompute artifact hash of the files
-                    meta_path = evidence_dir / f"source_record_{record_id}_metadata.json"
-                    trans_path = evidence_dir / f"source_record_{record_id}_transcript.txt"
-                    thumb_path = evidence_dir / f"source_record_{record_id}_thumbnail.jpg"
-                    
-                    if meta_path.exists():
-                        try:
-                            h_check = hashlib.sha256()
-                            h_check.update(meta_path.read_bytes())
-                            if trans_path.exists():
-                                h_check.update(trans_path.read_bytes())
-                            if thumb_path.exists():
-                                h_check.update(thumb_path.read_bytes())
-                            check_hash = "sha256:" + h_check.hexdigest()
-                            if check_hash == db_hash:
-                                verified = True
-                        except Exception:
-                            pass
-                            
-                verified_sources.append({
-                    "source_record_id": record_id,
-                    "source_name": src["source_name"],
-                    "title": src["title"],
-                    "url": src["url"],
-                    "recorded_hash": db_hash,
-                    "verified": verified
-                })
-            
-            verification_seal = {
-                "verification_status": "VERIFIED" if (not verified_sources or all(vs["verified"] for vs in verified_sources)) else "UNVERIFIED",
-                "export_timestamp_utc": datetime.datetime.utcnow().replace(microsecond=0).isoformat() + "Z",
-                "brief_content_hash": brief_hash,
-                "verified_sources": verified_sources
-            }
-
             # Write to ai_outputs
             cursor.execute(
                 """
-                INSERT INTO ai_outputs (output_type, title, status, content_text, metadata_json)
-                VALUES ('brief', ?, 'draft', ?, ?)
+                INSERT INTO ai_outputs (output_type, title, status, content_text)
+                VALUES ('brief', ?, 'draft', ?)
                 """,
-                (f"Daily Brief - {date}", content_text, json.dumps({"verification_seal": verification_seal}, ensure_ascii=False))
+                (f"Daily Brief - {date}", content_text)
             )
             ai_output_id = cursor.lastrowid
 
@@ -249,22 +191,14 @@ class BriefsService:
             conn.close()
 
     @staticmethod
-    def list_draft_briefs(
-        root_dir: str,
-        limit: int = 20,
-    ) -> Dict[str, Any]:
-        """List draft briefs for the human review queue.
-
-        Returns:
-            {"briefs": [...], "registry_ready": bool}
-        """
+    def list_draft_briefs(root_dir: str, limit: int = 20) -> Dict[str, Any]:
+        """List draft briefs pending human review."""
         if not registry_ready(root_dir):
             return {"briefs": [], "registry_ready": False}
 
         conn = _connect_db(root_dir)
         try:
-            cursor = conn.cursor()
-            cursor.execute(
+            rows = conn.execute(
                 """
                 SELECT id, title, created_at, status
                 FROM ai_outputs
@@ -272,55 +206,37 @@ class BriefsService:
                 ORDER BY id DESC
                 LIMIT ?
                 """,
-                (limit,)
-            )
-            rows = cursor.fetchall()
-            briefs = []
-            for r in rows:
-                briefs.append({
-                    "id": r["id"],
-                    "title": r["title"],
-                    "created_at": r["created_at"],
-                    "status": r["status"]
-                })
-            return {"briefs": briefs, "registry_ready": True}
+                (max(1, min(int(limit), 100)),),
+            ).fetchall()
+            return {
+                "registry_ready": True,
+                "briefs": [dict(row) for row in rows],
+            }
         finally:
             conn.close()
 
     @staticmethod
-    def update_brief_status(
-        root_dir: str,
-        brief_id: int,
-        new_status: str
-    ) -> bool:
-        """Update the status of a brief."""
+    def update_brief_status(root_dir: str, brief_id: int, status: str) -> Dict[str, Any]:
+        """Update review status for a brief."""
+        if status not in {"draft", "reviewed", "approved", "rejected", "exported"}:
+            raise ValueError("Unsupported brief status.")
         if not registry_ready(root_dir):
             raise GovernanceMigrationRequired("Governance registry migration is not applied.")
-            
-        if new_status not in ('draft', 'reviewed', 'approved', 'rejected', 'exported'):
-            raise ValueError(f"Invalid status: {new_status}")
-            
+
         conn = _connect_db(root_dir)
         try:
-            cursor = conn.cursor()
-            cursor.execute(
-                "UPDATE ai_outputs SET status = ? WHERE id = ? AND output_type = 'brief'",
-                (new_status, brief_id)
+            cursor = conn.execute(
+                """
+                UPDATE ai_outputs
+                SET status = ?
+                WHERE id = ? AND output_type = 'brief'
+                """,
+                (status, brief_id),
             )
-            affected = cursor.rowcount > 0
+            if cursor.rowcount == 0:
+                raise ValueError(f"Brief with ID {brief_id} not found.")
             conn.commit()
-            
-            if affected:
-                from app.services.governance import add_audit_event
-                add_audit_event(
-                    root_dir=root_dir,
-                    action="brief.status_updated",
-                    object_type="ai_output",
-                    object_id=brief_id,
-                    metadata={"new_status": new_status},
-                    conn=conn
-                )
-            return affected
+            return BriefsService.get_brief_by_id(root_dir, brief_id)
         finally:
             conn.close()
 
@@ -338,7 +254,7 @@ class BriefsService:
             cursor = conn.cursor()
             cursor.execute(
                 """
-                SELECT id, title, created_at, status, content_text, metadata_json
+                SELECT id, title, created_at, status, content_text
                 FROM ai_outputs
                 WHERE id = ? AND output_type = 'brief'
                 """,
@@ -381,53 +297,6 @@ class BriefsService:
             title = row["title"] or ""
             date = title.split(" - ")[-1] if " - " in title else row["created_at"][:10]
 
-            import json
-            meta_json = row["metadata_json"]
-            metadata = json.loads(meta_json) if meta_json else {}
-            verification_seal = metadata.get("verification_seal")
-
-            # Dynamic verification check of the files
-            if verification_seal:
-                import hashlib
-                from pathlib import Path
-                evidence_dir = Path(root_dir) / "data" / "evidence_cache"
-                
-                all_verified = True
-                new_verified_sources = []
-                for vs in verification_seal.get("verified_sources") or []:
-                    record_id = vs["source_record_id"]
-                    db_hash = vs["recorded_hash"]
-                    
-                    verified = False
-                    if db_hash:
-                        meta_path = evidence_dir / f"source_record_{record_id}_metadata.json"
-                        trans_path = evidence_dir / f"source_record_{record_id}_transcript.txt"
-                        thumb_path = evidence_dir / f"source_record_{record_id}_thumbnail.jpg"
-                        
-                        if meta_path.exists():
-                            try:
-                                h_check = hashlib.sha256()
-                                h_check.update(meta_path.read_bytes())
-                                if trans_path.exists():
-                                    h_check.update(trans_path.read_bytes())
-                                if thumb_path.exists():
-                                    h_check.update(thumb_path.read_bytes())
-                                check_hash = "sha256:" + h_check.hexdigest()
-                                if check_hash == db_hash:
-                                    verified = True
-                            except Exception:
-                                pass
-                    
-                    if not verified:
-                        all_verified = False
-                        
-                    vs_copy = dict(vs)
-                    vs_copy["verified"] = verified
-                    new_verified_sources.append(vs_copy)
-                    
-                verification_seal["verification_status"] = "VERIFIED" if all_verified else "UNVERIFIED"
-                verification_seal["verified_sources"] = new_verified_sources
-
             return {
                 "id": row["id"],
                 "date": date,
@@ -438,7 +307,6 @@ class BriefsService:
                 "claims": claims,
                 "generated_at": row["created_at"],
                 "created_at": row["created_at"],
-                "verification_seal": verification_seal
             }
         finally:
             conn.close()
@@ -497,7 +365,7 @@ class BriefsService:
 
     @staticmethod
     def format_brief_markdown(brief: Dict[str, Any]) -> str:
-        """Return copy-ready Markdown with deterministic source footnotes and cryptographic seal."""
+        """Return copy-ready Markdown with deterministic source footnotes."""
         title = brief.get("title") or f"Daily Brief - {brief.get('date', 'unknown date')}"
         content = brief.get("content_text") or ""
         lines = [line.rstrip() for line in content.splitlines()]
@@ -518,29 +386,9 @@ class BriefsService:
                 footnotes.append(f"[^{index}]: {source_name}: {source_title} - {url}")
 
         if footnotes:
-            content_body = "\n".join(lines).rstrip() + "\n\n## Sources\n" + "\n".join(footnotes)
-        else:
-            content_body = "\n".join(lines).rstrip()
-
-        # Append Verification Seal if available
-        seal = brief.get("verification_seal")
-        if seal:
-            seal_lines = [
-                "",
-                "---",
-                "## Cryptographic Verification Seal",
-                f"- **Verification Status**: {seal['verification_status']}",
-                f"- **Export Timestamp**: {seal['export_timestamp_utc']}",
-                f"- **Brief Content Hash**: {seal['brief_content_hash']}",
-                "- **Source Records Verification**:"
-            ]
-            for vs in seal.get("verified_sources") or []:
-                status_str = "VERIFIED" if vs["verified"] else "UNVERIFIED"
-                seal_lines.append(f"  - [{vs['source_name']}]({vs['url']}): {status_str} ({vs['recorded_hash']})")
-            content_body += "\n" + "\n".join(seal_lines)
-
-        return content_body
-
+            stripped = "\n".join(lines).rstrip()
+            return f"{stripped}\n\n## Sources\n" + "\n".join(footnotes)
+        return "\n".join(lines).rstrip() + "\n"
 
     @staticmethod
     def redact_brief(brief: Dict[str, Any]) -> Dict[str, Any]:

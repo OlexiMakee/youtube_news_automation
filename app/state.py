@@ -5,8 +5,8 @@ import subprocess
 import threading
 from datetime import datetime
 
-from scraper.db_client import DatabaseClient
-from scraper.postgres_sync import PostgresSyncClient
+from news_scraper.db_client import DatabaseClient
+from news_scraper.postgres_sync import PostgresSyncClient
 
 # Calculate root directory relative to this file
 app_dir = os.path.dirname(os.path.abspath(__file__))

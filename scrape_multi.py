@@ -339,8 +339,6 @@ def run_multi_scraping(channels_list, days, stop_on_known=True, single_channel_m
 
         # Run history collection process
         success = scraper.run_archive_scraping(
-            on_progress=on_progress,
-            on_pause=on_pause,
             stop_on_known=stop_on_known
         )
 

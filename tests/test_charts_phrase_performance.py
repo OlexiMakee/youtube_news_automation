@@ -17,7 +17,7 @@ from scraper.db_client import DatabaseClient
 
 class TestChartsPhrasePerformance(unittest.TestCase):
     def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory()
+        self.tmp = tempfile.TemporaryDirectory(dir=os.path.join(root_dir, "scratch"))
         self.db_path = Path(self.tmp.name) / "charts.db"
         _create_db_without_video_phrases(self.db_path)
         self.original_database_client = charts_routes.DatabaseClient

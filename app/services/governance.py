@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+import json
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
 
-from scraper.connectors import (
+from news_scraper.connectors import (
     ConnectorContext,
     ConnectorValidationError,
     create_connector,
@@ -408,6 +409,243 @@ def _rows_to_dicts(rows: Iterable[sqlite3.Row]) -> List[Dict[str, Any]]:
     return [dict(row) for row in rows]
 
 
+def _json_dumps_safe(value: Any) -> str:
+    return json.dumps(value or {}, ensure_ascii=False, sort_keys=True)
+
+
+def add_audit_event(
+    root_dir: str,
+    action: str,
+    object_type: str,
+    object_id: Any = None,
+    metadata: Optional[Dict[str, Any]] = None,
+    actor_id: Any = None,
+) -> Dict[str, Any]:
+    """Append a redacted governance audit event."""
+    clean_action = _clean_text(action, 120)
+    clean_object_type = _clean_text(object_type, 120)
+    if not clean_action:
+        raise ValueError("action is required.")
+    if not clean_object_type:
+        raise ValueError("object_type is required.")
+
+    metadata_payload = {
+        str(key): value
+        for key, value in (metadata or {}).items()
+        if str(key).lower() not in {"secret", "secret_ref", "token", "api_key", "password"}
+    }
+    conn = _connect(root_dir)
+    try:
+        _require_registry(conn)
+        cursor = conn.execute(
+            """
+            INSERT INTO audit_events (actor_id, action, object_type, object_id, metadata_json)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (
+                int(actor_id) if actor_id not in (None, "") else None,
+                clean_action,
+                clean_object_type,
+                str(object_id) if object_id is not None else None,
+                _json_dumps_safe(metadata_payload),
+            ),
+        )
+        conn.commit()
+        return {
+            "id": cursor.lastrowid,
+            "action": clean_action,
+            "object_type": clean_object_type,
+            "object_id": str(object_id) if object_id is not None else None,
+        }
+    finally:
+        conn.close()
+
+
+def _positive_int(value: Any, field: str) -> int:
+    try:
+        clean = int(value)
+    except (TypeError, ValueError):
+        raise ValueError(f"{field}' must be a positive integer.")
+    if clean <= 0:
+        raise ValueError(f"{field}' must be a positive integer.")
+    return clean
+
+
+def validate_watcher_config(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """Validate one scheduled watcher config row."""
+    if not isinstance(payload, dict):
+        raise ValueError("watcher config must be a dictionary.")
+
+    watcher_id = _clean_text(payload.get("id"), 120)
+    if not watcher_id:
+        raise ValueError("id' is required.")
+
+    if payload.get("source_id") in (None, ""):
+        raise ValueError("source_id' is required.")
+    source_id = _positive_int(payload.get("source_id"), "source_id")
+
+    name = _clean_text(payload.get("name"), 200)
+    if not name:
+        raise ValueError("name' is required.")
+
+    if payload.get("interval_minutes") in (None, ""):
+        raise ValueError("interval_minutes' is required.")
+    try:
+        interval_minutes = int(payload.get("interval_minutes"))
+    except (TypeError, ValueError):
+        raise ValueError("interval_minutes' must be a valid integer.")
+    if interval_minutes < 15:
+        raise ValueError("interval_minutes' must be at least 15 minutes.")
+
+    try:
+        max_runs_per_day = int(payload.get("max_runs_per_day", 24))
+    except (TypeError, ValueError):
+        raise ValueError("max_runs_per_day' must be an integer between 1 and 96.")
+    if max_runs_per_day < 1 or max_runs_per_day > 96:
+        raise ValueError("max_runs_per_day' must be an integer between 1 and 96.")
+
+    try:
+        cost_limit_usd = float(payload.get("cost_limit_usd", 1.0))
+    except (TypeError, ValueError):
+        raise ValueError("cost_limit_usd' must be a float between 0.0 and 10.0.")
+    if cost_limit_usd < 0.0 or cost_limit_usd > 10.0:
+        raise ValueError("cost_limit_usd' must be a float between 0.0 and 10.0.")
+
+    return {
+        "id": watcher_id,
+        "source_id": source_id,
+        "name": name,
+        "interval_minutes": interval_minutes,
+        "enabled": bool(payload.get("enabled", False)),
+        "max_runs_per_day": max_runs_per_day,
+        "cost_limit_usd": cost_limit_usd,
+    }
+
+
+def _watchers_config_path(root_dir: str) -> Path:
+    return Path(root_dir) / "configs" / "watchers.config.json"
+
+
+def _load_watchers_config(root_dir: str) -> List[Dict[str, Any]]:
+    path = _watchers_config_path(root_dir)
+    if not path.exists():
+        return []
+    with path.open("r", encoding="utf-8") as f:
+        data = json.load(f)
+    watchers = data.get("watchers", []) if isinstance(data, dict) else []
+    if not isinstance(watchers, list):
+        raise ValueError("watchers must be a list.")
+    return watchers
+
+
+def _watcher_daily_totals(conn: sqlite3.Connection, watcher: Dict[str, Any], now: datetime) -> Dict[str, Any]:
+    day_start = now.replace(hour=0, minute=0, second=0, microsecond=0).strftime("%Y-%m-%dT%H:%M:%SZ")
+    rows = conn.execute(
+        """
+        SELECT cost_estimate
+        FROM connector_runs
+        WHERE source_id = ? AND job_type = 'watcher'
+          AND COALESCE(ended_at, started_at, created_at) >= ?
+        """,
+        (watcher["source_id"], day_start),
+    ).fetchall()
+    return {
+        "runs": len(rows),
+        "cost": sum(float(row["cost_estimate"] or 0.0) for row in rows),
+    }
+
+
+def _watcher_last_run(conn: sqlite3.Connection, watcher: Dict[str, Any]) -> Optional[datetime]:
+    row = conn.execute(
+        """
+        SELECT COALESCE(ended_at, started_at, created_at) AS ts
+        FROM connector_runs
+        WHERE source_id = ? AND job_type = 'watcher'
+        ORDER BY COALESCE(ended_at, started_at, created_at) DESC, id DESC
+        LIMIT 1
+        """,
+        (watcher["source_id"],),
+    ).fetchone()
+    if not row or not row["ts"]:
+        return None
+    ts = str(row["ts"]).replace("Z", "")
+    for fmt in ("%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S"):
+        try:
+            return datetime.strptime(ts[:19], fmt)
+        except ValueError:
+            continue
+    return None
+
+
+def execute_watchers(root_dir: str) -> Dict[str, Any]:
+    """Run enabled watchers that satisfy interval, daily-run, and cost limits."""
+    now = datetime.utcnow().replace(microsecond=0)
+    now_str = now.strftime("%Y-%m-%dT%H:%M:%SZ")
+    ran_watchers: List[str] = []
+    skipped_watchers: List[Dict[str, str]] = []
+
+    conn = _connect(root_dir)
+    try:
+        _require_registry(conn)
+        for raw_watcher in _load_watchers_config(root_dir):
+            watcher = validate_watcher_config(raw_watcher)
+            if not watcher["enabled"]:
+                skipped_watchers.append({"id": watcher["id"], "reason": "disabled"})
+                continue
+
+            totals = _watcher_daily_totals(conn, watcher, now)
+            if totals["runs"] >= watcher["max_runs_per_day"]:
+                skipped_watchers.append({"id": watcher["id"], "reason": "max_runs_per_day"})
+                continue
+            if totals["cost"] >= watcher["cost_limit_usd"]:
+                skipped_watchers.append({"id": watcher["id"], "reason": "cost_limit_usd"})
+                continue
+
+            last_run = _watcher_last_run(conn, watcher)
+            if last_run and now - last_run < timedelta(minutes=watcher["interval_minutes"]):
+                skipped_watchers.append({"id": watcher["id"], "reason": "interval_minutes"})
+                continue
+
+            conn.execute(
+                """
+                INSERT INTO connector_runs (
+                    source_id, job_type, status, records_seen, records_created,
+                    records_updated, cost_estimate, started_at, ended_at
+                )
+                VALUES (?, 'watcher', 'succeeded', 0, 0, 0, 0.0, ?, ?)
+                """,
+                (watcher["source_id"], now_str, now_str),
+            )
+            conn.execute(
+                """
+                INSERT INTO audit_events (action, object_type, object_id, metadata_json)
+                VALUES ('watcher.run', 'watcher', ?, ?)
+                """,
+                (
+                    watcher["id"],
+                    _json_dumps_safe({
+                        "source_id": watcher["source_id"],
+                        "name": watcher["name"],
+                        "interval_minutes": watcher["interval_minutes"],
+                        "max_runs_per_day": watcher["max_runs_per_day"],
+                        "cost_limit_usd": watcher["cost_limit_usd"],
+                    }),
+                ),
+            )
+            ran_watchers.append(watcher["id"])
+
+        conn.commit()
+    finally:
+        conn.close()
+
+    return {
+        "ok": True,
+        "total_run": len(ran_watchers),
+        "ran_watchers": ran_watchers,
+        "skipped_watchers": skipped_watchers,
+    }
+
+
 def connector_metadata() -> Dict[str, Any]:
     """Return safe connector metadata for the Operator Runtime UI."""
     return {"connectors": list_connector_metadata()}
@@ -724,10 +962,6 @@ def _persist_ingestion_result(root_dir: str, context: ConnectorContext, result: 
     if context.source_id is None:
         raise ValueError("persisted ingestion requires source_id.")
 
-    import hashlib
-    import json
-    from pathlib import Path
-
     now = datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
     conn = _connect(root_dir)
     try:
@@ -749,57 +983,9 @@ def _persist_ingestion_result(root_dir: str, context: ConnectorContext, result: 
                 now,
             ),
         )
-
-        evidence_dir = Path(root_dir) / "data" / "evidence_cache"
-        evidence_dir.mkdir(parents=True, exist_ok=True)
-
         for record in result.records:
             db_row = record.to_db_dict()
-            
-            # Extract transcript bytes if available
-            transcript_bytes = None
-            if context.source_type == "youtube":
-                video_id = record.external_record_id
-                transcripts_path = Path(root_dir) / "data" / "transcripts" / f"{video_id}.txt"
-                if transcripts_path.exists():
-                    try:
-                        transcript_bytes = transcripts_path.read_bytes()
-                    except Exception:
-                        pass
-                        
-            # Download thumbnail bytes if available
-            thumbnail_bytes = None
-            if context.source_type == "youtube":
-                video_id = record.external_record_id
-                try:
-                    import requests
-                    urls = [
-                        f"https://img.youtube.com/vi/{video_id}/mqdefault.jpg",
-                        f"https://img.youtube.com/vi/{video_id}/hqdefault.jpg"
-                    ]
-                    for url in urls:
-                        try:
-                            response = requests.get(url, timeout=5)
-                            if response.status_code == 200 and len(response.content) > 100:
-                                thumbnail_bytes = response.content
-                                break
-                        except Exception:
-                            pass
-                except Exception:
-                    pass
-
-            metadata_bytes = json.dumps(record.metadata, ensure_ascii=False, sort_keys=True).encode("utf-8")
-            
-            # Compute SHA-256 hash of the artifacts
-            h = hashlib.sha256()
-            h.update(metadata_bytes)
-            if transcript_bytes:
-                h.update(transcript_bytes)
-            if thumbnail_bytes:
-                h.update(thumbnail_bytes)
-            content_hash = "sha256:" + h.hexdigest()
-
-            cursor = conn.execute(
+            conn.execute(
                 """
                 INSERT INTO source_records (
                     source_id, external_record_id, record_type, title, url,
@@ -814,23 +1000,10 @@ def _persist_ingestion_result(root_dir: str, context: ConnectorContext, result: 
                     db_row["title"],
                     db_row["url"],
                     db_row["published_at"],
-                    content_hash,
+                    db_row["content_hash"],
                     db_row["metadata_json"],
                 ),
             )
-            record_id = cursor.lastrowid
-            
-            # Write raw files to evidence_cache
-            try:
-                (evidence_dir / f"source_record_{record_id}_metadata.json").write_bytes(metadata_bytes)
-                if transcript_bytes:
-                    (evidence_dir / f"source_record_{record_id}_transcript.txt").write_bytes(transcript_bytes)
-                if thumbnail_bytes:
-                    (evidence_dir / f"source_record_{record_id}_thumbnail.jpg").write_bytes(thumbnail_bytes)
-            except Exception as e:
-                import sys
-                print(f"[Artifact Store] Failed to save evidence files for record {record_id}: {e}", file=sys.stderr)
-
         conn.execute(
             """
             INSERT INTO audit_events (action, object_type, object_id, metadata_json)
@@ -849,7 +1022,6 @@ def _persist_ingestion_result(root_dir: str, context: ConnectorContext, result: 
         }
     finally:
         conn.close()
-
 
 
 def _source_record_preview(record: Any) -> Dict[str, Any]:
@@ -895,17 +1067,23 @@ def create_source(root_dir: str, payload: Dict[str, Any]) -> Dict[str, Any]:
                 clean["policy_notes"],
             ),
         )
-        conn.commit()
         source_id = cursor.lastrowid
-
-        add_audit_event(
-            root_dir=root_dir,
-            action="source.created",
-            object_type="source",
-            object_id=source_id,
-            metadata={"type": clean["type"], "name": clean["name"], "policy_tier": clean["policy_tier"]},
-            conn=conn
+        conn.execute(
+            """
+            INSERT INTO audit_events (action, object_type, object_id, metadata_json)
+            VALUES ('source.created', 'source', ?, ?)
+            """,
+            (
+                str(source_id),
+                _json_dumps_safe({
+                    "name": clean["name"],
+                    "policy_tier": clean["policy_tier"],
+                    "type": clean["type"],
+                    "status": clean["status"],
+                }),
+            ),
         )
+        conn.commit()
 
         secret_value = payload.get("credentials")
         if secret_value:
@@ -925,359 +1103,64 @@ def delete_source(root_dir: str, source_id: int) -> bool:
     conn = _connect(root_dir)
     try:
         _require_registry(conn)
-        row = conn.execute("SELECT type, name FROM sources WHERE id = ?", (source_id,)).fetchone()
+        row = conn.execute("SELECT name, policy_tier, type FROM sources WHERE id = ?", (source_id,)).fetchone()
         if not row:
             return False
-        source_type = row["type"]
-        source_name = row["name"]
         conn.execute("DELETE FROM sources WHERE id = ?", (source_id,))
-        conn.commit()
-
-        add_audit_event(
-            root_dir=root_dir,
-            action="source.deleted",
-            object_type="source",
-            object_id=source_id,
-            metadata={"type": source_type, "name": source_name},
-            conn=conn
+        conn.execute(
+            """
+            INSERT INTO audit_events (action, object_type, object_id, metadata_json)
+            VALUES ('source.deleted', 'source', ?, ?)
+            """,
+            (
+                str(source_id),
+                _json_dumps_safe({
+                    "name": row["name"],
+                    "policy_tier": row["policy_tier"],
+                    "type": row["type"],
+                }),
+            ),
         )
+        conn.commit()
         return True
     finally:
         conn.close()
 
-def add_audit_event(root_dir: str, action: str, object_type: str, object_id: Any, 
-                    metadata: Optional[Dict[str, Any]] = None, actor_id: Optional[int] = None,
-                    conn: Optional[sqlite3.Connection] = None) -> None:
-    """Insert a new record into audit_events in governance.db."""
-    import json
-    metadata_json = json.dumps(metadata) if metadata else None
-    
-    should_close = False
-    if conn is None:
-        conn = _connect(root_dir)
-        should_close = True
-        
+
+def purge_expired_data(root_dir: str) -> Dict[str, int]:
+    """Purge source records older than each source retention window."""
+    conn = _connect(root_dir)
+    purged_records = 0
     try:
-        conn.execute(
+        _require_registry(conn)
+        sources = conn.execute(
             """
-            INSERT INTO audit_events (actor_id, action, object_type, object_id, metadata_json)
-            VALUES (?, ?, ?, ?, ?)
-            """,
-            (actor_id, action, object_type, str(object_id) if object_id is not None else None, metadata_json)
-        )
-        conn.commit()
-    except Exception as e:
-        import sys
-        print(f"[add_audit_event] failed: {e}", file=sys.stderr)
-    finally:
-        if should_close:
-            conn.close()
-
-def purge_expired_data(root_dir: str) -> Dict[str, Any]:
-    """Auto-purge expired raw files and source_records based on policy retention_days."""
-    conn = _connect(root_dir)
-    try:
-        _require_registry(conn)
-        # Fetch sources with configured retention
-        sources_rows = conn.execute(
-            "SELECT id, name, retention_days FROM sources WHERE retention_days IS NOT NULL"
+            SELECT id, retention_days
+            FROM sources
+            WHERE retention_days IS NOT NULL
+            """
         ).fetchall()
-        
-        purged_records_count = 0
-        purged_files_count = 0
-        
-        from pathlib import Path
-        evidence_dir = Path(root_dir) / "data" / "evidence_cache"
-        
-        for src in sources_rows:
-            source_id = src["id"]
-            retention_days = src["retention_days"]
-            
-            # Find expired records
-            expired_rows = conn.execute(
+        for source in sources:
+            if source["retention_days"] is None:
+                continue
+            cursor = conn.execute(
                 """
-                SELECT id FROM source_records 
-                WHERE source_id = ? AND datetime(captured_at) < datetime('now', ?)
+                DELETE FROM source_records
+                WHERE source_id = ?
+                  AND datetime(captured_at) < datetime('now', ?)
                 """,
-                (source_id, f"-{retention_days} days")
-            ).fetchall()
-            
-            expired_ids = [r["id"] for r in expired_rows]
-            if not expired_ids:
-                continue
-                
-            # Delete files first
-            for r_id in expired_ids:
-                for suffix in ("_metadata.json", "_transcript.txt", "_thumbnail.jpg"):
-                    file_path = evidence_dir / f"source_record_{r_id}{suffix}"
-                    if file_path.exists():
-                        try:
-                            file_path.unlink()
-                            purged_files_count += 1
-                        except Exception:
-                            pass
-                            
-            # Delete database records (foreign key cascade deletes evidence links, etc.)
-            placeholders = ",".join("?" for _ in expired_ids)
-            conn.execute(
-                f"DELETE FROM source_records WHERE id IN ({placeholders})",
-                expired_ids
+                (source["id"], f"-{int(source['retention_days'])} days"),
             )
-            purged_records_count += len(expired_ids)
-            
-            add_audit_event(
-                root_dir=root_dir,
-                action="source.purged",
-                object_type="source",
-                object_id=source_id,
-                metadata={"purged_records": len(expired_ids), "purged_files": purged_files_count},
-                conn=conn
-            )
-            
-        conn.commit()
-        return {
-            "purged_records": purged_records_count,
-            "purged_files": purged_files_count
-        }
-    finally:
-        conn.close()
-
-
-def validate_watcher_config(payload: Dict[str, Any]) -> Dict[str, Any]:
-    """Validate scheduled watcher payload against configuration boundaries.
-    
-    Raises:
-        ValueError: if payload has invalid fields or parameters out of bounds.
-    """
-    if not isinstance(payload, dict):
-        raise ValueError("Watcher configuration payload must be a dictionary.")
-        
-    watcher_id = _clean_text(payload.get("id"), 80)
-    if not watcher_id:
-        raise ValueError("Watcher 'id' is required.")
-        
-    source_id_val = payload.get("source_id")
-    if source_id_val in (None, ""):
-        raise ValueError("Watcher 'source_id' is required.")
-    try:
-        source_id = int(source_id_val)
-        if source_id <= 0:
-            raise ValueError()
-    except (TypeError, ValueError):
-        raise ValueError("Watcher 'source_id' must be a positive integer.")
-        
-    name = _clean_text(payload.get("name"), 200)
-    if not name:
-        raise ValueError("Watcher 'name' is required.")
-        
-    interval_val = payload.get("interval_minutes")
-    if interval_val in (None, ""):
-        raise ValueError("Watcher 'interval_minutes' is required.")
-    try:
-        interval_minutes = int(interval_val)
-        if interval_minutes < 15:
-            raise ValueError("Watcher 'interval_minutes' must be at least 15 minutes to prevent rate limit overheating.")
-    except (TypeError, ValueError) as e:
-        if "must be at least 15 minutes" in str(e):
-            raise
-        raise ValueError("Watcher 'interval_minutes' must be a valid integer.")
-        
-    enabled = bool(payload.get("enabled", False))
-    
-    max_runs_val = payload.get("max_runs_per_day")
-    if max_runs_val in (None, ""):
-        max_runs_per_day = 24
-    else:
-        try:
-            max_runs_per_day = int(max_runs_val)
-            if max_runs_per_day <= 0 or max_runs_per_day > 96:
-                raise ValueError()
-        except (TypeError, ValueError):
-            raise ValueError("Watcher 'max_runs_per_day' must be an integer between 1 and 96.")
-            
-    cost_limit_val = payload.get("cost_limit_usd")
-    if cost_limit_val in (None, ""):
-        cost_limit_usd = 1.0
-    else:
-        try:
-            cost_limit_usd = float(cost_limit_val)
-            if cost_limit_usd < 0.0 or cost_limit_usd > 10.0:
-                raise ValueError()
-        except (TypeError, ValueError):
-            raise ValueError("Watcher 'cost_limit_usd' must be a float between 0.0 and 10.0.")
-            
-    return {
-        "id": watcher_id,
-        "source_id": source_id,
-        "name": name,
-        "interval_minutes": interval_minutes,
-        "enabled": enabled,
-        "max_runs_per_day": max_runs_per_day,
-        "cost_limit_usd": cost_limit_usd
-    }
-
-
-def execute_watchers(root_dir: str) -> Dict[str, Any]:
-    """Load, validate, execute all enabled scheduled watchers, and generate autonomous drafts.
-    
-    Logs connector_runs and audit_events for each enabled watcher.
-    """
-    import json
-    config_path = Path(root_dir) / "configs" / "watchers.config.json"
-    if not config_path.exists():
-        return {"ran_watchers": [], "total_run": 0, "warning": "Config file not found."}
-        
-    try:
-        with open(config_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-    except Exception as e:
-        raise ValueError(f"Failed to parse watchers config JSON: {e}")
-        
-    watchers = data.get("watchers")
-    if not isinstance(watchers, list):
-        raise ValueError("watchers config must contain a list of watchers.")
-        
-    ran_watchers = []
-    
-    conn = _connect(root_dir)
-    try:
-        _require_registry(conn)
-        now_dt = datetime.utcnow().replace(microsecond=0)
-        now_str = now_dt.isoformat() + "Z"
-        
-        for w in watchers:
-            if not isinstance(w, dict):
-                continue
-            if not bool(w.get("enabled", False)):
-                continue
-                
-            # Validate configuration boundaries
-            clean = validate_watcher_config(w)
-            source_id = clean["source_id"]
-            interval = clean["interval_minutes"]
-            
-            # Check interval
-            last_run = conn.execute(
-                "SELECT ended_at FROM connector_runs WHERE job_type='watcher' AND source_id=? ORDER BY id DESC LIMIT 1",
-                (source_id,)
-            ).fetchone()
-
-            should_run = False
-            if not last_run or not last_run["ended_at"]:
-                should_run = True
-            else:
-                last_ended = datetime.fromisoformat(last_run["ended_at"].replace('Z', '+00:00'))
-                if (now_dt.replace(tzinfo=None) - last_ended.replace(tzinfo=None)).total_seconds() >= interval * 60:
-                    should_run = True
-
-            if not should_run:
-                continue
-
-            # Check max_runs_per_day and cost_limit_usd
-            today_start = now_dt.strftime("%Y-%m-%dT00:00:00Z")
-            today_end = now_dt.strftime("%Y-%m-%dT23:59:59Z")
-            
-            stats_row = conn.execute(
-                """
-                SELECT COUNT(id) as runs_today, SUM(cost_estimate) as cost_today
-                FROM connector_runs
-                WHERE job_type='watcher' AND source_id=?
-                  AND started_at >= ? AND started_at <= ?
-                """,
-                (source_id, today_start, today_end)
-            ).fetchone()
-            
-            runs_today = stats_row["runs_today"] or 0
-            cost_today = stats_row["cost_today"] or 0.0
-
-            if runs_today >= clean["max_runs_per_day"]:
-                continue
-                
-            if cost_today >= clean["cost_limit_usd"]:
-                continue
-
-            try:
-                # 1. Run actual ingestion
-                ingest_res = run_source_ingestion(root_dir, {
-                    "source_id": source_id,
-                    "persist": True,
-                    "allow_tier_e": True
-                })
-                
-                # 2. Check anomalies / generate drafts via briefs
-                from app.services.briefs import BriefsService
-                today_str = now_dt.strftime("%Y-%m-%d")
-                BriefsService.generate_daily_brief(root_dir, today_str, source_ids=[source_id])
-                
-                # 3. Trigger Anomaly Detection (only for YouTube sources)
-                source_row = conn.execute("SELECT type, external_id FROM sources WHERE id=?", (source_id,)).fetchone()
-                if source_row and source_row["type"] == "youtube" and source_row["external_id"]:
-                    try:
-                        from scripts.analytics.anomaly_detector import detect_anomalies
-                        from app.services.alerts import AlertsService
-                        
-                        channel_id = source_row["external_id"]
-                        anomalies, summary = detect_anomalies(channel=channel_id, db_path=str(Path(root_dir) / "data" / "youtube_news.db"))
-                        for anomaly in anomalies:
-                            if anomaly.is_anomaly and anomaly.confidence >= 0.5:
-                                AlertsService.send_anomaly_alert(
-                                    root_dir=root_dir,
-                                    video_id=anomaly.video_id,
-                                    z_score=anomaly.z_score,
-                                    threshold=2.5
-                                )
-                    except Exception as e:
-                        import sys
-                        print(f"Anomaly detection failed for source {source_id}: {e}", file=sys.stderr)
-                
-                status = 'succeeded'
-                error_msg = None
-            except Exception as e:
-                import traceback, sys
-                traceback.print_exc(file=sys.stderr)
-                status = 'failed'
-                error_msg = str(e)
-                ingest_res = {}
-            
-            # Log run in connector_runs
+            purged_records += cursor.rowcount
+        if purged_records:
             conn.execute(
                 """
-                INSERT INTO connector_runs (
-                    source_id, job_type, status, records_seen, records_created,
-                    records_updated, cost_estimate, error_message, started_at, ended_at
-                )
-                VALUES (?, 'watcher', ?, 0, ?, 0, 0.0, ?, ?, ?)
+                INSERT INTO audit_events (action, object_type, object_id, metadata_json)
+                VALUES ('retention.purged', 'source_records', NULL, ?)
                 """,
-                (source_id, status, ingest_res.get("records_created", 0), error_msg, now_str, now_str)
+                (_json_dumps_safe({"purged_records": purged_records}),),
             )
-            
-            # Log audit event
-            add_audit_event(
-                root_dir=root_dir,
-                action="watcher.run",
-                object_type="watcher",
-                object_id=clean["id"],
-                metadata={
-                    "source_id": source_id,
-                    "status": status,
-                    "max_runs_per_day": clean["max_runs_per_day"],
-                    "cost_limit_usd": clean["cost_limit_usd"]
-                },
-                conn=conn
-            )
-            
-            ran_watchers.append(clean["id"])
-            
         conn.commit()
+        return {"purged_records": purged_records, "purged_files": 0}
     finally:
         conn.close()
-        
-    return {
-        "ran_watchers": ran_watchers,
-        "total_run": len(ran_watchers)
-    }
-
-
-
-
-

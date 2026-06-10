@@ -1,9 +1,10 @@
 import os
 import sys
 import json
+import sqlite3
 import subprocess
 import threading
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask import Blueprint, jsonify, request, Response
 from app.services.rbac import (
     ADMIN_SESSION_COOKIE,
@@ -309,99 +310,107 @@ def admin_health():
     return jsonify(build_admin_health(root_dir, bg_state))
 
 
+def _sqlite_table_exists(conn, table_name):
+    row = conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",
+        (table_name,),
+    ).fetchone()
+    return row is not None
+
+
+def _quota_since_clause(time_range):
+    clean = (time_range or "24h").strip().lower()
+    if clean == "all":
+        return "", []
+    ranges = {
+        "24h": timedelta(hours=24),
+        "7d": timedelta(days=7),
+        "30d": timedelta(days=30),
+    }
+    delta = ranges.get(clean, ranges["24h"])
+    since = (datetime.now() - delta).strftime("%Y-%m-%d %H:%M:%S")
+    return "WHERE created_at >= ?", [since]
+
+
 @actions_bp.route('/api/admin/quota-metrics', methods=['GET'])
 @_admin_required
 def admin_quota_metrics():
-    """Return aggregated LLM run metrics (cost, tokens, success/error rates) from memory_os.db."""
-    import sqlite3
+    """Return aggregate, non-secret LLM quota/cost telemetry."""
     db_path = os.path.join(root_dir, "data", "memory_os.db")
-    
-    time_range = request.args.get("time_range", "24h")
-    if time_range not in ("24h", "7d", "30d", "all"):
-        time_range = "24h"
-
-    where_clause = ""
-    if time_range == "24h":
-        where_clause = "WHERE created_at >= datetime('now', '-1 day', 'localtime')"
-    elif time_range == "7d":
-        where_clause = "WHERE created_at >= datetime('now', '-7 days', 'localtime')"
-    elif time_range == "30d":
-        where_clause = "WHERE created_at >= datetime('now', '-30 days', 'localtime')"
+    empty = {
+        "ok": True,
+        "summary": {
+            "total_runs": 0,
+            "success_count": 0,
+            "error_count": 0,
+            "total_input_tokens": 0,
+            "total_output_tokens": 0,
+            "total_cached_tokens": 0,
+            "total_cost": 0.0,
+            "avg_latency_ms": 0.0,
+        },
+        "model_breakdown": [],
+        "recent_errors": [],
+    }
+    if not os.path.exists(db_path):
+        return jsonify(empty)
 
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     try:
-        # Check if table exists first to avoid crash on empty DB initialization
-        table_exists = conn.execute(
-            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='memory_os_telemetry'"
-        ).fetchone() is not None
+        if not _sqlite_table_exists(conn, "memory_os_telemetry"):
+            return jsonify(empty)
 
-        if not table_exists:
-            return jsonify({
-                "summary": {
-                    "total_cost": 0.0, "total_input_tokens": 0, "total_output_tokens": 0,
-                    "total_cached_tokens": 0, "total_runs": 0, "success_count": 0,
-                    "error_count": 0, "avg_latency": 0.0
-                },
-                "model_breakdown": [],
-                "recent_errors": []
-            })
-
-        summary_query = f"""
-            SELECT 
-                SUM(cost) as total_cost,
-                SUM(input_tokens) as total_input_tokens,
-                SUM(output_tokens) as total_output_tokens,
-                SUM(cached_tokens) as total_cached_tokens,
-                COUNT(*) as total_runs,
-                SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) as success_count,
-                SUM(CASE WHEN status = 'error' THEN 1 ELSE 0 END) as error_count,
-                AVG(latency_ms) as avg_latency
+        where_sql, params = _quota_since_clause(request.args.get("time_range"))
+        row = conn.execute(
+            f"""
+            SELECT COUNT(*) AS total_runs,
+                   COALESCE(SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END), 0) AS success_count,
+                   COALESCE(SUM(CASE WHEN status != 'success' THEN 1 ELSE 0 END), 0) AS error_count,
+                   COALESCE(SUM(input_tokens), 0) AS total_input_tokens,
+                   COALESCE(SUM(output_tokens), 0) AS total_output_tokens,
+                   COALESCE(SUM(cached_tokens), 0) AS total_cached_tokens,
+                   COALESCE(SUM(cost), 0.0) AS total_cost,
+                   COALESCE(AVG(latency_ms), 0.0) AS avg_latency_ms
             FROM memory_os_telemetry
-            {where_clause}
-        """
-        row = conn.execute(summary_query).fetchone()
-        summary = dict(row) if row else {}
+            {where_sql}
+            """,
+            params,
+        ).fetchone()
+        summary = dict(row) if row else empty["summary"]
 
-        # Fill default values
-        for key in ["total_cost", "total_input_tokens", "total_output_tokens", "total_cached_tokens", "total_runs", "success_count", "error_count", "avg_latency"]:
-            if summary.get(key) is None:
-                summary[key] = 0.0 if key in ("total_cost", "avg_latency") else 0
-
-        model_query = f"""
-            SELECT 
-                model_id,
-                provider_id,
-                SUM(cost) as cost,
-                SUM(input_tokens) as input_tokens,
-                SUM(output_tokens) as output_tokens,
-                COUNT(*) as run_count,
-                SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) as success_count,
-                SUM(CASE WHEN status = 'error' THEN 1 ELSE 0 END) as error_count
+        model_rows = conn.execute(
+            f"""
+            SELECT provider_id, model_id, COUNT(*) AS runs,
+                   COALESCE(SUM(cost), 0.0) AS total_cost,
+                   COALESCE(SUM(input_tokens), 0) AS input_tokens,
+                   COALESCE(SUM(output_tokens), 0) AS output_tokens
             FROM memory_os_telemetry
-            {where_clause}
-            GROUP BY model_id, provider_id
-            ORDER BY cost DESC
-        """
-        model_breakdown = [dict(r) for r in conn.execute(model_query).fetchall()]
+            {where_sql}
+            GROUP BY provider_id, model_id
+            ORDER BY total_cost DESC, runs DESC
+            """,
+            params,
+        ).fetchall()
 
-        error_where = f"{where_clause} AND status = 'error'" if where_clause else "WHERE status = 'error'"
-        error_query = f"""
-            SELECT id, prompt_name, provider_id, model_id, status, created_at
+        error_where = f"{where_sql} AND status != 'success'" if where_sql else "WHERE status != 'success'"
+        error_rows = conn.execute(
+            f"""
+            SELECT prompt_name, provider_id, model_id, status, cost, created_at
             FROM memory_os_telemetry
             {error_where}
-            ORDER BY id DESC
-            LIMIT 5
-        """
-        recent_errors = [dict(r) for r in conn.execute(error_query).fetchall()]
+            ORDER BY created_at DESC
+            LIMIT 10
+            """,
+            params,
+        ).fetchall()
 
         return jsonify({
+            "ok": True,
             "summary": summary,
-            "model_breakdown": model_breakdown,
-            "recent_errors": recent_errors
+            "model_breakdown": [dict(row) for row in model_rows],
+            "recent_errors": [dict(row) for row in error_rows],
         })
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
     finally:
         conn.close()
 
@@ -409,36 +418,30 @@ def admin_quota_metrics():
 @actions_bp.route('/api/admin/system-metrics', methods=['GET'])
 @_admin_required
 def admin_system_metrics():
-    """Return recent host metrics (CPU, RAM, Disk IO, HTTP sessions) from youtube_news.db."""
-    import sqlite3
+    """Return recent host telemetry samples in chronological order."""
     db_path = os.path.join(root_dir, "data", "youtube_news.db")
-    limit = request.args.get("limit", 50)
     try:
-        limit = int(limit)
-    except ValueError:
-        limit = 50
+        limit = max(1, min(int(request.args.get("limit", 30)), 200))
+    except (TypeError, ValueError):
+        limit = 30
+    if not os.path.exists(db_path):
+        return jsonify({"ok": True, "metrics": []})
 
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     try:
-        table_exists = conn.execute(
-            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='system_metrics'"
-        ).fetchone() is not None
-
-        if not table_exists:
-            return jsonify({"metrics": []})
-
-        query = """
+        if not _sqlite_table_exists(conn, "system_metrics"):
+            return jsonify({"ok": True, "metrics": []})
+        rows = conn.execute(
+            """
             SELECT timestamp, cpu_percent, ram_mb_used, disk_io_mb, http_sessions_active
             FROM system_metrics
             ORDER BY timestamp DESC
             LIMIT ?
-        """
-        rows = conn.execute(query, (limit,)).fetchall()
-        metrics = [dict(r) for r in reversed(rows)]
-        return jsonify({"metrics": metrics})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+            """,
+            (limit,),
+        ).fetchall()
+        return jsonify({"ok": True, "metrics": [dict(row) for row in reversed(rows)]})
     finally:
         conn.close()
 
@@ -459,14 +462,6 @@ def widgets_registry():
         elif wtype["type"] == "anomaly-alerts" and entitlements.get("dense_workspace"):
             filtered_types.append(wtype)
         elif wtype["type"] == "daily-brief" and entitlements.get("ready_workspace"):
-            filtered_types.append(wtype)
-        elif wtype["type"] == "minified-stats" and entitlements.get("ready_workspace"):
-            filtered_types.append(wtype)
-        elif wtype["type"] == "entity-timeline" and entitlements.get("ready_workspace"):
-            filtered_types.append(wtype)
-        elif wtype["type"] == "system-status" and entitlements.get("ready_workspace"):
-            filtered_types.append(wtype)
-        elif wtype["type"] == "cost-quota" and entitlements.get("operator_runtime"):
             filtered_types.append(wtype)
 
     reg["types"] = filtered_types
@@ -879,6 +874,8 @@ def submit_agent_proposal():
         return jsonify({"error": "desc is required."}), 400
 
     workflow = (data.get("workflow") or "product").strip().lower()
+    if workflow == "memos":
+        workflow = "memory_os"
     if workflow not in {"product", "memory_os"}:
         return jsonify({"error": "workflow must be 'product' or 'memory_os'."}), 400
 
@@ -1005,49 +1002,11 @@ def chat_feedback():
         return jsonify({"error": "Feedback storage is unavailable."}), 503
 
     provider = engine.get_provider_by_id(provider_id)
-    comment = (data.get("comment") or "").strip()
-
-    # Save to User-Facing Memory OS
-    try:
-        import uuid
-        import time
-        from app.services.memory_os.core import MemoryOS
-
-        memory_os = MemoryOS()
-        memory_id = f"chat.feedback.{uuid.uuid4().hex[:8]}"
-
-        content_lines = [
-            f"Rating: {feedback_type}",
-            f"Model: {model_id} ({provider_id})",
-            f"User Prompt: {prompt_text}",
-            f"Assistant Response: {response_text}"
-        ]
-        if comment:
-            content_lines.append(f"User Comment: {comment}")
-
-        content_str = "\n".join(content_lines)
-        summary = f"Feedback: {comment}" if comment else f"Feedback on: {prompt_text[:60]}..."
-        importance = 0.95 if feedback_type == "like" else 0.35
-        if comment:
-            importance += 0.05
-
-        memory_os.add_or_update_memory(
-            memory_id=memory_id,
-            mem_type="chat_feedback",
-            content=content_str,
-            summary=summary,
-            importance=importance,
-            timestamp=int(time.time())
-        )
-    except Exception as e:
-        print(f"[actions] Failed to write chat feedback to memory_os: {e}", file=sys.stderr)
-
     return jsonify({
         "ok": True,
         "provider_id": provider_id,
         "model_id": model_id,
         "feedback_type": feedback_type,
-        "comment": comment if comment else None,
         "provider_efficiency": round(provider.efficiency_score, 2) if provider else None
     })
 

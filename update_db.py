@@ -189,8 +189,6 @@ def update_channel_via_scraping(channel_id, known_ids, silent):
     
     # Run the scraping process with stop_on_known=True (stop when encountering an already cached video)
     success = scraper.run_archive_scraping(
-        on_progress=on_progress,
-        on_pause=on_pause,
         stop_on_known=True
     )
     

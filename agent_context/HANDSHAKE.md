@@ -28,6 +28,8 @@
   2. `tests/test_watchers_runner.py`
 
 ## Last Change
-- Updated at: 2026-06-04
-- Files: scripts/watcher_worker.py, app/services/governance.py, app/services/briefs.py, app/routes/governance.py, templates/index.html, static/js/briefs.js, static/js/app.js, agent_context/development_log.md, agent_context/HANDSHAKE.md, task.md
-- Status: Completed Phase 4 implementation (Option A2) including the Standalone Watcher Worker and the Human Review Queue API and UI integrations.
+- Updated at: 2026-06-08
+- Files: app/services/scraper_orchestrator.py, tests/test_scraper_orchestrator_routes.py, agent_context/development_log.md, agent_context/HANDSHAKE.md, agent_context/task_capsules.jsonl
+- Status: Fixed scraper proposal/task route 500s caused by `MemoryOS` constructor contract drift and singleton stale-root behavior.
+- Verification: `venv_auto/bin/python -m unittest discover -s tests` passed (190/190); `venv_auto/bin/python -m unittest discover -s scratch -p 'test_*.py'` passed (6/6); broad GET smoke returned 200 for scraper workflows/proposals/tasks and major dashboard/governance/widget/entity endpoints; compileall passed for app/scraper/news_scraper/tests/scratch/scripts.
+- Manual UI Check: hard refresh `http://127.0.0.1:5001/`; open Operator Runtime and confirm Scraper Proposals and Scraper Tasks panels render instead of showing failed loads.

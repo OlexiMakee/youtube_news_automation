@@ -12,7 +12,7 @@ import threading
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from memory_os import MemoryOS
+from app.services.memory_os import MemoryOS
 from app.services.governance import run_source_ingestion, create_source, list_sources
 
 
@@ -30,10 +30,13 @@ class ScraperOrchestrator:
             return cls._instance
 
     def __init__(self, db_path: str | None = None, root_dir: str | None = None):
-        if self._initialized:
+        resolved_root = root_dir or str(Path(__file__).resolve().parents[2])
+        resolved_db_path = db_path or str(Path(resolved_root) / "data" / "memory_os.db")
+        if self._initialized and self.root_dir == resolved_root and self.db_path == resolved_db_path:
             return
-        self.memory_os = MemoryOS(db_path)
-        self.root_dir = root_dir or str(Path(__file__).resolve().parents[2])
+        self.db_path = resolved_db_path
+        self.memory_os = MemoryOS(db_path=resolved_db_path)
+        self.root_dir = resolved_root
         self.active_tasks: Dict[str, Dict[str, Any]] = {}
         self.tasks_lock = threading.Lock()
         self._initialized = True

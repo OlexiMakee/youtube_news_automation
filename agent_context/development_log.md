@@ -303,3 +303,76 @@ Format: short English bullets only. Keep durable facts.
 - feat: Implemented Phase 4 Budget & Token Caps by enforcing `max_runs_per_day` and `cost_limit_usd` checks in `execute_watchers` against daily totals from `connector_runs`.
 - feat: Implemented Phase 4 Anomaly Alerts by invoking `detect_anomalies` natively inside `execute_watchers` for YouTube sources and dispatching alerts via `AlertsService.send_anomaly_alert`.
 - test: Added limit enforcement constraints in `scratch/test_watchers_runner.py` verifying test suite passes successfully (255/255 tests).
+
+## 2026-06-08
+
+- fix: Repaired blank dashboard caused by invalid JS in `static/js/widgets.js` (`\`` escaped template literals in `YouTubeMetricsWidget`).
+- fix: Hardened dashboard workspace restore so invalid saved widget state falls back to stable defaults (`channel-analytics`, `minified-stats`).
+- fix: Added widget mount error containment so one broken widget cannot abort the whole workspace restore, and all-failed mounts fall back to stable defaults.
+- test: Added `scratch/test_workspace_default_widgets_regression.py` covering default restore fallback, localStorage shape guard, escaped template tick regression, widget mount guard, and all-failed mount fallback.
+- verified: `venv_auto/bin/python -m unittest scratch.test_workspace_default_widgets_regression` passed (5/5).
+- verified: `PYTHONPYCACHEPREFIX=/tmp/pycache-news-research venv_auto/bin/python -m compileall app scripts` passed.
+- verified: local Flask served `/` and `/static/js/widgets.js` with HTTP 200; `/api/charts?limit=1` returned data.
+- note: Browser rendered verification remains manual because the in-app browser was unavailable in this session.
+
+## 2026-06-08
+
+- fix: Stabilized `youtube-metrics` / Main Analytics widget so palette-created widgets no longer call nonexistent `bindDateSync`, `getWidgetDateHTML`, `workspace.saveLayout`, or `window.state.channels` APIs.
+- fix: Rebuilt Main Analytics widget around the same `BaseWidget`, date sync, imported `initChartUI`, imported `renderActiveChart`, `state.allChannels`, resize observer, and `workspace.save()` contracts used by stable dashboard widgets.
+- chore: Removed the dead `getWidgetDateHTML` helper left by the broken widget implementation.
+- test: Extended `scratch/test_workspace_default_widgets_regression.py` with Main Analytics API-contract guards.
+- verified: `venv_auto/bin/python -m unittest scratch.test_workspace_default_widgets_regression` passed (6/6).
+- verified: `PYTHONPYCACHEPREFIX=/tmp/pycache-news-research venv_auto/bin/python -m compileall app scripts` passed.
+- verified: Node parse check reached non-syntax browser import boundary; local `/static/js/widgets.js` returned HTTP 200; `/api/charts?limit=1` returned data.
+- note: Browser rendered verification remains manual because Browser `iab` was unavailable.
+
+## 2026-06-08
+
+- fix: Restored `news_scraper.*` import compatibility by adding a small namespace package that points at the existing `scraper` implementation package.
+- fix: Updated `pyproject.toml` package discovery to include the compatibility namespace during editable installs.
+- test: Added `tests/test_news_scraper_namespace.py` covering `news_scraper.db_client`, `news_scraper.postgres_sync`, and connector imports.
+- verified: `venv_auto/bin/python -m unittest tests.test_news_scraper_namespace` passed (1/1).
+- verified: `PYTHONPYCACHEPREFIX=/private/tmp/news_research_pycache venv_auto/bin/python -m compileall news_scraper scraper app tests/test_news_scraper_namespace.py` passed.
+- verified: `NEWS_RESEARCH_DISABLE_BACKGROUND_DAEMONS=1 venv_auto/bin/python -c "import web_app; print(web_app.app.name)"` printed `app`.
+- verified: `venv_auto/bin/python -m pip install --no-deps -e .` passed with network escalation for build dependencies.
+
+## 2026-06-08
+
+- fix: Restored missing governance service exports: `add_audit_event`, `validate_watcher_config`, and `execute_watchers`.
+- fix: Reconnected source create/delete, credential storage, brief export, video export, anomaly alerts, and scraper proposal approval to governance audit logging.
+- fix: Restored admin quota/system metrics endpoints used by Cost/Quota and System Status widgets.
+- fix: Registered `scraper_bp` again so `/api/scraper/proposals/<id>/approve` is reachable.
+- fix: Normalized proposal workflow tagging to accept `memory_os` while keeping `memos` as a backward-compatible alias.
+- verified: `venv_auto/bin/python -m unittest discover -s tests` passed (186/186).
+- verified: `venv_auto/bin/python -m unittest discover -s scratch -p 'test_*.py'` passed (6/6).
+- verified: `PYTHONPYCACHEPREFIX=/private/tmp/news_research_pycache venv_auto/bin/python -m compileall app scraper news_scraper tests scratch` passed.
+- verified: `NEWS_RESEARCH_DISABLE_BACKGROUND_DAEMONS=1 venv_auto/bin/python -c "import web_app; print(web_app.app.name)"` printed `app`.
+
+## 2026-06-08
+
+- fix: Restored Human Review Queue API routes used by `static/js/briefs.js`: list draft briefs, approve draft, reject draft.
+- fix: Added `BriefsService.list_draft_briefs()` and `BriefsService.update_brief_status()` for review queue status changes.
+- fix: Restored `purge_expired_data()` so `scripts/manage.py retention` can import and run its dry-run/purge flow.
+- test: Added `tests/test_review_queue_retention.py` covering review queue route behavior and retention deletion boundaries.
+- verified: `venv_auto/bin/python -m unittest discover -s tests` passed (188/188).
+- verified: `venv_auto/bin/python -m unittest discover -s scratch -p 'test_*.py'` passed (6/6).
+- verified: route smoke returned HTTP 200 for `/`, auth status, widgets registry, stats, channels, admin health, quota metrics, system metrics, source connectors, and review queue.
+- verified: `venv_auto/bin/python scripts/manage.py --root /private/tmp/news-retention-smoke retention --dry-run` completed.
+- verified: `PYTHONPYCACHEPREFIX=/private/tmp/news_research_pycache venv_auto/bin/python -m compileall app scraper news_scraper tests scratch scripts/*.py scripts/analytics` passed.
+
+## 2026-06-08
+
+- fix: Repaired scraper proposal/task routes returning 500 because `ScraperOrchestrator` passed `db_path` positionally into the current `MemoryOS` constructor.
+- fix: Made `ScraperOrchestrator` singleton reinitialize when a different `root_dir` or `db_path` is requested, preventing stale temp-root state during route checks.
+- test: Added `tests/test_scraper_orchestrator_routes.py` covering `/api/scraper/proposals`, `/api/scraper/tasks`, and the MemoryOS db-path keyword contract.
+- verified: `venv_auto/bin/python -m unittest discover -s tests` passed (190/190).
+- verified: `venv_auto/bin/python -m unittest discover -s scratch -p 'test_*.py'` passed (6/6).
+- verified: broad GET smoke returned HTTP 200 for stats, channels, charts, videos, admin health, quota/system metrics, scraper workflows/proposals/tasks, governance, widgets, briefs, review queue, and entities endpoints.
+- verified: `PYTHONPYCACHEPREFIX=/private/tmp/news_research_pycache venv_auto/bin/python -m compileall app scraper news_scraper tests scratch scripts/*.py scripts/analytics` passed.
+
+## 2026-06-10
+
+- fix: Fixed `psutil` missing warning spam loop in telemetry by caching the warning status.
+- fix: Fixed `ModuleNotFoundError: No module named 'memory_os'` in `tests/test_admin_health.py` by correcting the `__editable__.memory_os-0.1.0.pth` pip path to correctly point to the local `memory_os_local/src` instead of resolving out of bounds.
+- verified: Run of test module `test_admin_health` passed locally.
+- fix: Fixed scraper loop crash (`TypeError: run_archive_scraping() got an unexpected keyword argument 'on_progress'`) in `update_db.py`, `scripts/init_db.py`, and `scrape_multi.py`.

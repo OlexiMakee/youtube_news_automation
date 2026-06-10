@@ -606,8 +606,46 @@ def get_video_transcript_route(video_id):
             }
         }
         
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            ydl.download([url])
+        import time
+        max_retries = 3
+        success = False
+        
+        for attempt in range(max_retries):
+            try:
+                # 1. Try youtube-transcript-api (Fast, less likely to 429)
+                try:
+                    from youtube_transcript_api import YouTubeTranscriptApi
+                    transcript_list = YouTubeTranscriptApi.get_transcript(video_id, languages=['uk', 'ru', 'ua', 'en'])
+                    clean_text = " ".join([item['text'].replace('\n', ' ') for item in transcript_list])
+                    if clean_text.strip():
+                        with open(txt_path, 'w', encoding='utf-8') as f:
+                            f.write(clean_text)
+                        return jsonify({
+                            "ok": True,
+                            "video_id": video_id,
+                            "transcript": clean_text,
+                            "cached": False,
+                            "method": "youtube_transcript_api"
+                        })
+                except ImportError:
+                    pass # Proceed to yt-dlp
+                except Exception as e:
+                    print(f"youtube-transcript-api failed: {e}")
+                    # Proceed to yt-dlp
+                    
+                # 2. Fallback to yt-dlp
+                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                    ydl.download([url])
+                success = True
+                break
+            except Exception as e:
+                err_str = str(e)
+                print(f"[Transcript] Attempt {attempt+1} failed: {err_str}")
+                if '429' in err_str or 'Too Many Requests' in err_str:
+                    if attempt < max_retries - 1:
+                        time.sleep(2 ** attempt + 2) # Exponential backoff
+                        continue
+                raise e
 
         sub_files = glob.glob(os.path.join(download_dir, f"{video_id}.*"))
         if not sub_files:

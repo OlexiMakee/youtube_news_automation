@@ -19,12 +19,26 @@ from scripts.analytics.anomaly_detector import calculate_views_in_window, parse_
 
 
 DEFAULT_STOPWORDS = {
+    # English
     "a", "an", "and", "are", "as", "at", "be", "by", "for", "from", "has",
     "have", "how", "in", "is", "it", "its", "new", "news", "now", "of",
     "on", "or", "over", "said", "says", "that", "the", "their", "this",
     "to", "uatv", "ukraine", "ukrainian", "video", "was", "were", "what",
-    "when", "where", "who", "why", "will", "with", "you", "про", "та",
-    "що", "на", "для", "від", "как", "это", "что", "для",
+    "when", "where", "who", "why", "will", "with", "you",
+    # Ukrainian
+    "про", "та", "що", "на", "для", "від", "не", "до", "як", "за", "ми", "ви", "він", "вона", "вони", 
+    "з", "в", "у", "це", "чи", "або", "але", "щоб", "якщо", "її", "його", "їх", "а", "й", "і", "під", "над",
+    "проти", "перед", "після", "через", "без", "біля", "між", "серед", "вже", "ще", "тут", "там", "де", 
+    "коли", "тоді", "так", "ні", "тільки", "лише", "навіть", "все", "всі", "всіх", "їм", "нас", "нам", 
+    "вас", "вам", "то", "те", "ти", "мене", "мені", "я", "його", "нього", "неї", "них", "свій", "своя",
+    "своє", "свої", "який", "яка", "яке", "які", "хто", "кому", "ким", "чого", "чому", "чим", "куди",
+    # Russian
+    "как", "это", "что", "для", "не", "на", "он", "она", "оно", "они", "с", "в", "к", "по", "из", "у",
+    "за", "от", "до", "о", "об", "обо", "под", "над", "при", "про", "без", "ради", "для", "если", "чтобы",
+    "или", "но", "да", "нет", "же", "ли", "раз", "все", "всё", "всю", "вся", "тот", "та", "то", "те", "эти",
+    "эта", "эту", "их", "его", "ее", "её", "ему", "ей", "им", "нас", "нам", "вас", "вам", "мне", "меня", 
+    "я", "ты", "мы", "вы", "где", "когда", "куда", "откуда", "зачем", "почему", "как", "какой", "какая",
+    "какое", "какие", "был", "была", "было", "были", "будет", "будут", "есть", "нет",
 }
 
 
@@ -149,13 +163,17 @@ def analyze_records(
         key=lambda item: _sort_value(item, sort_metric, sort_stat),
         reverse=reverse,
     )[:limit]
+    # Filter to require significant lift difference from 1.0
+    meaningful_lift_metrics = [m for m in phrase_metrics if m.metrics[sort_metric]["lift"] > 0.0]
+
     best_by_lift = sorted(
-        phrase_metrics,
+        [m for m in meaningful_lift_metrics if m.metrics[sort_metric]["lift"] >= 1.05],
         key=lambda item: item.metrics[sort_metric]["lift"],
         reverse=True,
     )[:limit]
+    
     worst_by_lift = sorted(
-        phrase_metrics,
+        [m for m in meaningful_lift_metrics if m.metrics[sort_metric]["lift"] <= 0.95],
         key=lambda item: item.metrics[sort_metric]["lift"],
     )[:limit]
 
@@ -392,9 +410,15 @@ def _stats(values: Sequence[float], baseline: Optional[Dict[str, float]]) -> Dic
     total = float(sum(values))
     median = _percentile(values, 0.5)
     baseline_median = baseline.get("median", 0.0) if baseline else 0.0
-    lift = median / baseline_median if baseline_median > 0 else 0.0
+    
+    # Bayesian smoothing for lift (C = 5)
+    count = float(len(values))
+    c = 5.0
+    smoothed_median = (count * median + c * baseline_median) / (count + c)
+    lift = smoothed_median / baseline_median if baseline_median > 0 else 0.0
+    
     return {
-        "count": float(len(values)),
+        "count": count,
         "total": total,
         "mean": total / len(values),
         "median": median,

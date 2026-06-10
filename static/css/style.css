@@ -2942,6 +2942,7 @@ body.sidebar-collapsed .sidebar {
     display: flex;
     flex-direction: column;
     gap: 12px;
+    margin-top: auto;
 }
 
 .settings-group {

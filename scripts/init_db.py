@@ -78,10 +78,7 @@ def execute_scraping_flow(url, limit=2000, start_index=1, date_after=None, silen
     on_pause = cli_progress.make_pause_callback(channel_id, start_time, db_client)
     
     # Run scraping process
-    success = scraper.run_archive_scraping(
-        on_progress=on_progress,
-        on_pause=on_pause
-    )
+    success = scraper.run_archive_scraping()
     
     # Print the execution summary report
     cli_progress.print_final_report(scraper, channel_id, start_time, db_client, success=success)

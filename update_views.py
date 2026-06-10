@@ -11,6 +11,7 @@ import sys
 import time
 import json
 import argparse
+import random
 from datetime import datetime, timedelta
 
 # Add current directory to sys.path
@@ -123,11 +124,25 @@ def main():
             new_likes = 0
             new_comments = 0
             
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                info = ydl.extract_info(url, download=False)
-                new_views = info.get('view_count')
-                new_likes = info.get('like_count') or 0
-                new_comments = info.get('comment_count') or 0
+            max_retries = 4
+            for attempt in range(max_retries):
+                try:
+                    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                        info = ydl.extract_info(url, download=False)
+                        new_views = info.get('view_count')
+                        new_likes = info.get('like_count') or 0
+                        new_comments = info.get('comment_count') or 0
+                    break
+                except Exception as e:
+                    err_str = str(e)
+                    if '429' in err_str or 'Too Many Requests' in err_str:
+                        if attempt < max_retries - 1:
+                            sleep_time = 2 ** attempt + random.uniform(1.0, 3.0)
+                            print(f"    [!] 429 Too Many Requests on {video_id}. Retrying in {sleep_time:.1f}s...")
+                            time.sleep(sleep_time)
+                            continue
+                    print(f"    [!] Error extracting info for {video_id}: {e}")
+                    break
                 
             if new_views is not None:
                 new_views = int(new_views)
@@ -188,8 +203,8 @@ def main():
             print(f"    [!] Error processing {video_id}: {e}")
             error_count += 1
             
-        # Small delay to avoid aggressive rate limiting
-        time.sleep(0.5)
+        # Randomized delay to avoid aggressive rate limiting
+        time.sleep(random.uniform(1.0, 3.5))
 
     print("-" * 60)
     print(f"[*] Views update process completed successfully.")

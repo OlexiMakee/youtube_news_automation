@@ -283,187 +283,46 @@ class BaseWidget {
 
     renderDateSyncMenu() {
         const container = document.createElement('div');
-        container.className = 'top-filter-item widget-date-sync-container';
-        container.style.position = 'relative';
-        container.style.display = 'inline-block';
+        container.className = 'top-filter-item widget-date-controls';
+        container.style.display = 'inline-flex';
+        container.style.alignItems = 'center';
+        container.style.gap = '8px';
 
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'control-select widget-date-sync-btn';
-        btn.title = 'Configure date & sync';
-        btn.style.padding = '4px 8px';
-        btn.style.fontSize = '11px';
-        btn.style.display = 'inline-flex';
-        btn.style.alignItems = 'center';
-        btn.style.gap = '4px';
-        btn.innerHTML = `<i class="fa-solid fa-calendar-days"></i> <span class="widget-date-summary-text">Auto</span>`;
-        container.appendChild(btn);
-
-        const menu = document.createElement('div');
-        menu.className = 'widget-date-sync-menu';
-        menu.style.cssText = 'display:none; position:absolute; right:0; top:30px; z-index:1000; background:var(--card-bg); border:1px solid var(--border-color); border-radius:6px; padding:12px; min-width:280px; box-shadow:0 4px 12px rgba(0,0,0,0.15);';
-        
-        menu.innerHTML = `
-            <div style="font-weight:700; font-size:12px; margin-bottom:8px; color:var(--text-color);">Date Scope</div>
-            <div style="display:flex; gap:6px; margin-bottom:8px;">
-                <input type="date" class="control-select widget-start-date" style="padding:4px; font-size:11px; flex:1;" />
-                <input type="date" class="control-select widget-end-date" style="padding:4px; font-size:11px; flex:1;" />
-            </div>
-            <div class="widget-date-presets" style="display:flex; flex-wrap:wrap; gap:4px; margin-bottom:8px;">
-                <button class="btn-dropdown-action date-preset-btn" data-range="today" type="button">Today</button>
-                <button class="btn-dropdown-action date-preset-btn" data-range="yesterday" type="button">Yesterday</button>
-                <button class="btn-dropdown-action date-preset-btn" data-range="week" type="button">Week</button>
-                <button class="btn-dropdown-action date-preset-btn" data-range="prev-week" type="button">Prev Week</button>
-                <button class="btn-dropdown-action date-preset-btn" data-range="month" type="button">Month</button>
-                <button class="btn-dropdown-action date-preset-btn" data-range="prev-month" type="button">Prev Month</button>
-            </div>
-            <div style="margin-bottom:8px;">
-                <input type="range" class="widget-date-slider" style="width:100%; cursor:pointer;" min="1" max="180" value="30" />
-                <div style="display:flex; justify-content:space-between; font-size:9px; color:var(--text-muted);">
-                    <span>1 day</span>
-                    <span class="widget-slider-label">30 days</span>
-                    <span>180 days</span>
-                </div>
-            </div>
-            <hr style="border:0; border-top:1px solid var(--border-color); margin:8px 0;" />
-            <div style="font-weight:700; font-size:12px; margin-bottom:6px; color:var(--text-color);">Link / Sync Widgets</div>
-            <div class="widget-sync-list" style="max-height:100px; overflow-y:auto; display:flex; flex-direction:column; gap:4px; margin-bottom:8px; font-size:11px; color:var(--text-color);">
-            </div>
-            <div style="display:flex; justify-content:space-between; gap:6px;">
-                <button class="btn-secondary widget-date-clear-btn" type="button" style="padding:4px 8px; font-size:11px;">Reset</button>
-                <button class="btn-primary widget-date-apply-btn" type="button" style="padding:4px 8px; font-size:11px;">Apply</button>
-            </div>
+        container.innerHTML = `
+            <input type="date" class="widget-start-date control-input" style="width:110px; font-size:11px; padding:4px 6px;">
+            <span style="color:var(--text-muted);">-</span>
+            <input type="date" class="widget-end-date control-input" style="width:110px; font-size:11px; padding:4px 6px;">
+            <button class="btn-icon widget-sync-dates" type="button" title="Sync with Global Calendar">
+                <i class="fa-solid fa-rotate"></i>
+            </button>
         `;
-        container.appendChild(menu);
 
-        btn.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
-            if (menu.style.display === 'block') {
-                this.populateSyncList(menu);
-            }
-        });
+        const startInput = container.querySelector('.widget-start-date');
+        const endInput = container.querySelector('.widget-end-date');
+        const syncBtn = container.querySelector('.widget-sync-dates');
 
-        const startInput = menu.querySelector('.widget-start-date');
-        const endInput = menu.querySelector('.widget-end-date');
-        startInput.value = this.dateStart || '';
-        endInput.value = this.dateEnd || '';
+        if (this.dateStart) startInput.value = this.dateStart;
+        if (this.dateEnd) endInput.value = this.dateEnd;
 
-        menu.querySelectorAll('.date-preset-btn').forEach(presetBtn => {
-            presetBtn.addEventListener('click', () => {
-                const range = getPresetDateRange(presetBtn.dataset.range);
-                startInput.value = range.start;
-                endInput.value = range.end;
-            });
-        });
-
-        const slider = menu.querySelector('.widget-date-slider');
-        const sliderLabel = menu.querySelector('.widget-slider-label');
-        slider.addEventListener('input', () => {
-            const days = parseInt(slider.value, 10);
-            sliderLabel.textContent = `${days} days`;
-            const range = getPresetDateRangeForDays(days);
-            startInput.value = range.start;
-            endInput.value = range.end;
-        });
-
-        menu.querySelector('.widget-date-clear-btn').addEventListener('click', () => {
-            startInput.value = '';
-            endInput.value = '';
-            this.dateStart = '';
-            this.dateEnd = '';
-            this.updateDateSummary(btn);
-            menu.style.display = 'none';
-            this.load();
-            this.workspace.save();
-        });
-
-        menu.querySelector('.widget-date-apply-btn').addEventListener('click', () => {
+        const updateDates = () => {
             this.dateStart = startInput.value;
             this.dateEnd = endInput.value;
-            
-            this.linkedWidgetIds = Array.from(menu.querySelectorAll('.widget-sync-check:checked')).map(chk => chk.value);
-
-            this.updateDateSummary(btn);
-            menu.style.display = 'none';
             this.load();
             this.workspace.save();
+        };
 
-            this.propagateDates(this.dateStart, this.dateEnd);
-        });
+        startInput.addEventListener('change', updateDates);
+        endInput.addEventListener('change', updateDates);
 
-        this.updateDateSummary(btn);
-
-        document.addEventListener('click', (e) => {
-            if (!container.contains(e.target)) {
-                menu.style.display = 'none';
-            }
+        syncBtn.addEventListener('click', () => {
+            const globalStart = document.getElementById('filter-start-date')?.value || '';
+            const globalEnd = document.getElementById('filter-end-date')?.value || '';
+            startInput.value = globalStart;
+            endInput.value = globalEnd;
+            updateDates();
         });
 
         return container;
-    }
-
-    populateSyncList(menu) {
-        const list = menu.querySelector('.widget-sync-list');
-        list.innerHTML = '';
-        
-        let count = 0;
-        this.workspace.widgets.forEach(other => {
-            if (other.id === this.id) return;
-            if (other.type !== 'channel-analytics' && other.type !== 'anomaly-alerts') return;
-            
-            count++;
-            const row = document.createElement('label');
-            row.style.display = 'flex';
-            row.style.alignItems = 'center';
-            row.style.gap = '6px';
-            row.style.cursor = 'pointer';
-            
-            const isChecked = this.linkedWidgetIds.includes(other.id) ? 'checked' : '';
-            const typeLabel = other.type === 'channel-analytics' ? 'Channel' : 'Anomalies';
-            
-            row.innerHTML = `
-                <input type="checkbox" class="widget-sync-check" value="${other.id}" ${isChecked}>
-                <span>${typeLabel} (${other.id.slice(-5)})</span>
-            `;
-            list.appendChild(row);
-        });
-
-        if (count === 0) {
-            list.innerHTML = `<div style="color:var(--text-muted); font-style:italic;">No other widgets open</div>`;
-        }
-    }
-
-    updateDateSummary(btn) {
-        const label = btn.querySelector('.widget-date-summary-text');
-        if (this.dateStart && this.dateEnd) {
-            label.textContent = `${this.dateStart.slice(5)} / ${this.dateEnd.slice(5)}`;
-        } else {
-            label.textContent = 'Auto';
-        }
-    }
-
-    propagateDates(start, end) {
-        this.linkedWidgetIds.forEach(targetId => {
-            const target = this.workspace.widgets.get(targetId);
-            if (target) {
-                target.dateStart = start;
-                target.dateEnd = end;
-                if (!target.linkedWidgetIds.includes(this.id)) {
-                    target.linkedWidgetIds.push(this.id);
-                }
-                const btn = target.element.querySelector('.widget-date-sync-btn');
-                if (btn) {
-                    target.updateDateSummary(btn);
-                    const startInput = target.element.querySelector('.widget-start-date');
-                    const endInput = target.element.querySelector('.widget-end-date');
-                    if (startInput) startInput.value = start || '';
-                    if (endInput) endInput.value = end || '';
-                }
-                target.load();
-            }
-        });
     }
 
     destroy() {
@@ -478,12 +337,199 @@ class BaseWidget {
             height: this.height,
             collapsed: this.collapsed,
             dateStart: this.dateStart,
-            dateEnd: this.dateEnd,
-            linkedWidgetIds: this.linkedWidgetIds
+            dateEnd: this.dateEnd
         };
     }
 }
 
+
+class YouTubeMetricsWidget extends BaseWidget {
+    constructor(workspace, config = {}) {
+        super(workspace, { ...config, type: 'youtube-metrics' });
+
+        const configuredChannels = Array.isArray(config.selectedChannelIds) && config.selectedChannelIds.length
+            ? config.selectedChannelIds
+            : Array.isArray(config.channels) && config.channels.length
+                ? config.channels
+                : [];
+        this.chartState = {
+            activeChartInstance: null,
+            chartRawData: null,
+            activeChartType: config.activeChartType || config.chartType || 'top_viewed',
+            chartLimit: Number(config.chartLimit || config.limit || state.chartLimit || 50),
+            selectedChannelIds: configuredChannels,
+            channelColors: state.channelColors
+        };
+        this.resizeObserver = null;
+        this.resizeTimer = null;
+    }
+
+    async afterMount() {
+        this.element.innerHTML = `
+            <button class="widget-remove-btn" type="button" title="Remove widget">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <div class="card-header dashboard-card-header widget-card-header">
+                <div class="card-header-left">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <i class="fa-brands fa-youtube" style="color:var(--accent-color); font-size:14px;"></i>
+                        <span class="card-title" style="font-size:13px; font-weight:700;" data-i18n="widget_title_youtube_metrics">Main Analytics</span>
+                    </div>
+                    <div class="top-filter-item widget-limit-control">
+                        <span>Limit:</span>
+                        <select class="control-select widget-chart-limit">
+                            <option value="10">10</option>
+                            <option value="25">25</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                            <option value="200">200</option>
+                        </select>
+                    </div>
+                    <span class="task-badge idle widget-status"></span>
+                </div>
+                <div class="card-header-right widget-chart-controls"></div>
+            </div>
+            <div class="widget-channel-details"></div>
+            <div class="card-body">
+                <div class="chart-container" style="height:280px; width:100%;">
+                    <div class="d3-chart-root" style="display:none; width:100%; height:100%;"></div>
+                    <canvas></canvas>
+                </div>
+            </div>
+        `;
+
+        const leftHeader = this.element.querySelector('.card-header-left');
+        const limitControl = this.element.querySelector('.widget-limit-control');
+        leftHeader.insertBefore(this.renderDateSyncMenu(), limitControl);
+
+        this.element.querySelector('.widget-chart-limit').value = String(this.chartState.chartLimit);
+        this.element.querySelector('.widget-chart-limit').addEventListener('change', event => {
+            this.chartState.chartLimit = Number(event.target.value || 50);
+            this.initChartControls();
+            this.load();
+            this.workspace.save();
+        });
+        this.element.querySelector('.widget-remove-btn').addEventListener('click', () => {
+            this.workspace.removeWidget(this.id);
+        });
+
+        this.initChartControls();
+        this.load();
+        this.observeResize();
+    }
+
+    initChartControls() {
+        initChartUI({
+            container: this.element.querySelector('.widget-chart-controls'),
+            chartState: this.chartState,
+            idPrefix: `yt-chart-btn-${this.id}`,
+            onSelect: chartType => this.selectChart(chartType)
+        });
+    }
+
+    getSelectedChannelIds() {
+        if (this.chartState.selectedChannelIds.length) {
+            return this.chartState.selectedChannelIds.filter(Boolean);
+        }
+        return state.allChannels.map(channel => channel.channel_id).filter(Boolean);
+    }
+
+    selectChart(chartType) {
+        this.chartState.activeChartType = chartType;
+        renderActiveChart(this.element, this.chartState);
+        this.workspace.save();
+    }
+
+    async load() {
+        const selected = this.getSelectedChannelIds();
+        const details = this.element.querySelector('.widget-channel-details');
+        if (details) {
+            details.innerHTML = `
+                <div class="combined-premium-banner widget-combined-banner">
+                    <div class="combined-banner-title">
+                        <i class="fa-brands fa-youtube"></i>
+                        <div class="combined-title-text">
+                            <div class="combined-title-main">Main Analytics</div>
+                            <div class="combined-title-sub">${selected.length ? `All active channels (${selected.length})` : 'No channels loaded'}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        if (!selected.length) {
+            this.setStatus('No channel');
+            return;
+        }
+
+        this.setStatus('Loading...');
+        await this.fetchData(selected);
+        this.setStatus('');
+    }
+
+    async fetchData(selected) {
+        try {
+            const params = new URLSearchParams({ limit: this.chartState.chartLimit });
+            params.append("channel_id", selected.join(','));
+            if (this.dateStart) params.append("start_date", this.dateStart);
+            if (this.dateEnd) params.append("end_date", this.dateEnd);
+
+            const res = await fetch(`/api/charts?${params.toString()}`);
+            if (res.ok) {
+                this.chartState.chartRawData = await res.json();
+                renderActiveChart(this.element, this.chartState);
+            }
+        } catch (e) {
+            console.error("YouTubeMetricsWidget fetchData error:", e);
+            this.element.querySelector('.chart-container').innerHTML = `<div class="widget-error">Failed to load chart.</div>`;
+        }
+    }
+
+    setStatus(text) {
+        const badge = this.element.querySelector('.widget-status');
+        if (!badge) return;
+        badge.textContent = text;
+        badge.style.display = text ? 'inline-block' : 'none';
+    }
+
+    observeResize() {
+        if (!window.ResizeObserver) return;
+        this.resizeObserver = new ResizeObserver(() => {
+            clearTimeout(this.resizeTimer);
+            this.resizeTimer = setTimeout(() => {
+                if (this.chartState.chartRawData) renderActiveChart(this.element, this.chartState);
+            }, 120);
+        });
+        this.resizeObserver.observe(this.element);
+    }
+
+    destroy() {
+        if (this.resizeObserver) this.resizeObserver.disconnect();
+        if (this.chartState.activeChartInstance) this.chartState.activeChartInstance.destroy();
+        super.destroy();
+    }
+
+    toJSON() {
+        return {
+            ...super.toJSON(),
+            selectedChannelIds: this.chartState.selectedChannelIds,
+            activeChartType: this.chartState.activeChartType,
+            chartLimit: this.chartState.chartLimit
+        };
+    }
+
+    serializeForSummary() {
+        const chartType = this.chartState.activeChartType;
+        const rows = this.chartState.chartRawData && chartType ? this.chartState.chartRawData[chartType] : null;
+        if (!Array.isArray(rows) || rows.length === 0) {
+            return `Widget: Main Analytics\nChart: ${chartLabel(chartType)}\nNo data loaded.`;
+        }
+
+        const maxRows = Math.min(rows.length, 30);
+        const body = rows.slice(0, maxRows).map((item, index) => formatMetricLine(chartType, item, index)).join('\n');
+        return `Widget: Main Analytics\nChart: ${chartLabel(chartType)}\nRows: ${rows.length}\n\n${body}`;
+    }
+}
 
 class ChannelAnalyticsWidget extends BaseWidget {
     constructor(workspace, config = {}) {
@@ -2168,7 +2214,9 @@ export class DashboardWorkspace {
 
     addWidget(type, config = {}, options = {}) {
         let widget = null;
-        if (type === 'channel-analytics') {
+        if (type === 'youtube-metrics') {
+            widget = new YouTubeMetricsWidget(this, config);
+        } else if (type === 'channel-analytics') {
             widget = new ChannelAnalyticsWidget(this, config);
         } else if (type === 'anomaly-alerts') {
             widget = new AnomalyAlertsWidget(this, config);
@@ -2186,7 +2234,14 @@ export class DashboardWorkspace {
             return null;
         }
         this.widgets.set(widget.id, widget);
-        widget.mount(this.root);
+        try {
+            widget.mount(this.root);
+        } catch (error) {
+            console.error(`Failed to mount dashboard widget "${type}":`, error);
+            widget.destroy();
+            this.widgets.delete(widget.id);
+            return null;
+        }
         if (!options.skipSave && !this.isRestoring) {
             this.save();
         }
@@ -2242,27 +2297,48 @@ export class DashboardWorkspace {
 
     readLocal() {
         try {
-            return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            return Array.isArray(parsed) ? parsed : [];
         } catch (error) {
             return [];
         }
+    }
+
+    restoreDefaultWidgets() {
+        this.addWidget('channel-analytics', {}, { skipSave: true });
+        this.addWidget('minified-stats', {}, { skipSave: true });
     }
 
     async restore() {
         let saved = await this.loadRemote();
         if (!Array.isArray(saved) || !saved.length) saved = this.readLocal();
         this.isRestoring = true;
-        saved
-            .filter(item => item && (
-                item.type === 'channel-analytics' || 
-                item.type === 'anomaly-alerts' || 
-                item.type === 'daily-brief' ||
-                item.type === 'minified-stats' ||
-                item.type === 'entity-timeline' ||
-                item.type === 'system-status' ||
-                item.type === 'cost-quota'
-            ))
-            .forEach(item => this.addWidget(item.type, item, { skipSave: true }));
+        
+        if (!saved || !saved.length) {
+            this.restoreDefaultWidgets();
+        } else {
+            const validItems = saved
+                .filter(item => item && (
+                    item.type === 'youtube-metrics' ||
+                    item.type === 'channel-analytics' || 
+                    item.type === 'anomaly-alerts' || 
+                    item.type === 'daily-brief' ||
+                    item.type === 'minified-stats' ||
+                    item.type === 'entity-timeline' ||
+                    item.type === 'system-status' ||
+                    item.type === 'cost-quota'
+                ));
+            if (validItems.length) {
+                const mountedWidgets = validItems
+                    .map(item => this.addWidget(item.type, item, { skipSave: true }))
+                    .filter(Boolean);
+                if (!mountedWidgets.length) {
+                    this.restoreDefaultWidgets();
+                }
+            } else {
+                this.restoreDefaultWidgets();
+            }
+        }
         this.isRestoring = false;
     }
 }

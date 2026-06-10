@@ -15,6 +15,7 @@ from app.services.governance import (
     registry_readiness,
     run_source_ingestion,
 )
+from app.services.briefs import BriefsService
 from app.services.rbac import require_admin as _admin_required
 from app.state import get_entitlement_state, root_dir
 
@@ -206,60 +207,48 @@ def get_governance_entitlements():
     return jsonify({"ok": True, "entitlements": get_entitlement_state()})
 
 
+@governance_bp.route("/api/governance/review-queue", methods=["GET"])
+@_admin_required
+def get_review_queue():
+    """Return draft briefs pending human review."""
+    try:
+        data = BriefsService.list_draft_briefs(root_dir, request.args.get("limit", 20))
+        return jsonify({"ok": True, **data})
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
+
+
+@governance_bp.route("/api/governance/review-queue/<int:brief_id>/approve", methods=["POST"])
+@_admin_required
+def approve_review_queue_item(brief_id):
+    """Approve a draft brief."""
+    try:
+        brief = BriefsService.update_brief_status(root_dir, brief_id, "approved")
+        return jsonify({"ok": True, "brief": BriefsService.redact_brief(brief)})
+    except GovernanceMigrationRequired as exc:
+        return jsonify({"error": str(exc), "registry_ready": False}), 409
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 404
+
+
+@governance_bp.route("/api/governance/review-queue/<int:brief_id>/reject", methods=["POST"])
+@_admin_required
+def reject_review_queue_item(brief_id):
+    """Reject a draft brief."""
+    try:
+        brief = BriefsService.update_brief_status(root_dir, brief_id, "rejected")
+        return jsonify({"ok": True, "brief": BriefsService.redact_brief(brief)})
+    except GovernanceMigrationRequired as exc:
+        return jsonify({"error": str(exc), "registry_ready": False}), 409
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 404
+
+
 @governance_bp.route("/api/source-connectors", methods=["GET"])
 @_admin_required
 def get_source_connectors():
     """Return safe connector metadata for ingestion UI."""
     return jsonify({"ok": True, **connector_metadata()})
-
-
-@governance_bp.route("/api/governance/review-queue", methods=["GET"])
-@_admin_required
-def get_review_queue():
-    """List items pending human review (drafts)."""
-    try:
-        from app.services.briefs import BriefsService
-        data = BriefsService.list_draft_briefs(root_dir, request.args.get("limit", 20))
-        return jsonify({"ok": True, **data})
-    except GovernanceMigrationRequired as exc:
-        return jsonify({
-            "ok": True,
-            "registry_ready": False,
-            "briefs": [],
-            "message": str(exc),
-        })
-
-
-@governance_bp.route("/api/governance/review-queue/<int:item_id>/approve", methods=["POST"])
-@_admin_required
-def approve_review_item(item_id):
-    """Approve a draft item."""
-    try:
-        from app.services.briefs import BriefsService
-        success = BriefsService.update_brief_status(root_dir, item_id, "approved")
-        if success:
-            return jsonify({"ok": True, "message": "Approved."})
-        return jsonify({"error": "Item not found."}), 404
-    except ValueError as exc:
-        return jsonify({"error": str(exc)}), 400
-    except GovernanceMigrationRequired as exc:
-        return jsonify({"error": str(exc), "registry_ready": False}), 409
-
-
-@governance_bp.route("/api/governance/review-queue/<int:item_id>/reject", methods=["POST"])
-@_admin_required
-def reject_review_item(item_id):
-    """Reject a draft item."""
-    try:
-        from app.services.briefs import BriefsService
-        success = BriefsService.update_brief_status(root_dir, item_id, "rejected")
-        if success:
-            return jsonify({"ok": True, "message": "Rejected."})
-        return jsonify({"error": "Item not found."}), 404
-    except ValueError as exc:
-        return jsonify({"error": str(exc)}), 400
-    except GovernanceMigrationRequired as exc:
-        return jsonify({"error": str(exc), "registry_ready": False}), 409
 
 
 @governance_bp.route("/api/sources/ingest", methods=["POST"])

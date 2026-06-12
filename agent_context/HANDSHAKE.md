@@ -22,10 +22,9 @@
   - `toolkit/obsidian_exporter.py` — compiles memory nodes/edges into Obsidian Vault markdown
   - `toolkit/linear_sync.py` — syncs `GLOBAL_ROADMAP.md` with Linear GraphQL API
   - CLI: `export-obsidian`, `linear-sync` (36 commands total)
+- [x] **Tri-View Graph tab** (Phase 3): `static/js/graph-view.js` added and D3 graph view wired into tabs. Checkbox ticked in `GLOBAL_ROADMAP.md`.
 
 ## Blocked / Pending
-- [ ] **Tri-View Graph tab** (Phase 3): `static/js/graph-view.js` is untracked, D3 graph view not yet wired into tabs. `feature/d3-visualization` branch exists for this.
-- [ ] `GLOBAL_ROADMAP.md` Phase 3 checkbox for Tri-View still unchecked.
 - [ ] Live DB migrations to main scraped database blocked until explicit user confirmation.
 - [ ] Live `POST /api/sources/ingest` remains entitlement-gated by backend `operator_runtime`.
 - [ ] Browser-rendered verification of micro-widgets and chart tabs remains manual.
@@ -38,13 +37,9 @@
 - Memory OS changes → commit to submodule repo + push to GitHub before using downstream.
 
 ## Next Handoff
-- Target: complete Phase 3 `Tri-View` — wire `graph-view.js` into `charts.js` tab router, register `#graph-tab` in HTML, confirm D3 renders entity graph. Check `GLOBAL_ROADMAP.md` and tick the checkbox.
-- Context files:
-  1. `static/js/graph-view.js` — untracked, inspect current state
-  2. `static/js/charts.js` — tab router, `graph` branch skeleton
-  3. `templates/index.html` — tab HTML structure
-  4. `agent_context/GLOBAL_ROADMAP.md` — Phase 3 status
-  5. `memory_os_local/src/memory_os/toolkit/obsidian_exporter.py` — new, review if integration needed
+- Target: Validate or test Phase 3 `Tri-View` in the browser or proceed to Phase 4 `Scheduled Watchers` configuration.
+- Optional: Add automatic background execution of `execute_watchers()` depending on explicit user request.
+- Handoff file: [HANDSHAKE.md](file:///Users/oleksii/Documents/News%20Research%20Automation/agent_context/HANDSHAKE.md) is the main handoff log.
 
 ## Memory OS State
 - Submodule: `https://github.com/OlexiMakee/memory_os` @ `2e12ebe`

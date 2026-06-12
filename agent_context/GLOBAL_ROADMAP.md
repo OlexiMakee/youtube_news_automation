@@ -50,7 +50,7 @@ Status: reformed on 2026-06-02 based on the autonomous_intelligence_hub_strategy
 - [x] **Evidence Bundle Export**: Zip raw artifacts, screenshots, and logs into a single downloadable proof zip.
 - [x] **Audit Logging**: Write critical user actions (source modifications, export triggers, credentials modifications, and scraper proposal approvals) to SQLite `audit_events` in `governance.db`.
 - [x] **Retention Locks**: Implement auto-purge rules for high-risk Tier E scraper caches.
-- [ ] **Tri-View (Graph, Timeline, Table)**: Toggle workspace views between raw tables, chronologies, and entity connection maps.
+- [x] **Tri-View (Graph, Timeline, Table)**: Toggle workspace views between raw tables, chronologies, and entity connection maps.
 
 ### Phase 4: Controlled Automation
 - [ ] **Scheduled Watchers**: Configure background cron workers to scan source feeds every N hours.

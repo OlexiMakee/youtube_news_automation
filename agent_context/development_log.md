@@ -389,3 +389,4 @@ Format: short English bullets only. Keep durable facts.
 - Restored `graph_nodes` SQL table/trigger initialization, `insert_graph_node()` and `optimize_db()` methods in `src/memory_os/core/core.py` to resolve the regression introduced in commit `cabb132`.
 - Adjusted search assertions in `tests/test_token_optimized_rag.py` to accommodate `blast_radius` matched dependencies.
 - Verified that all automated and integration tests in the workspace pass successfully.
+- Completed Tri-View Graph tab (Phase 3): staged `static/js/graph-view.js`, verified D3 graph view wiring into tabs in `static/js/charts.js`, and updated Phase 3 status in `agent_context/GLOBAL_ROADMAP.md`.

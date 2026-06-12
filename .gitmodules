@@ -1,0 +1,3 @@
+[submodule "memory_os_local"]
+	path = memory_os_local
+	url = https://github.com/OlexiMakee/memory_os

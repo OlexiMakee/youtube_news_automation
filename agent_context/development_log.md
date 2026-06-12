@@ -376,3 +376,16 @@ Format: short English bullets only. Keep durable facts.
 - fix: Fixed `ModuleNotFoundError: No module named 'memory_os'` in `tests/test_admin_health.py` by correcting the `__editable__.memory_os-0.1.0.pth` pip path to correctly point to the local `memory_os_local/src` instead of resolving out of bounds.
 - verified: Run of test module `test_admin_health` passed locally.
 - fix: Fixed scraper loop crash (`TypeError: run_archive_scraping() got an unexpected keyword argument 'on_progress'`) in `update_db.py`, `scripts/init_db.py`, and `scrape_multi.py`.
+- fix: Fixed missing days (Thursday, Friday) and incorrect week start (Sunday instead of Monday) in the 'Best Day to Post' chart by zero-filling missing days and forcing Monday-first sort order in `app/routes/charts.py`.
+- fix: Fixed `clearChatAction('all')` binding in `index.html` chat header.
+- feat: Added "Save MD" (`exportCurrentScreenMd`) button alongside "Assistant" buttons in video modal and floating chat toggles for third-party processing.
+- verified: Automated tests `venv_auto/bin/python -m unittest discover -s tests` passed.
+- fix: Fixed scraper aborting channel sync immediately on the first known duplicate video (which caused recent unpinned videos to be skipped if a known video was pinned). Added a 5-consecutive duplicate tolerance in `scraper_engine.py`.
+- fix: Fixed `UnboundLocalError: local variable 'channel_handle' referenced before assignment` in `scrape_multi.py` by fetching channel metadata before configuring progress observer.
+- fix: Fixed `TypeError: on_progress() got an unexpected keyword argument 'video_id'` and `AttributeError: 'YouTubeScraperEngine' object has no attribute 'silent'` in `cli_progress.py`.
+
+## 2026-06-12
+- Synchronized `memory_os_local` submodule with remote GitHub repository, updating it to the latest commit `4097e3a`.
+- Restored `graph_nodes` SQL table/trigger initialization, `insert_graph_node()` and `optimize_db()` methods in `src/memory_os/core/core.py` to resolve the regression introduced in commit `cabb132`.
+- Adjusted search assertions in `tests/test_token_optimized_rag.py` to accommodate `blast_radius` matched dependencies.
+- Verified that all automated and integration tests in the workspace pass successfully.

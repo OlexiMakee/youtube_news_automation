@@ -233,7 +233,9 @@ class SystemPromptBuilder:
         # Fetch and inject User-Facing memories (User-OS)
         try:
             from app.services.memory_os import MemoryOS
-            memory_os = MemoryOS()
+            from memory_os import MemoryOSConfig
+            active_space = os.environ.get("MEMORY_OS_SPACE", "default")
+            memory_os = MemoryOS(config=MemoryOSConfig(space=active_space))
             memories = memory_os.get_memories(limit=20)
             if memories:
                 yaml_lines = []

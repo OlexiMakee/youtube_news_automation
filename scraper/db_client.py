@@ -89,6 +89,12 @@ class BaseStorage(IChannelRepository, IVideoRepository, ISyncCoordinator, ABC):
         """Creates necessary tables in the storage if they do not exist yet."""
         pass
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        return False
+
 
 
 class DatabaseClient(BaseStorage):
@@ -192,8 +198,23 @@ class DatabaseClient(BaseStorage):
             video_count INTEGER,
             view_count INTEGER,
             description TEXT,
+            grade TEXT,
             created_at TEXT DEFAULT (datetime('now', 'localtime')),
             synced INTEGER DEFAULT 0
+        )
+        """)
+        
+        # 1b. Create channel_stats_history table for historical tracking
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS channel_stats_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            channel_id TEXT NOT NULL,
+            record_date TEXT DEFAULT (date('now', 'localtime')),
+            subscribers INTEGER,
+            view_count INTEGER,
+            video_count INTEGER,
+            FOREIGN KEY (channel_id) REFERENCES channels (channel_id) ON DELETE CASCADE,
+            UNIQUE(channel_id, record_date)
         )
         """)
         
@@ -217,18 +238,38 @@ class DatabaseClient(BaseStorage):
             views_update TEXT,
             thumbnail_text TEXT,
             top_comments TEXT,
+            views_per_hour REAL,
             FOREIGN KEY (channel_id) REFERENCES channels (channel_id)
         )
         """)
         
         # 2b. Create video_phrases table
-        cursor.execute("DROP TABLE IF EXISTS word_trends;")
-        
-        # Drop table first if the source column is missing (migration logic)
+
+        # One-time migration: drop the legacy word_trends table if it still exists.
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='word_trends'")
+        if cursor.fetchone():
+            cursor.execute("DROP TABLE word_trends;")
+
+        # Migrate video_phrases if it exists but lacks the 'source' column (added in v0.9).
+        # Preserves all existing rows by migrating them with source='description'.
         cursor.execute("PRAGMA table_info(video_phrases)")
         vp_cols = [row['name'] for row in cursor.fetchall()]
         if vp_cols and 'source' not in vp_cols:
-            cursor.execute("DROP TABLE IF EXISTS video_phrases;")
+            cursor.execute("ALTER TABLE video_phrases RENAME TO _video_phrases_v1;")
+            cursor.execute("""
+            CREATE TABLE video_phrases (
+                video_id TEXT NOT NULL,
+                phrase TEXT NOT NULL,
+                ngram_type INTEGER NOT NULL,
+                source TEXT NOT NULL,
+                PRIMARY KEY (video_id, phrase, source)
+            )
+            """)
+            cursor.execute("""
+            INSERT INTO video_phrases (video_id, phrase, ngram_type, source)
+            SELECT video_id, phrase, ngram_type, 'description' FROM _video_phrases_v1
+            """)
+            cursor.execute("DROP TABLE _video_phrases_v1;")
 
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS video_phrases (
@@ -342,6 +383,8 @@ class DatabaseClient(BaseStorage):
             cursor.execute("ALTER TABLE channels ADD COLUMN view_count INTEGER;")
         if 'description' not in channels_cols:
             cursor.execute("ALTER TABLE channels ADD COLUMN description TEXT;")
+        if 'grade' not in channels_cols:
+            cursor.execute("ALTER TABLE channels ADD COLUMN grade TEXT;")
         conn.commit()
             
         # Check and migrate videos table
@@ -365,6 +408,10 @@ class DatabaseClient(BaseStorage):
 
         if 'top_comments' not in videos_cols:
             cursor.execute("ALTER TABLE videos ADD COLUMN top_comments TEXT;")
+            conn.commit()
+            
+        if 'views_per_hour' not in videos_cols:
+            cursor.execute("ALTER TABLE videos ADD COLUMN views_per_hour REAL;")
             conn.commit()
 
         # 4. Performance indexes (CREATE IF NOT EXISTS — safe to run repeatedly)
@@ -415,10 +462,25 @@ class DatabaseClient(BaseStorage):
     def update_channel_metadata(self, channel_id, subscribers, video_count, view_count, avatar_url, banner_url, description):
         """
         Updates the YouTube metadata (subscribers, views, description, avatar, banner) 
-        associated with a channel in the database.
+        associated with a channel in the database. Also tracks history and calculates grade.
         """
         conn = self.get_connection()
         cursor = conn.cursor()
+        
+        # 1. Calculate Grade
+        cursor.execute("SELECT AVG(view_count) as avg_views, SUM(like_count)*100.0/SUM(view_count) as engagement FROM videos WHERE channel_id = ?", (channel_id,))
+        stats = cursor.fetchone()
+        
+        grade = "C"
+        if stats and stats['avg_views'] is not None and stats['engagement'] is not None:
+            avg_v = stats['avg_views']
+            eng = stats['engagement']
+            if avg_v > 100000 or eng > 4.0:
+                grade = "A"
+            elif avg_v > 10000 or eng > 2.0:
+                grade = "B"
+        
+        # 2. Update Channel
         cursor.execute("""
         UPDATE channels SET
             subscribers = ?,
@@ -427,9 +489,21 @@ class DatabaseClient(BaseStorage):
             avatar_url = ?,
             banner_url = ?,
             description = ?,
+            grade = ?,
             synced = 0
         WHERE channel_id = ?
-        """, (subscribers, video_count, view_count, avatar_url, banner_url, description, channel_id))
+        """, (subscribers, video_count, view_count, avatar_url, banner_url, description, grade, channel_id))
+        
+        # 3. Track History
+        cursor.execute("""
+        INSERT INTO channel_stats_history (channel_id, subscribers, view_count, video_count)
+        VALUES (?, ?, ?, ?)
+        ON CONFLICT(channel_id, record_date) DO UPDATE SET
+            subscribers = excluded.subscribers,
+            view_count = excluded.view_count,
+            video_count = excluded.video_count
+        """, (channel_id, subscribers, view_count, video_count))
+        
         conn.commit()
         self.close_connection(conn)
 
@@ -458,9 +532,9 @@ class DatabaseClient(BaseStorage):
             cursor.execute("""
             INSERT INTO videos (
                 video_id, channel_id, title, description, published_at, duration,
-                view_count, like_count, comment_count, tags, synced
+                view_count, like_count, comment_count, tags, views_per_hour, synced
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
             ON CONFLICT(video_id) DO UPDATE SET
                 title = excluded.title,
                 description = excluded.description,
@@ -470,6 +544,7 @@ class DatabaseClient(BaseStorage):
                 like_count = excluded.like_count,
                 comment_count = excluded.comment_count,
                 tags = excluded.tags,
+                views_per_hour = excluded.views_per_hour,
                 updated_at = datetime('now', 'localtime'),
                 synced = 0
             """, (
@@ -482,7 +557,8 @@ class DatabaseClient(BaseStorage):
                 v.get('view_count'),
                 v.get('like_count'),
                 v.get('comment_count'),
-                v.get('tags')
+                v.get('tags'),
+                v.get('views_per_hour')
             ))
             
         conn.commit()

@@ -4,6 +4,7 @@ import { openVideoModal } from './ui.js';
 import { isD3ChartType, renderD3Chart, hideD3Tooltip } from './d3-charts.js';
 import { renderTableView } from './table-view.js';
 import { renderTimelineView } from './timeline-view.js';
+import { renderGraphView } from './graph-view.js';
 
 export const CHART_DEFS = [
     // Group 1: Stats split-buttons (video metrics)
@@ -195,11 +196,12 @@ export function renderActiveChart(dashboardCard, chartState = state) {
     if (!chartRawData || !chartType) return;
     
     const card = dashboardCard || document.getElementById('card-visualizations-container');
-    const d3Root = card ? (card.querySelector('#d3-chart-root') || card.querySelector('.d3-chart-root')) : document.getElementById('d3-chart-root');
-    const canvasEl = card ? (card.querySelector('#analytics-chart') || card.querySelector('canvas')) : document.getElementById('analytics-chart');
-    const tableRoot = card ? (card.querySelector('#table-view-root') || card.querySelector('.table-view-root')) : document.getElementById('table-view-root');
-    const timelineRoot = card ? (card.querySelector('#timeline-view-root') || card.querySelector('.timeline-view-root')) : document.getElementById('timeline-view-root');
-    const container = card ? card.querySelector('.chart-container') : document.querySelector('.chart-container');
+    const d3Root      = card ? (card.querySelector('#d3-chart-root')      || card.querySelector('.d3-chart-root'))      : document.getElementById('d3-chart-root');
+    const canvasEl    = card ? (card.querySelector('#analytics-chart')    || card.querySelector('canvas'))              : document.getElementById('analytics-chart');
+    const tableRoot   = card ? (card.querySelector('#table-view-root')    || card.querySelector('.table-view-root'))    : document.getElementById('table-view-root');
+    const timelineRoot= card ? (card.querySelector('#timeline-view-root') || card.querySelector('.timeline-view-root')) : document.getElementById('timeline-view-root');
+    const graphRoot   = card ? (card.querySelector('#graph-view-root')    || card.querySelector('.graph-view-root'))    : document.getElementById('graph-view-root');
+    const container   = card ? card.querySelector('.chart-container') : document.querySelector('.chart-container');
     
     // Destroy previous Chart.js instance
     if (chartState.activeChartInstance) {
@@ -219,10 +221,11 @@ export function renderActiveChart(dashboardCard, chartState = state) {
     const currentView = chartState.activeWorkspaceView || 'chart';
 
     // Hide all roots first
-    if (d3Root) { d3Root.style.display = 'none'; d3Root.innerHTML = ''; }
-    if (canvasEl) canvasEl.style.display = 'none';
-    if (tableRoot) { tableRoot.style.display = 'none'; tableRoot.innerHTML = ''; }
-    if (timelineRoot) { timelineRoot.style.display = 'none'; timelineRoot.innerHTML = ''; }
+    if (d3Root)      { d3Root.style.display = 'none'; d3Root.innerHTML = ''; }
+    if (canvasEl)    canvasEl.style.display = 'none';
+    if (tableRoot)   { tableRoot.style.display = 'none'; tableRoot.innerHTML = ''; }
+    if (timelineRoot){ timelineRoot.style.display = 'none'; timelineRoot.innerHTML = ''; }
+    if (graphRoot)   { if (graphRoot.cleanup) { graphRoot.cleanup(); graphRoot.cleanup = null; } graphRoot.style.display = 'none'; graphRoot.innerHTML = ''; }
 
     // Restore canvas from scroll wrapper if needed
     if (container) {
@@ -237,11 +240,17 @@ export function renderActiveChart(dashboardCard, chartState = state) {
 
     if (currentView === 'table') {
         if (tableRoot) tableRoot.style.display = 'block';
-        let raw = chartRawData;
+        let raw;
         if (chartType === 'best_promo_title_words' || chartType === 'worst_promo_title_words' || chartType === 'top_tags') {
-            raw = chartRawData.data || chartRawData;
+            raw = chartRawData.data || [];
         } else {
-            raw = chartRawData.top_videos || chartRawData.worst_videos || chartRawData.videos || [];
+            // Try all common video list keys; fall back to empty array
+            const videoKeys = ['top_viewed','worst_viewed','top_liked','worst_liked','top_commented','worst_commented'];
+            raw = null;
+            for (const k of videoKeys) {
+                if (chartRawData[k] && chartRawData[k].length) { raw = chartRawData[k]; break; }
+            }
+            raw = raw || chartRawData.top_videos || chartRawData.worst_videos || chartRawData.videos || [];
         }
         renderTableView(raw, chartDef, tableRoot);
         return;
@@ -249,11 +258,33 @@ export function renderActiveChart(dashboardCard, chartState = state) {
 
     if (currentView === 'timeline') {
         if (timelineRoot) timelineRoot.style.display = 'block';
-        if (!chartRawData.timeline) {
-            if (timelineRoot) timelineRoot.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-muted); font-size: 12px;">No timeline data available.</div>';
+        // Derive timeline data from existing video lists rather than requiring a separate chartRawData.timeline key
+        const videoKeys = ['top_viewed','worst_viewed','top_liked','worst_liked','top_commented','worst_commented'];
+        let timelineData = chartRawData.timeline || null;
+        if (!timelineData) {
+            for (const k of videoKeys) {
+                if (chartRawData[k] && chartRawData[k].length) {
+                    timelineData = chartRawData[k];
+                    break;
+                }
+            }
+        }
+        if (!timelineData || !timelineData.length) {
+            if (timelineRoot) timelineRoot.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-muted); font-size: 12px;">No timeline data for the current chart type.</div>';
             return;
         }
-        renderTimelineView(chartRawData.timeline, chartDef, timelineRoot);
+        renderTimelineView(timelineData, chartDef, timelineRoot);
+        return;
+    }
+
+    if (currentView === 'graph') {
+        if (graphRoot) graphRoot.style.display = 'block';
+        const filters = {
+            start_date: document.getElementById('filter-start-date')?.value || '',
+            end_date:   document.getElementById('filter-end-date')?.value   || '',
+            channels:   chartState.selectedChannelIds || [],
+        };
+        renderGraphView(graphRoot, filters);
         return;
     }
     

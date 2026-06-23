@@ -88,10 +88,27 @@ class BriefsService:
 
             sources_count = len(set(r["source_id"] for r in records))
 
+            from app.services.cloud_rotation import get_rotation_engine
+            from app.services.llm_clients import LLMClientFactory
+            import json
+
+            input_text = f"News records for {date}:\n\n"
             claims = []
             for r in records[:max_claims]:
+                input_text += f"--- SOURCE {r['id']} ---\n"
+                input_text += f"Title: {r['title']}\n"
+                input_text += f"Source: {r['source_name']} ({r['url']})\n"
+                if r['metadata_json']:
+                    try:
+                        meta = json.loads(r['metadata_json'])
+                        desc = meta.get('description', '')[:500]
+                        input_text += f"Content snippet: {desc}...\n"
+                    except Exception:
+                        pass
+                input_text += "\n"
+
                 claims.append({
-                    "text": f"Evidence-backed claim: {r['title']}",
+                    "text": f"Reference: {r['title']}",
                     "sources": [{
                         "id": r["id"],
                         "title": r["title"],
@@ -101,26 +118,44 @@ class BriefsService:
                     }]
                 })
 
-            # Format content_text (Markdown)
-            content_lines = [f"# Daily Brief - {date}", ""]
             if not claims:
-                content_lines.append("No source records found for this date.")
+                content_text = f"# Daily Brief - {date}\n\nNo source records found for this date."
+                provider_id = "none"
+                model = "none"
             else:
-                content_lines.append("Here is the evidence-backed claim summary:")
-                for idx, c in enumerate(claims, 1):
-                    content_lines.append(f"{idx}. **{c['text']}**")
-                    for src in c["sources"]:
-                        content_lines.append(f"   - Source: [{src['source_name']}]({src['url']})")
+                system_prompt = (
+                    "You are an expert news analyst building an intelligence brief. "
+                    "You will receive a list of news items. Write a professional, concise, analytical "
+                    "daily brief summarizing the key events, narratives, and insights. "
+                    "Output entirely in standard Markdown format (use #, ##, bullets). "
+                    "Do not include the 'Sources' section at the bottom, as it will be appended automatically. "
+                    "Stay purely factual and base your summary strictly on the provided items."
+                )
 
-            content_text = "\n".join(content_lines)
+                engine = get_rotation_engine()
+                provider = engine.get_next_available_provider(skip_paid=True) if engine else None
+                provider_id = provider.id if provider else "gemini"
+                
+                api_key, base_url, model = LLMClientFactory.get_provider_config(provider_id)
+                if not api_key:
+                    raise ValueError(f"No API key configured for provider {provider_id}. Cannot generate brief.")
+
+                client = LLMClientFactory.create_client(provider_id)
+                
+                # Fetch text via generator
+                chunks = []
+                for chunk in client.stream_chat(api_key, base_url, model, input_text, system_prompt):
+                    chunks.append(chunk)
+                
+                content_text = "".join(chunks)
 
             # Write to ai_outputs
             cursor.execute(
                 """
-                INSERT INTO ai_outputs (output_type, title, status, content_text)
-                VALUES ('brief', ?, 'draft', ?)
+                INSERT INTO ai_outputs (output_type, title, status, content_text, provider_id, model_id)
+                VALUES ('brief', ?, 'draft', ?, ?, ?)
                 """,
-                (f"Daily Brief - {date}", content_text)
+                (f"Daily Brief - {date}", content_text, provider_id, model)
             )
             ai_output_id = cursor.lastrowid
 

@@ -98,8 +98,8 @@ def setup_and_run_venv(entry_script, required_libs=None):
                     except Exception:
                         pass
     
-    # Check if the scraper package, standard dependencies, and extra libraries are installed
-    libs_to_check = ["yt_dlp", "requests", "scraper"] + required_libs
+    # Check if the scraper package, memory_os, standard dependencies, and extra libraries are installed
+    libs_to_check = ["yt_dlp", "requests", "scraper", "memory_os"] + required_libs
     # Attempt to import each module
     libs_check_str = "; ".join(f"import {lib}" for lib in libs_to_check)
     check_deps = subprocess.run([python_exe, "-c", libs_check_str], capture_output=True)
@@ -117,6 +117,11 @@ def setup_and_run_venv(entry_script, required_libs=None):
         if os.path.exists(os.path.join(script_dir, "pyproject.toml")):
             print("[*] Installing local scraper package in editable mode...")
             subprocess.run([python_exe, "-m", "pip", "install", "-e", script_dir], check=True)
+            
+        memory_os_dir = os.path.join(script_dir, "memory_os_local")
+        if os.path.exists(os.path.join(memory_os_dir, "pyproject.toml")):
+            print("[*] Installing local memory_os package in editable mode...")
+            subprocess.run([python_exe, "-m", "pip", "install", "-e", memory_os_dir], check=True)
             
         # Install extra packages if requested
         if required_libs:

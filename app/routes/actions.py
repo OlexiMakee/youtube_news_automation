@@ -155,19 +155,19 @@ def add_channel_route():
         f.write(f"Mode: {mode}, Value: {val}\n\n")
         
     try:
-        log_file = open(SCRAPE_LOG_PATH, 'a')
-        proc = subprocess.Popen(
-            [sys.executable, 'scripts/init_db.py', channel_url, mode, val],
-            stdout=log_file,
-            stderr=subprocess.STDOUT,
-            cwd=root_dir
-        )
-        
+        with open(SCRAPE_LOG_PATH, 'a') as log_file:
+            proc = subprocess.Popen(
+                [sys.executable, 'scripts/init_db.py', channel_url, mode, val],
+                stdout=log_file,
+                stderr=subprocess.STDOUT,
+                cwd=root_dir
+            )
+
         bg_state["active_task"] = "scraping"
         bg_state["process"] = proc
         bg_state["log_file"] = SCRAPE_LOG_PATH
         bg_state["error_msg"] = None
-        
+
         return jsonify({"message": f"Scraping task for '{channel_url}' successfully launched in background."})
     except Exception as e:
         bg_state["error_msg"] = f"Failed to launch channel scraper: {e}"
@@ -191,20 +191,19 @@ def start_scrape():
         f.write(f"=== SCRAPE PROCESS STARTED AT {datetime.now().isoformat()} ===\n")
         
     try:
-        # Run scrape_multi.py as a subprocess
-        log_file = open(SCRAPE_LOG_PATH, 'a')
-        proc = subprocess.Popen(
-            [sys.executable, 'scrape_multi.py', '--no-prompt'],
-            stdout=log_file,
-            stderr=subprocess.STDOUT,
-            cwd=root_dir
-        )
-        
+        with open(SCRAPE_LOG_PATH, 'a') as log_file:
+            proc = subprocess.Popen(
+                [sys.executable, 'scrape_multi.py', '--no-prompt'],
+                stdout=log_file,
+                stderr=subprocess.STDOUT,
+                cwd=root_dir
+            )
+
         bg_state["active_task"] = "scraping"
         bg_state["process"] = proc
         bg_state["log_file"] = SCRAPE_LOG_PATH
         bg_state["error_msg"] = None
-        
+
         return jsonify({"message": "Scraping process successfully launched in background."})
     except Exception as e:
         bg_state["error_msg"] = f"Failed to launch scraper: {e}"
@@ -462,6 +461,14 @@ def widgets_registry():
         elif wtype["type"] == "anomaly-alerts" and entitlements.get("dense_workspace"):
             filtered_types.append(wtype)
         elif wtype["type"] == "daily-brief" and entitlements.get("ready_workspace"):
+            filtered_types.append(wtype)
+        elif wtype["type"] == "minified-stats" and entitlements.get("dense_workspace"):
+            filtered_types.append(wtype)
+        elif wtype["type"] == "entity-timeline" and entitlements.get("linked_intelligence"):
+            filtered_types.append(wtype)
+        elif wtype["type"] == "system-status" and entitlements.get("operator_runtime"):
+            filtered_types.append(wtype)
+        elif wtype["type"] == "cost-quota" and entitlements.get("operator_runtime"):
             filtered_types.append(wtype)
 
     reg["types"] = filtered_types
@@ -1009,6 +1016,17 @@ def chat_feedback():
         "feedback_type": feedback_type,
         "provider_efficiency": round(provider.efficiency_score, 2) if provider else None
     })
+
+
+@actions_bp.route('/api/chat/<int:chat_id>/learn', methods=['POST'])
+@_admin_required
+def chat_learn(chat_id):
+    """Mark a chat response as a learned insight for memory_news graph."""
+    from app.services.chat_logger import ChatLogger
+    ok = ChatLogger.mark_learned(chat_id)
+    if not ok:
+        return jsonify({"error": "Failed to mark as learned"}), 500
+    return jsonify({"ok": True, "chat_id": chat_id})
 
 
 @actions_bp.route('/api/chat/report-quota', methods=['POST'])

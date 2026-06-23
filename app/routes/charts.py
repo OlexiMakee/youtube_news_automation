@@ -408,17 +408,27 @@ def get_charts():
         """, query_params)
         day_of_week_raw = cursor.fetchall()
         
-        days_mapping = {
-            '0': 'Sunday', '1': 'Monday', '2': 'Tuesday', '3': 'Wednesday',
-            '4': 'Thursday', '5': 'Friday', '6': 'Saturday'
-        }
+        # Convert raw query to dict for easy lookup
+        raw_dict = {str(d['day_code']): dict(d) for d in day_of_week_raw}
+        
+        # Ordered days starting from Monday
+        ordered_days = [
+            ('1', 'Monday'),
+            ('2', 'Tuesday'),
+            ('3', 'Wednesday'),
+            ('4', 'Thursday'),
+            ('5', 'Friday'),
+            ('6', 'Saturday'),
+            ('0', 'Sunday')
+        ]
+        
         best_day_to_post = []
-        for d in day_of_week_raw:
-            d_code = d['day_code']
+        for d_code, d_name in ordered_days:
+            row = raw_dict.get(d_code, {})
             best_day_to_post.append({
-                "day_of_week": days_mapping.get(d_code, "Unknown"),
-                "video_count": d['video_count'],
-                "total_views": d['total_views'] or 0
+                "day_of_week": d_name,
+                "video_count": row.get('video_count', 0),
+                "total_views": row.get('total_views', 0) or 0
             })
             
         # 7. Scatter plot data

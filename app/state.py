@@ -27,6 +27,9 @@ bg_state = {
     "last_update_time": 0.0
 }
 
+# RLock so check_active_tasks() can be called from within an already-locked context.
+_bg_lock = threading.RLock()
+
 ENTITLEMENT_FLAGS = {
     "ready_workspace": {
         "label": "Ready Workspace",
@@ -74,9 +77,11 @@ def get_entitlement_state(overrides=None):
 
 def background_daemons_disabled():
     """Return True when tests/import checks must not start background work."""
-    return os.environ.get("NEWS_RESEARCH_DISABLE_BACKGROUND_DAEMONS") == "1" or any(
-        "unittest" in arg or "pytest" in arg for arg in sys.argv
-    ) or "pytest" in sys.modules
+    return (
+        os.environ.get("NEWS_RESEARCH_DISABLE_BACKGROUND_DAEMONS") == "1"
+        or "pytest" in sys.modules
+        or "unittest" in sys.modules
+    )
 
 
 def get_sqlite_conn():
@@ -88,28 +93,27 @@ def get_sqlite_conn():
 def check_active_tasks():
     """Checks background jobs and resets states if completed."""
     global bg_state
-    if bg_state["active_task"] in ["scraping", "updating", "updating_views"]:
-        proc = bg_state["process"]
-        if proc and proc.poll() is not None:
-            # Subprocess completed
-            exit_code = proc.poll()
-            if exit_code != 0:
-                if bg_state["active_task"] == "updating":
-                    task_name = "Update"
-                elif bg_state["active_task"] == "updating_views":
-                    task_name = "Views Update"
-                else:
-                    task_name = "Scraper"
-                bg_state["error_msg"] = f"{task_name} exited with error code {exit_code}."
-            bg_state["active_task"] = "idle"
-            bg_state["process"] = None
-            
-    elif bg_state["active_task"] == "syncing":
-        thr = bg_state["thread"]
-        if thr and not thr.is_alive():
-            # Syncing thread completed
-            bg_state["active_task"] = "idle"
-            bg_state["thread"] = None
+    with _bg_lock:
+        if bg_state["active_task"] in ["scraping", "updating", "updating_views"]:
+            proc = bg_state["process"]
+            if proc and proc.poll() is not None:
+                exit_code = proc.poll()
+                if exit_code != 0:
+                    if bg_state["active_task"] == "updating":
+                        task_name = "Update"
+                    elif bg_state["active_task"] == "updating_views":
+                        task_name = "Views Update"
+                    else:
+                        task_name = "Scraper"
+                    bg_state["error_msg"] = f"{task_name} exited with error code {exit_code}."
+                bg_state["active_task"] = "idle"
+                bg_state["process"] = None
+
+        elif bg_state["active_task"] == "syncing":
+            thr = bg_state["thread"]
+            if thr and not thr.is_alive():
+                bg_state["active_task"] = "idle"
+                bg_state["thread"] = None
 
 
 def trigger_background_update(cooldown_seconds=30):
@@ -118,38 +122,39 @@ def trigger_background_update(cooldown_seconds=30):
     if background_daemons_disabled():
         return False
 
-    check_active_tasks()
-    
-    if bg_state["active_task"] != "idle":
-        return False
-        
-    current_time = time.time()
-    last_time = bg_state.get("last_update_time", 0.0)
-    if current_time - last_time < cooldown_seconds:
-        return False
-        
-    bg_state["last_update_time"] = current_time
-    
-    try:
-        # Clear and set up update log file
-        with open(UPDATE_LOG_PATH, 'w') as f:
-            f.write(f"=== DATABASE UPDATE PROCESS STARTED AT {datetime.now().isoformat()} ===\n")
-            
-        log_file = open(UPDATE_LOG_PATH, 'a')
-        proc = subprocess.Popen(
-            [sys.executable, 'update_db.py', '--cron'],
-            stdout=log_file,
-            stderr=subprocess.STDOUT,
-            cwd=root_dir
-        )
-        bg_state["active_task"] = "updating"
-        bg_state["process"] = proc
-        bg_state["log_file"] = UPDATE_LOG_PATH
-        bg_state["error_msg"] = None
-        return True
-    except Exception as e:
-        bg_state["error_msg"] = f"Failed to launch database updater: {e}"
-        return False
+    with _bg_lock:
+        check_active_tasks()
+
+        if bg_state["active_task"] != "idle":
+            return False
+
+        current_time = time.time()
+        last_time = bg_state.get("last_update_time", 0.0)
+        if current_time - last_time < cooldown_seconds:
+            return False
+
+        bg_state["last_update_time"] = current_time
+
+        try:
+            with open(UPDATE_LOG_PATH, 'w') as f:
+                f.write(f"=== DATABASE UPDATE PROCESS STARTED AT {datetime.now().isoformat()} ===\n")
+
+            with open(UPDATE_LOG_PATH, 'a') as log_file:
+                proc = subprocess.Popen(
+                    [sys.executable, 'update_db.py', '--cron'],
+                    stdout=log_file,
+                    stderr=subprocess.STDOUT,
+                    cwd=root_dir
+                )
+            # log_file closed in parent; child inherited the fd before close
+            bg_state["active_task"] = "updating"
+            bg_state["process"] = proc
+            bg_state["log_file"] = UPDATE_LOG_PATH
+            bg_state["error_msg"] = None
+            return True
+        except Exception as e:
+            bg_state["error_msg"] = f"Failed to launch database updater: {e}"
+            return False
 
 
 def bg_sync_worker():
@@ -208,28 +213,28 @@ def trigger_background_views_update(period, cooldown_seconds=2):
     if background_daemons_disabled():
         return False
 
-    check_active_tasks()
-    
-    if bg_state["active_task"] != "idle":
-        return False
-        
-    try:
-        # Clear and set up views update log file
-        with open(VIEWS_UPDATE_LOG_PATH, 'w') as f:
-            f.write(f"=== VIDEOS VIEWS UPDATE PROCESS STARTED AT {datetime.now().isoformat()} ===\n")
-            
-        log_file = open(VIEWS_UPDATE_LOG_PATH, 'a')
-        proc = subprocess.Popen(
-            [sys.executable, 'update_views.py', '--period', period],
-            stdout=log_file,
-            stderr=subprocess.STDOUT,
-            cwd=root_dir
-        )
-        bg_state["active_task"] = "updating_views"
-        bg_state["process"] = proc
-        bg_state["log_file"] = VIEWS_UPDATE_LOG_PATH
-        bg_state["error_msg"] = None
-        return True
-    except Exception as e:
-        bg_state["error_msg"] = f"Failed to launch views updater: {e}"
-        return False
+    with _bg_lock:
+        check_active_tasks()
+
+        if bg_state["active_task"] != "idle":
+            return False
+
+        try:
+            with open(VIEWS_UPDATE_LOG_PATH, 'w') as f:
+                f.write(f"=== VIDEOS VIEWS UPDATE PROCESS STARTED AT {datetime.now().isoformat()} ===\n")
+
+            with open(VIEWS_UPDATE_LOG_PATH, 'a') as log_file:
+                proc = subprocess.Popen(
+                    [sys.executable, 'update_views.py', '--period', period],
+                    stdout=log_file,
+                    stderr=subprocess.STDOUT,
+                    cwd=root_dir
+                )
+            bg_state["active_task"] = "updating_views"
+            bg_state["process"] = proc
+            bg_state["log_file"] = VIEWS_UPDATE_LOG_PATH
+            bg_state["error_msg"] = None
+            return True
+        except Exception as e:
+            bg_state["error_msg"] = f"Failed to launch views updater: {e}"
+            return False

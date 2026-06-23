@@ -5,15 +5,18 @@ from app.services.governance import (
     GovernanceMigrationRequired,
     connector_metadata,
     create_source,
+    execute_watchers,
     list_audit_events,
     list_connector_runs,
     list_evidence_links,
     list_source_records,
     list_source_credential_status,
     list_sources,
+    list_watchers,
     policy_summary,
     registry_readiness,
     run_source_ingestion,
+    set_watcher_enabled,
 )
 from app.services.briefs import BriefsService
 from app.services.rbac import require_admin as _admin_required
@@ -205,6 +208,42 @@ def post_source_credential():
 def get_governance_entitlements():
     """Return active progressive entitlement flags."""
     return jsonify({"ok": True, "entitlements": get_entitlement_state()})
+
+
+@governance_bp.route("/api/governance/watchers", methods=["GET"])
+@_admin_required
+def get_watchers():
+    """Return all scheduled watchers with live run state."""
+    try:
+        return jsonify({"ok": True, **list_watchers(root_dir)})
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
+
+
+@governance_bp.route("/api/governance/watchers/<watcher_id>/toggle", methods=["POST"])
+@_admin_required
+def toggle_watcher(watcher_id):
+    """Enable or disable a scheduled watcher."""
+    body = request.get_json(silent=True) or {}
+    enabled = body.get("enabled")
+    if enabled is None:
+        return jsonify({"error": "'enabled' field required."}), 400
+    try:
+        return jsonify(set_watcher_enabled(root_dir, watcher_id, bool(enabled)))
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 404
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
+
+
+@governance_bp.route("/api/governance/watchers/run", methods=["POST"])
+@_admin_required
+def run_watchers():
+    """Manually trigger execute_watchers."""
+    try:
+        return jsonify({"ok": True, **execute_watchers(root_dir)})
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
 
 
 @governance_bp.route("/api/governance/review-queue", methods=["GET"])

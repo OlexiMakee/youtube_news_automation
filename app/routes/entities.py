@@ -173,6 +173,84 @@ def extract_entities():
     })
 
 
+@entities_bp.route("/api/entities/graph", methods=["GET"])
+def get_entity_graph():
+    """Entity co-occurrence graph: nodes = top entities, edges = shared videos."""
+    start_date = request.args.get("start_date")
+    end_date = request.args.get("end_date")
+    channels_str = request.args.get("channels")
+    limit = min(int(request.args.get("limit", 30)), 60)
+    min_edge = max(1, int(request.args.get("min_edge", 1)))
+
+    conn = _connect_db(root_dir)
+    try:
+        filters: List[str] = []
+        params: List[Any] = []
+        if start_date:
+            filters.append("v.published_at >= ?")
+            params.append(start_date)
+        if end_date:
+            filters.append("v.published_at <= ?")
+            params.append(end_date)
+        if channels_str:
+            ch = [c.strip() for c in channels_str.split(",") if c.strip()]
+            if ch:
+                filters.append(f"v.channel_id IN ({','.join('?' * len(ch))})")
+                params.extend(ch)
+
+        where = ("WHERE " + " AND ".join(filters)) if filters else ""
+
+        node_rows = conn.execute(
+            f"""
+            SELECT e.id, e.name, e.type,
+                   SUM(ve.mentions_count) AS mentions,
+                   COUNT(DISTINCT ve.video_id) AS video_count
+            FROM entities e
+            JOIN video_entities ve ON e.id = ve.entity_id
+            JOIN videos v ON ve.video_id = v.video_id
+            {where}
+            GROUP BY e.id, e.name, e.type
+            ORDER BY mentions DESC
+            LIMIT ?
+            """,
+            params + [limit],
+        ).fetchall()
+        nodes = [dict(r) for r in node_rows]
+        node_ids = [n["id"] for n in nodes]
+
+        if not node_ids:
+            return jsonify({"ok": True, "nodes": [], "edges": []})
+
+        ph = ",".join("?" * len(node_ids))
+        edge_where = ("AND " + " AND ".join(filters)) if filters else ""
+        edge_rows = conn.execute(
+            f"""
+            SELECT ve1.entity_id AS source_id,
+                   ve2.entity_id AS target_id,
+                   COUNT(DISTINCT ve1.video_id) AS shared_videos
+            FROM video_entities ve1
+            JOIN video_entities ve2
+                 ON ve1.video_id = ve2.video_id
+                AND ve1.entity_id < ve2.entity_id
+            JOIN videos v ON ve1.video_id = v.video_id
+            WHERE ve1.entity_id IN ({ph})
+              AND ve2.entity_id IN ({ph})
+              {edge_where}
+            GROUP BY ve1.entity_id, ve2.entity_id
+            HAVING shared_videos >= ?
+            ORDER BY shared_videos DESC
+            """,
+            node_ids + node_ids + params + [min_edge],
+        ).fetchall()
+        edges = [dict(r) for r in edge_rows]
+
+        return jsonify({"ok": True, "nodes": nodes, "edges": edges})
+    except Exception as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 500
+    finally:
+        conn.close()
+
+
 @entities_bp.route("/api/entities/aliases", methods=["POST"])
 @_admin_required
 def register_alias():

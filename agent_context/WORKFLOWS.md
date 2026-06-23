@@ -27,10 +27,15 @@ Accepted trigger forms:
 | 6 | light mid | Codex low/medium | One endpoint/service bridge or one UI panel state, no schema change. |
 | 7 | mid | Codex medium | One feature slice across 2-4 files with tests and handoff update. |
 | 8 | high mid | Codex high | Multi-file feature slice, tests, docs, migration-safe integration. |
-| 9 | mid high | strong cloud model | Cross-module integration, refactor with compatibility guarantees. |
-| 10 | big | strong cloud model | Full subsystem increment, API + UI + tests + docs. |
-| 11 | large | Claude/Gemini/GPT max | Architecture pass, schemas/proposals, broad audit, staged implementation plan. |
-| 12 | giant | Claude/Gemini/GPT max limits | Repo-wide strategy, complex subsystem generation, deep audit, roadmap restructuring. |
+| 9 | mid high | strong cloud model | Cross-module integration. *Triggers SWARM_PROTOCOL.* |
+| 10 | big | strong cloud model | Full subsystem increment (API+UI). *Triggers SWARM_PROTOCOL.* |
+| 11 | large | Claude/Gemini max | Architecture pass, staged plan. *Triggers SWARM_PROTOCOL.* |
+| 12 | giant | Swarm Orchestrator | Repo-wide strategy. Maximize multi-agent delegation via `SWARM_PROTOCOL.md`. |
+
+**Swarm Orchestration (L9-L12):**
+- Tasks scored 9 to 12 MUST activate `agent_context/SWARM_PROTOCOL.md`.
+- The active agent becomes the Orchestrator and delegates subtasks to Claude/Codex via `scripts/swarm_invoke.py`.
+- Do not attempt linear execution for L11-L12 tasks.
 
 Hard limits:
 - Scores 1-5 must not change DB schema, add dependencies, or perform broad refactors.

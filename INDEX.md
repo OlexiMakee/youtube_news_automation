@@ -1,3 +1,4 @@
+
 # Governed Autonomous Intelligence Workspace Index
 
 Purpose: compact map for agents. Prefer this plus `agent_context/CONTEXT.md`; avoid old broad scans.

@@ -149,6 +149,23 @@ class YouTubeScraperEngine(BaseScraper):
         tags_list = v.get("tags") or []
         tags_str = ", ".join(tags_list) if tags_list else None
 
+        timestamp = v.get("timestamp")
+        views_per_hour = 0.0
+        if not timestamp and raw_date and len(raw_date) == 8:
+            try:
+                import datetime
+                dt = datetime.datetime.strptime(raw_date, "%Y%m%d")
+                timestamp = dt.timestamp()
+            except Exception:
+                pass
+                
+        view_count = v.get("view_count")
+        if timestamp and view_count is not None:
+            hours_passed = (time.time() - timestamp) / 3600.0
+            if hours_passed < 1.0:
+                hours_passed = 1.0
+            views_per_hour = round(view_count / hours_passed, 2)
+
         return {
             "video_id": v.get("id"),
             "channel_id": self.channel_id,
@@ -156,10 +173,11 @@ class YouTubeScraperEngine(BaseScraper):
             "description": v.get("description", ""),
             "published_at": formatted_date,
             "duration": v.get("duration"),
-            "view_count": v.get("view_count"),
+            "view_count": view_count,
             "like_count": v.get("like_count"),
             "comment_count": v.get("comment_count"),
-            "tags": tags_str
+            "tags": tags_str,
+            "views_per_hour": views_per_hour
         }
 
     def run_archive_scraping(self, stop_on_known=False):
@@ -234,7 +252,11 @@ class YouTubeScraperEngine(BaseScraper):
             # 2. CHECK FOR DUPLICATES
             video_id = info_dict.get("id")
             if stop_on_known and video_id in known_ids:
-                raise StopScrapingException()
+                self.consecutive_known_count = getattr(self, "consecutive_known_count", 0) + 1
+                if self.consecutive_known_count >= 5:
+                    raise StopScrapingException()
+            else:
+                self.consecutive_known_count = 0
                 
             # 3. DATE CHECK
             upload_date = info_dict.get("upload_date")
@@ -290,11 +312,7 @@ class YouTubeScraperEngine(BaseScraper):
                         raise StopScrapingException()
 
         active = True
-        has_context = hasattr(self.db_client, "__enter__") and hasattr(self.db_client, "__exit__")
-        
-        if has_context:
-            self.db_client.__enter__()
-            
+        self.db_client.__enter__()
         try:
             while active and (self.current_count < self.limit or self.date_after):
                 # Randomize chunk sizes
@@ -348,8 +366,7 @@ class YouTubeScraperEngine(BaseScraper):
                     
                 # Auto-sync trigger
                 if self.unsynced_saved >= 200 and self.on_auto_sync:
-                    if has_context:
-                        self.db_client.__exit__(None, None, None)
+                    self.db_client.__exit__(None, None, None)
                     try:
                         self.on_auto_sync(self.db_client)
                         self.unsynced_saved = 0
@@ -358,8 +375,7 @@ class YouTubeScraperEngine(BaseScraper):
                     except Exception as sync_err:
                         if self.observer:
                             self.observer.on_auto_sync(self.unsynced_saved, False, str(sync_err))
-                    if has_context:
-                        self.db_client.__enter__()
+                    self.db_client.__enter__()
                     
                 # Cooldown break between chunks
                 if active and (self.current_count < self.limit or self.date_after):
@@ -399,8 +415,7 @@ class YouTubeScraperEngine(BaseScraper):
                 self.buffer = []
                 
             if self.unsynced_saved >= 200 and self.on_auto_sync:
-                if has_context:
-                    self.db_client.__exit__(None, None, None)
+                self.db_client.__exit__(None, None, None)
                 try:
                     self.on_auto_sync(self.db_client)
                     self.unsynced_saved = 0
@@ -409,13 +424,11 @@ class YouTubeScraperEngine(BaseScraper):
                 except Exception as sync_err:
                     if self.observer:
                         self.observer.on_auto_sync(self.unsynced_saved, False, str(sync_err))
-                if has_context:
-                    self.db_client.__enter__()
-            
-            if has_context:
-                try:
-                    self.db_client.__exit__(None, None, None)
-                except Exception:
-                    pass
+                self.db_client.__enter__()
+
+            try:
+                self.db_client.__exit__(None, None, None)
+            except Exception:
+                pass
                 
         return self.success

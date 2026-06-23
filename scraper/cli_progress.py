@@ -39,7 +39,7 @@ def make_progress_callback(static_date_after, prefix=None):
     Returns:
         callable: The progress callback function.
     """
-    def on_progress(current_count, limit, last_added_time, upload_date=None, date_after=None):
+    def on_progress(current_count, limit, last_added_time, upload_date=None, date_after=None, **kwargs):
         # Calculate time since the last record was processed
         elapsed = time.time() - last_added_time
         time_str = format_duration_tenths(elapsed)
@@ -192,7 +192,8 @@ def print_final_report(scraper, channel_id, start_time, db_client, success=True)
         db_client (DatabaseClient): Database client instance.
         success (bool): Result of the scraping process (True/False).
     """
-    if not scraper.silent:
+    is_silent = getattr(scraper.observer, 'silent', False) if getattr(scraper, 'observer', None) else getattr(scraper, 'silent', False)
+    if not is_silent:
         # Clear progress bar row
         if scraper.date_after:
             sys.stdout.write(f"\r\033[K[*] Videos downloaded: {scraper.current_count}\n")

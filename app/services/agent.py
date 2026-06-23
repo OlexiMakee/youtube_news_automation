@@ -18,8 +18,11 @@ from app.services.chat_logger import ChatLogger
 from app.services.prompt_builder import DashboardContextBuilder, SystemPromptBuilder
 from app.services.llm_clients import LLMClientFactory, QuotaExhaustedError
 from app.services.memory_os import MemoryOS, TelemetryRecorder, PromptVersioner
+import os
+from memory_os import MemoryOSConfig
 
-_memory_os = MemoryOS()
+_active_space = os.environ.get("MEMORY_OS_SPACE", "default")
+_memory_os = MemoryOS(config=MemoryOSConfig(space=_active_space))
 _telemetry_recorder = TelemetryRecorder(_memory_os)
 _prompt_versioner = PromptVersioner()
 
@@ -179,8 +182,8 @@ class AgentService:
                     yield f"data: {json.dumps({'text': text})}\n\n"
 
                 duration_ms = int((time.time() - start_time) * 1000)
-                input_tokens = len(system_prompt + user_message) // 4
-                output_tokens = len(full_answer) // 4
+                input_tokens = cls._estimate_tokens(system_prompt + user_message)
+                output_tokens = cls._estimate_tokens(full_answer)
                 cost = cls._calculate_cost(model, input_tokens, output_tokens)
 
                 _telemetry_recorder.record_run(
@@ -197,13 +200,15 @@ class AgentService:
                     status="success"
                 )
 
-                cls._log_chat(role, attempt_provider, model, user_message, full_answer)
+                chat_id = cls._log_chat(role, attempt_provider, model, user_message, full_answer)
+                if chat_id:
+                    yield f"data: {json.dumps({'chat_id': chat_id})}\n\n"
                 yield "data: [DONE]\n\n"
                 return
 
             except QuotaExhaustedError as qe:
                 duration_ms = int((time.time() - start_time) * 1000)
-                input_tokens = len(system_prompt + user_message) // 4
+                input_tokens = cls._estimate_tokens(system_prompt + user_message)
                 _telemetry_recorder.record_run(
                     prompt_name=prompt_name,
                     prompt_version=prompt_version,
@@ -222,7 +227,7 @@ class AgentService:
                 continue
             except requests.exceptions.ConnectionError as ce:
                 duration_ms = int((time.time() - start_time) * 1000)
-                input_tokens = len(system_prompt + user_message) // 4
+                input_tokens = cls._estimate_tokens(system_prompt + user_message)
                 _telemetry_recorder.record_run(
                     prompt_name=prompt_name,
                     prompt_version=prompt_version,
@@ -241,7 +246,7 @@ class AgentService:
                 continue
             except Exception as e:
                 duration_ms = int((time.time() - start_time) * 1000)
-                input_tokens = len(system_prompt + user_message) // 4
+                input_tokens = cls._estimate_tokens(system_prompt + user_message)
                 _telemetry_recorder.record_run(
                     prompt_name=prompt_name,
                     prompt_version=prompt_version,
@@ -273,6 +278,19 @@ class AgentService:
     def _log_chat(cls, role: str, provider: str, model: str, user_message: str, assistant_answer: str) -> None:
         """Helper to insert chat interaction into agent_chats table."""
         ChatLogger.log(role, provider, model, user_message, assistant_answer)
+
+    @staticmethod
+    def _estimate_tokens(text: str) -> int:
+        """Estimate token count for mixed-language text.
+
+        Pure ASCII averages ~4 chars/token; Cyrillic and other non-ASCII scripts
+        typically encode as 1–2 tokens per character, so we use ~2 chars/token
+        for those. This keeps cost/telemetry estimates reasonably accurate for
+        Ukrainian-language content instead of being 2× off.
+        """
+        ascii_chars = sum(1 for c in text if ord(c) < 128)
+        non_ascii_chars = len(text) - ascii_chars
+        return ascii_chars // 4 + non_ascii_chars // 2
 
     @staticmethod
     def _calculate_cost(model: str, input_tokens: int, output_tokens: int) -> float:

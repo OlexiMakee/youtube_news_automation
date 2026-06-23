@@ -7,4 +7,6 @@ kagglesdk
 psycopg2-binary
 flask
 cryptography
+pytest
+pytest-flask
 

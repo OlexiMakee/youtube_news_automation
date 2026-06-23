@@ -258,9 +258,19 @@
                             <div id="channel-header-details"></div>
                             <div class="card-body">
 
+                                <div class="workspace-view-tabs">
+                                    <button class="btn-dropdown-action active" data-view="chart"    onclick="switchWorkspaceView('chart')">Chart</button>
+                                    <button class="btn-dropdown-action"        data-view="timeline" onclick="switchWorkspaceView('timeline')">Timeline</button>
+                                    <button class="btn-dropdown-action"        data-view="table"    onclick="switchWorkspaceView('table')">Table</button>
+                                    <button class="btn-dropdown-action"        data-view="graph"    onclick="switchWorkspaceView('graph')">Graph</button>
+                                </div>
+
                                 <div class="chart-container" style="height: 280px; width: 100%;">
                                     <div id="d3-chart-root" class="d3-chart-root" style="display:none; width:100%; height:100%;"></div>
                                     <canvas id="analytics-chart"></canvas>
+                                    <div id="table-view-root"    class="table-view-root"    style="display:none; width:100%; height:100%;"></div>
+                                    <div id="timeline-view-root" class="timeline-view-root" style="display:none; width:100%; height:100%;"></div>
+                                    <div id="graph-view-root"    class="graph-view-root"    style="display:none; width:100%; height:100%;"></div>
                                 </div>
                             </div>
                         </div>
@@ -424,6 +434,18 @@
                                 <div class="operator-empty">Not loaded</div>
                             </div>
                         </section>
+                        <section class="operator-runtime-section operator-runtime-section-wide" id="operator-watchers-section">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <div class="operator-section-title" style="margin: 0;">Scheduled Watchers</div>
+                                <button class="btn-primary" id="operator-run-watchers-btn" type="button" onclick="runWatchersNow()" style="padding: 4px 8px; font-size: 10px; font-weight: 600;">
+                                    <i class="fa-solid fa-play"></i>
+                                    Run Now
+                                </button>
+                            </div>
+                            <div class="operator-source-list" id="operator-watchers-list">
+                                <div class="operator-empty">Not loaded</div>
+                            </div>
+                        </section>
                         <section class="operator-runtime-section">
                             <div class="operator-section-title">Credential Status</div>
                             <div class="operator-source-list" id="operator-credential-status">
@@ -469,7 +491,23 @@
                         </div>
                     </div>
                 </div>
-                
+
+                <!-- Human Review Queue -->
+                <div class="card" id="review-queue-card" style="margin-bottom: 24px; padding: 16px; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px;">
+                    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-bottom: 15px;">
+                        <h3 style="margin: 0; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; color: var(--text-color);">
+                            <i class="fa-solid fa-clipboard-check" style="color: var(--teal-color);"></i>
+                            Human Review Queue
+                        </h3>
+                        <button class="btn-reset-compact" type="button" onclick="loadReviewQueue()" title="Refresh Review Queue">
+                            <i class="fa-solid fa-rotate"></i>
+                        </button>
+                    </div>
+                    <div class="operator-source-list" id="review-queue-list">
+                        <div class="operator-empty">Not loaded</div>
+                    </div>
+                </div>
+
                 <div class="terminal-container-wrapper">
                     <!-- Left: script buttons panel -->
                     <div class="terminal-sidebar">
@@ -699,6 +737,10 @@
                             <button id="mv-modal-transcript-btn" data-role-min="admin" onclick="getTranscriptFromModal()" class="btn-secondary" style="display: flex; align-items: center; justify-content: center; gap: 6px;">
                                 <i class="fa-solid fa-file-audio"></i>
                                 <span id="mv-modal-transcript-text" data-i18n="modal_extract_transcript">Extract Transcript</span>
+                            </button>
+                            <button id="mv-modal-export-md-btn" data-role-min="analyst" onclick="exportCurrentScreenMd()" class="btn-secondary" style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+                                <i class="fa-solid fa-file-arrow-down"></i>
+                                <span data-i18n="modal_export_md">Save MD</span>
                             </button>
                             <button id="mv-modal-assistant-btn" data-role-min="analyst" onclick="summarizeCurrentScreen()" class="btn-warning" style="display: flex; align-items: center; justify-content: center; gap: 6px;">
                                 <i class="fa-solid fa-wand-magic-sparkles"></i>
@@ -955,10 +997,16 @@
     </div>
 
     <!-- Summarize / AI Chat Controls -->
-    <button class="chat-toggle-btn summarize-btn" onclick="summarizeCurrentScreen()" id="chat-toggle-btn" title="Додати поточний екран у чат">
-        <i class="fa-solid fa-wand-magic-sparkles" id="chat-toggle-icon"></i>
-        <span data-i18n="btn_summarize">Assistant</span>
-    </button>
+    <div id="floating-chat-controls">
+        <button class="chat-toggle-btn summarize-btn" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);" onclick="exportCurrentScreenMd()" id="export-md-btn" title="Зберегти поточний екран у MD">
+            <i class="fa-solid fa-file-arrow-down"></i>
+            <span data-i18n="btn_save_summary">Save MD</span>
+        </button>
+        <button class="chat-toggle-btn summarize-btn" onclick="summarizeCurrentScreen()" id="chat-toggle-btn" title="Додати поточний екран у чат">
+            <i class="fa-solid fa-wand-magic-sparkles" id="chat-toggle-icon"></i>
+            <span data-i18n="btn_summarize">Assistant</span>
+        </button>
+    </div>
 
     <!-- AI ASSISTANT CHAT DRAWER -->
     <div class="chat-drawer" id="chat-drawer" data-code-src="templates/index.html:chat-drawer">
@@ -966,7 +1014,7 @@
         <div class="chat-resizer" id="chat-resizer"></div>
         <div class="chat-header">
             <div class="chat-header-actions chat-header-actions-left">
-            <button class="chat-header-btn" data-role-min="analyst" onclick="clearChatHistory()" id="chat-clear-btn" title="Очистити історію">
+            <button class="chat-header-btn" data-role-min="analyst" onclick="clearChatAction('all')" id="chat-clear-btn" title="Очистити історію">
                     <i class="fa-solid fa-trash-can"></i>
                 </button>
             </div>

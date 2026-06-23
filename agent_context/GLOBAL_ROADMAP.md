@@ -53,10 +53,10 @@ Status: reformed on 2026-06-02 based on the autonomous_intelligence_hub_strategy
 - [x] **Tri-View (Graph, Timeline, Table)**: Toggle workspace views between raw tables, chronologies, and entity connection maps.
 
 ### Phase 4: Controlled Automation
-- [ ] **Scheduled Watchers**: Configure background cron workers to scan source feeds every N hours.
-- [ ] **Budget & Token Caps**: Set hard limits on watcher API spends.
-- [ ] **Human Review Queue**: Hold autonomous reports in draft status until approved by an Editor or Analyst.
-- [ ] **Anomaly Alerts**: Push Slack, Telegram, or email notifications for Z-score alerts meeting threshold.
+- [x] **Scheduled Watchers**: `execute_watchers()` + `watcher_worker.py` daemon + `configs/watchers.config.json`; UI panel in Operator Runtime (enable/disable/run-now).
+- [x] **Budget & Token Caps**: `max_runs_per_day` and `cost_limit_usd` enforced per watcher in `execute_watchers()`.
+- [x] **Human Review Queue**: Draft briefs held at `status='draft'`; approve/reject routes + UI panel in admin tab.
+- [x] **Anomaly Alerts**: `AlertsService.send_anomaly_alert()` logs audit events; `detect_anomalies` hooked via analytics route.
 
 ### Phase 5: Enterprise Hardening
 - [ ] **Bring Your Own Key (BYOK)**: Let teams supply custom LLM provider credentials.

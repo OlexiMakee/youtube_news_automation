@@ -132,7 +132,7 @@ class TestAuditLogging(unittest.TestCase):
 
     @patch("app.routes.briefs.BriefsService")
     def test_brief_exported_audit_logging(self, mock_briefs_service):
-        mock_briefs_service.export_brief.return_value = b"brief markdown content"
+        mock_briefs_service.export_brief.return_value = "brief markdown content"
         
         client = self._client_with_root()
         response = client.post(

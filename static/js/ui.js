@@ -1194,7 +1194,7 @@ export async function loadOperatorRuntimePanel() {
             throw new Error(policy.error || `Policy request failed: HTTP ${policyRes.status}`);
         }
 
-        const [readinessRes, sourcesRes, connectorsRes, runsRes, recordsRes, dataMethodsRes, eventsRes, evidenceRes, credentialsRes, proposalsRes, tasksRes] = await Promise.all([
+        const [readinessRes, sourcesRes, connectorsRes, runsRes, recordsRes, dataMethodsRes, eventsRes, evidenceRes, credentialsRes, proposalsRes, tasksRes, watchersRes] = await Promise.all([
             adminFetch("/api/governance/readiness"),
             adminFetch("/api/sources"),
             adminFetch("/api/source-connectors"),
@@ -1205,7 +1205,8 @@ export async function loadOperatorRuntimePanel() {
             adminFetch("/api/evidence-links?limit=5"),
             adminFetch("/api/source-credentials/status?limit=5"),
             adminFetch("/api/scraper/proposals"),
-            adminFetch("/api/scraper/tasks")
+            adminFetch("/api/scraper/tasks"),
+            adminFetch("/api/governance/watchers"),
         ]);
         const readiness = await readinessRes.json();
         const sources = await sourcesRes.json();
@@ -1218,6 +1219,7 @@ export async function loadOperatorRuntimePanel() {
         const credentials = await credentialsRes.json();
         const proposals = await proposalsRes.json();
         const tasks = await tasksRes.json();
+        const watchers = await watchersRes.json();
         if (!readinessRes.ok || readiness.error) {
             throw new Error(readiness.error || `Readiness request failed: HTTP ${readinessRes.status}`);
         }
@@ -1264,6 +1266,7 @@ export async function loadOperatorRuntimePanel() {
         _renderCredentialStatus(credentials);
         _renderScrapingProposals(proposals);
         _renderScrapingTasks(tasks);
+        _renderWatchers(watchers);
 
         const ready = Boolean(readiness.registry_ready && policy.registry_ready && sources.registry_ready && runs.registry_ready && records.registry_ready && events.registry_ready && evidence.registry_ready && credentials.registry_ready);
         if (ready) {
@@ -1297,6 +1300,8 @@ export async function loadOperatorRuntimePanel() {
         if (credentials) credentials.innerHTML = `<div class="operator-empty">Credential status unavailable.</div>`;
         if (proposals) proposals.innerHTML = `<div class="operator-empty">Scraping proposals unavailable.</div>`;
         if (tasks) tasks.innerHTML = `<div class="operator-empty">Scraping tasks unavailable.</div>`;
+        const watchersEl = document.getElementById("operator-watchers-list");
+        if (watchersEl) watchersEl.innerHTML = `<div class="operator-empty">Watchers unavailable.</div>`;
     }
 }
 
@@ -1306,6 +1311,91 @@ export function initOperatorRuntimePanel() {
     panel.dataset.loaded = "true";
     loadOperatorRuntimePanel();
 }
+
+function _renderWatchers(data) {
+    const el = document.getElementById("operator-watchers-list");
+    if (!el) return;
+    const list = data.watchers || [];
+    if (!list.length) {
+        el.innerHTML = `<div class="operator-empty">No watchers configured.</div>`;
+        return;
+    }
+    el.innerHTML = list.map(w => {
+        const statusColor = w.enabled
+            ? (w.budget_exhausted ? "var(--orange-color)" : "var(--teal-color)")
+            : "var(--text-muted)";
+        const statusLabel = w.enabled
+            ? (w.budget_exhausted ? "Budget Exhausted" : "Active")
+            : "Disabled";
+        const lastRun = w.last_run ? new Date(w.last_run).toLocaleString() : "Never";
+        const nextRun = w.next_run ? new Date(w.next_run).toLocaleString() : "—";
+        const toggleLabel = w.enabled ? "Disable" : "Enable";
+        return `<div class="operator-source-row" style="display:flex;flex-direction:column;gap:4px;padding:8px 0;border-bottom:1px solid var(--border-color);">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+                <span style="font-size:12px;font-weight:600;color:var(--text-color);">${escapeHtml(w.name)}</span>
+                <span style="font-size:10px;font-weight:700;color:${statusColor};">${statusLabel}</span>
+            </div>
+            <div style="font-size:10px;color:var(--text-muted);">
+                Every ${escapeHtml(String(w.interval_minutes))} min &nbsp;|&nbsp;
+                Runs today: ${escapeHtml(String(w.runs_today))}/${escapeHtml(String(w.max_runs_per_day))} &nbsp;|&nbsp;
+                Cost: $${escapeHtml(String(w.cost_today_usd))}/$${escapeHtml(String(w.cost_limit_usd))}
+            </div>
+            <div style="font-size:10px;color:var(--text-muted);">
+                Last: ${escapeHtml(lastRun)} &nbsp;|&nbsp; Next: ${escapeHtml(nextRun)}
+            </div>
+            <button class="btn-secondary" style="align-self:flex-start;padding:2px 8px;font-size:10px;margin-top:4px;"
+                onclick="toggleWatcher(${escapeHtml(JSON.stringify(w.id))}, ${!w.enabled})">
+                ${toggleLabel}
+            </button>
+        </div>`;
+    }).join("");
+}
+
+export async function loadWatchers() {
+    const el = document.getElementById("operator-watchers-list");
+    if (el) el.innerHTML = `<div class="operator-empty">Loading…</div>`;
+    try {
+        const res = await adminFetch("/api/governance/watchers");
+        const data = await res.json();
+        if (!res.ok || data.error) throw new Error(data.error || "Failed to load watchers.");
+        _renderWatchers(data);
+    } catch (err) {
+        if (el) el.innerHTML = `<div class="operator-empty">${escapeHtml(err.message)}</div>`;
+    }
+}
+
+export async function runWatchersNow() {
+    const btn = document.getElementById("operator-run-watchers-btn");
+    if (btn) { btn.disabled = true; btn.textContent = "Running…"; }
+    try {
+        const res = await adminFetch("/api/governance/watchers/run", { method: "POST" });
+        const data = await res.json();
+        if (!res.ok || data.error) throw new Error(data.error || "Run failed.");
+        await loadWatchers();
+        const ran = data.ran_watchers?.length ?? 0;
+        alert(`Watchers run complete. ${ran} watcher(s) executed.`);
+    } catch (err) {
+        alert(`Error: ${err.message}`);
+    } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-play"></i> Run Now'; }
+    }
+}
+
+export async function toggleWatcher(watcherId, enabled) {
+    try {
+        const res = await adminFetch(`/api/governance/watchers/${encodeURIComponent(watcherId)}/toggle`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ enabled }),
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) throw new Error(data.error || "Toggle failed.");
+        await loadWatchers();
+    } catch (err) {
+        alert(`Error: ${err.message}`);
+    }
+}
+
 
 export function toggleChannelsDropdown(event) {
     if (event) {
@@ -2755,16 +2845,49 @@ function _appendBotBubbleActions(bubble) {
     actions.appendChild(likeBtn);
     actions.appendChild(dislikeBtn);
     actions.appendChild(downloadBtn);
+
+    // Learn button (admin only)
+    if (state.userRole === "admin") {
+        const learnBtn = document.createElement("button");
+        learnBtn.className = "chat-bubble-action-btn learn-btn";
+        learnBtn.type = "button";
+        learnBtn.title = "Вивчити — додати до memory_news";
+        learnBtn.innerHTML = '<i class="fa-solid fa-robot"></i>';
+        actions.appendChild(learnBtn);
+        learnBtn.addEventListener("click", () => _handleLearnClick(bubble, learnBtn));
+    }
+
     bubble.appendChild(actions);
 
     // Click handler for Like
     likeBtn.addEventListener("click", () => _handleFeedbackClick(bubble, "like", likeBtn, dislikeBtn));
-    
+
     // Click handler for Dislike
     dislikeBtn.addEventListener("click", () => _handleFeedbackClick(bubble, "dislike", dislikeBtn, likeBtn));
 
     // Click handler for Download
     downloadBtn.addEventListener("click", () => _handleDownloadInteraction(bubble));
+}
+
+async function _handleLearnClick(bubble, btn) {
+    const chatId = bubble.dataset.chatId;
+    if (!chatId) {
+        btn.title = "ID не знайдено — відповідь не збережена?";
+        return;
+    }
+    if (btn.classList.contains("active")) {
+        btn.title = "Вже вивчено";
+        return;
+    }
+    try {
+        const res = await fetch(`/api/chat/${chatId}/learn`, { method: "POST" });
+        if (!res.ok) throw new Error(await res.text());
+        btn.classList.add("active");
+        btn.title = "Вивчено ✓";
+        btn.innerHTML = '<i class="fa-solid fa-robot" style="color:var(--accent-green)"></i>';
+    } catch (e) {
+        btn.title = `Помилка: ${e.message}`;
+    }
 }
 
 function _getPreviousUserBubbleContent(bubble) {
@@ -2948,6 +3071,9 @@ async function _streamBotMessage(message, containerEl, contextOverride = null, h
                         botDiv.classList.remove("streaming");
                         return;
                     }
+                    if (obj.chat_id) {
+                        botDiv.dataset.chatId = obj.chat_id;
+                    }
                     if (obj.provider || obj.model) {
                         if (obj.provider) botDiv.dataset.provider = obj.provider;
                         if (obj.model) botDiv.dataset.model = obj.model;
@@ -3024,6 +3150,24 @@ export async function summarizeCurrentScreen() {
         openChatDrawer();
     }
     await _requestAddScreenSummary();
+}
+
+export function exportCurrentScreenMd() {
+    const screenText = _scrapeCurrentScreenText();
+    if (!screenText) return;
+
+    const createdAt = new Date().toISOString();
+    const markdown = `# Screen Summary Data\n\nExported: ${createdAt}\n\n${screenText}\n`;
+
+    const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `screen-summary-${createdAt.replace(/[:.]/g, "-")}.md`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
 }
 
 export async function handleSendChatMessage(event) {

@@ -577,6 +577,61 @@ def _watcher_last_run(conn: sqlite3.Connection, watcher: Dict[str, Any]) -> Opti
     return None
 
 
+def list_watchers(root_dir: str) -> Dict[str, Any]:
+    """Return all watchers with live last-run and daily totals from DB."""
+    now = datetime.utcnow().replace(microsecond=0)
+    raw_watchers = _load_watchers_config(root_dir)
+    conn = _connect(root_dir)
+    result = []
+    try:
+        _require_registry(conn)
+        for raw in raw_watchers:
+            try:
+                w = validate_watcher_config(raw)
+            except ValueError:
+                continue
+            totals = _watcher_daily_totals(conn, w, now)
+            last_run = _watcher_last_run(conn, w)
+            next_run: Optional[str] = None
+            if last_run:
+                next_run = (last_run + timedelta(minutes=w["interval_minutes"])).strftime("%Y-%m-%dT%H:%M:%SZ")
+            result.append({
+                **w,
+                "runs_today": totals["runs"],
+                "cost_today_usd": round(totals["cost"], 4),
+                "last_run": last_run.strftime("%Y-%m-%dT%H:%M:%SZ") if last_run else None,
+                "next_run": next_run,
+                "budget_exhausted": (
+                    totals["runs"] >= w["max_runs_per_day"]
+                    or totals["cost"] >= w["cost_limit_usd"]
+                ),
+            })
+    finally:
+        conn.close()
+    return {"watchers": result}
+
+
+def set_watcher_enabled(root_dir: str, watcher_id: str, enabled: bool) -> Dict[str, Any]:
+    """Toggle enabled flag for a watcher in the config file."""
+    path = _watchers_config_path(root_dir)
+    if not path.exists():
+        raise ValueError("watchers.config.json not found.")
+    with path.open("r", encoding="utf-8") as f:
+        data = json.load(f)
+    watchers = data.get("watchers", []) if isinstance(data, dict) else []
+    found = False
+    for w in watchers:
+        if w.get("id") == watcher_id:
+            w["enabled"] = bool(enabled)
+            found = True
+            break
+    if not found:
+        raise ValueError(f"Watcher '{watcher_id}' not found.")
+    with path.open("w", encoding="utf-8") as f:
+        json.dump({"watchers": watchers}, f, indent=2)
+    return {"ok": True, "id": watcher_id, "enabled": bool(enabled)}
+
+
 def execute_watchers(root_dir: str) -> Dict[str, Any]:
     """Run enabled watchers that satisfy interval, daily-run, and cost limits."""
     now = datetime.utcnow().replace(microsecond=0)

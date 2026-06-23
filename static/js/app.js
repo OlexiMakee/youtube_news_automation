@@ -43,6 +43,7 @@ import {
     openChatDrawer,
     closeChatDrawer,
     summarizeCurrentScreen,
+    exportCurrentScreenMd,
     exportChatMarkdown,
     clearChatAction,
     handleSendChatMessage,
@@ -55,6 +56,9 @@ import {
     initProposalInbox,
     loadOperatorRuntimePanel,
     initOperatorRuntimePanel,
+    loadWatchers,
+    runWatchersNow,
+    toggleWatcher,
     runDataMethodReview,
     generateMethodProposals,
     openAddSourceModal,
@@ -257,6 +261,7 @@ window.toggleChatDrawer = toggleChatDrawer;
 window.openChatDrawer = openChatDrawer;
 window.closeChatDrawer = closeChatDrawer;
 window.summarizeCurrentScreen = summarizeCurrentScreen;
+window.exportCurrentScreenMd = exportCurrentScreenMd;
 window.exportChatMarkdown = exportChatMarkdown;
 window.clearChatAction = clearChatAction;
 window.handleSendChatMessage = handleSendChatMessage;
@@ -269,6 +274,10 @@ window.updateProposalStatus = updateProposalStatus;
 window.initProposalInbox = initProposalInbox;
 window.loadOperatorRuntimePanel = loadOperatorRuntimePanel;
 window.initOperatorRuntimePanel = initOperatorRuntimePanel;
+window.loadWatchers = loadWatchers;
+window.runWatchersNow = runWatchersNow;
+window.toggleWatcher = toggleWatcher;
+window.loadReviewQueue = loadReviewQueue;
 window.runDataMethodReview = runDataMethodReview;
 window.generateMethodProposals = generateMethodProposals;
 window.openAddSourceModal = openAddSourceModal;

@@ -390,3 +390,11 @@ Format: short English bullets only. Keep durable facts.
 - Adjusted search assertions in `tests/test_token_optimized_rag.py` to accommodate `blast_radius` matched dependencies.
 - Verified that all automated and integration tests in the workspace pass successfully.
 - Completed Tri-View Graph tab (Phase 3): staged `static/js/graph-view.js`, verified D3 graph view wiring into tabs in `static/js/charts.js`, and updated Phase 3 status in `agent_context/GLOBAL_ROADMAP.md`.
+
+## 2026-06-20
+- Switched the `memory_os_local` submodule URL to point to the new `OlexiMakee/memory_os_public` repository.
+- Synchronized and updated the submodule to the new remote (`1f94326`).
+
+## 2026-06-23
+- fix: Resolved a fatal `SyntaxError` in `static/js/app.js` caused by a duplicate `loadReviewQueue` import from both `ui.js` and `briefs.js` which blocked frontend mounting.
+- fix: Removed redundant `loadReviewQueue` and `reviewQueueAction` implementations from `static/js/ui.js` in favor of the updated localized version in `briefs.js`.

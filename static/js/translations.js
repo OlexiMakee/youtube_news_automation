@@ -127,6 +127,8 @@ export const translations = {
 
         // AI Chat
         btn_summarize: "Assistant",
+        btn_save_summary: "Зберегти MD",
+        modal_export_md: "Зберегти MD",
         chat_title: "Assistant",
 
         // Briefs
@@ -313,6 +315,8 @@ export const translations = {
 
         // AI Chat
         btn_summarize: "Assistant",
+        btn_save_summary: "Save MD",
+        modal_export_md: "Save MD",
         chat_title: "Assistant",
 
         // Briefs

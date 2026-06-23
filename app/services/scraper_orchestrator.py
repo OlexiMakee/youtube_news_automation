@@ -30,12 +30,18 @@ class ScraperOrchestrator:
             return cls._instance
 
     def __init__(self, db_path: str | None = None, root_dir: str | None = None):
+        import os
+        from memory_os import MemoryOSConfig
         resolved_root = root_dir or str(Path(__file__).resolve().parents[2])
-        resolved_db_path = db_path or str(Path(resolved_root) / "data" / "memory_os.db")
+        
+        active_space = os.environ.get("MEMORY_OS_SPACE", "default")
+        config = MemoryOSConfig(space=active_space)
+        
+        resolved_db_path = db_path or str(config.db_path)
         if self._initialized and self.root_dir == resolved_root and self.db_path == resolved_db_path:
             return
         self.db_path = resolved_db_path
-        self.memory_os = MemoryOS(db_path=resolved_db_path)
+        self.memory_os = MemoryOS(config=config, db_path=resolved_db_path)
         self.root_dir = resolved_root
         self.active_tasks: Dict[str, Dict[str, Any]] = {}
         self.tasks_lock = threading.Lock()

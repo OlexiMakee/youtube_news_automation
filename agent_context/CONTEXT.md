@@ -82,6 +82,14 @@ venv_auto/bin/python web_app.py
 ```
 Use narrower compile/test scopes when possible.
 
+## Multi-Agent Orchestration (Swarm Sync)
+To prevent collisions and enable autonomous swarm operation, you MUST check the task queue before starting new work:
+```bash
+venv_auto/bin/python scripts/swarm_sync.py --agent="YOUR_NAME"
+```
+- Read the output. If you are assigned a task, proceed with it.
+- Mark a task as done using `--complete="task_id.md"`.
+
 ## Key API
 - `GET /`
 - `GET /api/stats`

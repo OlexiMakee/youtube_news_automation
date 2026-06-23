@@ -54,3 +54,6 @@ __pycache__/
 # Build artifacts
 *.egg-info/
 news_scraper.egg-info/
+
+# JS dependencies
+node_modules/

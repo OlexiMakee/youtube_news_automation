@@ -43,22 +43,54 @@ CHANNELS_FILE_CANDIDATES = [
 ]
 
 
+def _dedupe_channels(channels):
+    deduped = []
+    seen = set()
+    for channel in channels:
+        _, normalized_url = utils.normalize_url(channel)
+        dedupe_key = (normalized_url or channel).rstrip("/").lower()
+        if dedupe_key in seen:
+            continue
+        deduped.append(channel)
+        seen.add(dedupe_key)
+    return deduped
+
+
 def _read_channels_file(channels_path):
     """Reads a newline-delimited channel list while preserving order and removing duplicate channels."""
     channels = []
-    seen = set()
     with open(channels_path, "r", encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             if not line or line.startswith("#"):
                 continue
-            _, normalized_url = utils.normalize_url(line)
-            dedupe_key = (normalized_url or line).rstrip("/").lower()
-            if dedupe_key in seen:
-                continue
             channels.append(line)
-            seen.add(dedupe_key)
-    return channels
+    return _dedupe_channels(channels)
+
+
+def _normalize_group_name(value):
+    return "".join(ch.lower() for ch in value if ch.isalnum())
+
+
+def _read_channel_group(channels_path, group_name):
+    """Reads channels below a comment heading such as '# Hungary media monitoring set.'."""
+    target = _normalize_group_name(group_name)
+    channels = []
+    collecting = False
+    with open(channels_path, "r", encoding="utf-8") as f:
+        for raw_line in f:
+            line = raw_line.strip()
+            if not line:
+                continue
+            if line.startswith("#"):
+                label = _normalize_group_name(line.lstrip("#").strip())
+                if collecting and label:
+                    break
+                collecting = target in label
+                continue
+            if collecting:
+                channels.append(line)
+    return _dedupe_channels(channels)
 
 
 def load_channels():
@@ -128,6 +160,25 @@ def load_channels():
     ]
 
 
+def load_channel_group(group_name):
+    """Loads a named channel group from root channels_to_scrape.txt, then data/channels.txt."""
+    for channels_path in CHANNELS_FILE_CANDIDATES:
+        if not os.path.exists(channels_path):
+            continue
+        try:
+            channels = _read_channel_group(channels_path, group_name)
+            if channels:
+                print(
+                    f"[*] Loaded {len(channels)} '{group_name}' channels from "
+                    f"{os.path.relpath(channels_path, root_dir)}"
+                )
+                return channels
+        except Exception as e:
+            print(f"[!] Warning: Could not read group '{group_name}' from {channels_path}: {e}")
+    print(f"[!] Channel group '{group_name}' was not found.")
+    return []
+
+
 def get_history_cutoff_yyyymmdd(days):
     """Calculates date back by a number of days and returns YYYYMMDD string."""
     return (date.today() - timedelta(days=days)).strftime("%Y%m%d")
@@ -190,13 +241,22 @@ def make_auto_sync_callback(silent=False):
     return auto_sync
 
 
-def run_multi_scraping(channels_list, days, stop_on_known=True, single_channel_mode=False, no_prompt=False):
+def run_multi_scraping(
+    channels_list,
+    days,
+    stop_on_known=True,
+    single_channel_mode=False,
+    no_prompt=False,
+    cloud_sync=True,
+    sync_kaggle=False,
+    sync_postgres=True,
+):
     """Main logic for sequential channel iteration."""
     db_path = os.path.join(root_dir, "data", "youtube_news.db")
 
     # 1. Kaggle Cloud database sync (timeout default: skip)
-    run_kaggle = False
-    if not no_prompt:
+    run_kaggle = bool(cloud_sync and sync_kaggle)
+    if not no_prompt and cloud_sync:
         db_size_mb = 0
         db_time_str = "N/A"
         if os.path.exists(db_path):
@@ -207,12 +267,14 @@ def run_multi_scraping(channels_list, days, stop_on_known=True, single_channel_m
         print(f"    - Last modified: {db_time_str}")
         run_kaggle = timed_yes_no_prompt(
             "[?] Run Kaggle cloud database synchronization (smart check)?",
-            default=False
+            default=sync_kaggle
         )
+    if not cloud_sync:
+        print("[i] Cloud synchronization disabled for this run.")
     if not run_kaggle:
         print("[i] Skipping Kaggle cloud database sync.")
 
-    if run_kaggle:
+    if cloud_sync and run_kaggle:
         try:
             from scraper.kaggle_sync import sync_db_with_kaggle
             print("[*] Checking for database updates in the cloud (Kaggle)...")
@@ -234,7 +296,13 @@ def run_multi_scraping(channels_list, days, stop_on_known=True, single_channel_m
     except Exception:
         pass
 
-    if pg_configured:
+    if not cloud_sync:
+        print("[i] Neon Postgres delta replication disabled for this run.")
+        pg_configured = False
+    elif not sync_postgres:
+        print("[i] Neon Postgres delta replication disabled for this run.")
+        pg_configured = False
+    elif pg_configured:
         if not no_prompt:
             run_postgres = timed_yes_no_prompt(
                 "[?] Run Neon Postgres delta synchronization (delta upload)?",
@@ -286,7 +354,7 @@ def run_multi_scraping(channels_list, days, stop_on_known=True, single_channel_m
             config=config,
             observer=None,
             date_after=history_cutoff,
-            on_auto_sync=make_auto_sync_callback(silent=False) if pg_configured and run_postgres else None
+            on_auto_sync=make_auto_sync_callback(silent=False) if cloud_sync and pg_configured and run_postgres else None
         )
 
         print("[*] Checking connection and fetching channel metadata...")
@@ -377,7 +445,7 @@ def run_multi_scraping(channels_list, days, stop_on_known=True, single_channel_m
     try:
         from scraper.postgres_sync import PostgresSyncClient
         pg_client = PostgresSyncClient()
-        if pg_client.is_configured():
+        if cloud_sync and sync_postgres and pg_client.is_configured():
             run_final_postgres = True
             if not no_prompt:
                 run_final_postgres = timed_yes_no_prompt(
@@ -393,13 +461,13 @@ def run_multi_scraping(channels_list, days, stop_on_known=True, single_channel_m
         print(f"[!] Warning: Final Neon Postgres sync failed: {pg_final_err}")
 
     # Final Kaggle backup (timeout default: skip)
-    run_final_kaggle = False
-    if not no_prompt:
+    run_final_kaggle = bool(cloud_sync and sync_kaggle)
+    if not no_prompt and cloud_sync:
         run_final_kaggle = timed_yes_no_prompt(
             "\n[?] Run final Kaggle cloud database synchronization?",
-            default=False
+            default=sync_kaggle
         )
-    if run_final_kaggle:
+    if cloud_sync and run_final_kaggle:
         try:
             from scraper.kaggle_sync import sync_db_with_kaggle
             db_path = os.path.join(root_dir, "data", "youtube_news.db")
@@ -472,9 +540,39 @@ def main():
         action="store_true",
         help="Bypass sync prompts using defaults: Kaggle skip, Postgres sync"
     )
+    parser.add_argument(
+        "--no-cloud-sync",
+        action="store_true",
+        help="Disable Kaggle and Neon Postgres synchronization for this run"
+    )
+    parser.add_argument(
+        "--sync-kaggle",
+        action="store_true",
+        help="Run Kaggle smart synchronization before and after scraping"
+    )
+    parser.add_argument(
+        "--skip-postgres-sync",
+        action="store_true",
+        help="Disable Neon Postgres delta synchronization for this run"
+    )
+    parser.add_argument(
+        "--profile",
+        choices=["hungary"],
+        help="Run a predefined scraping profile. 'hungary' uses the Hungary channel group, 30 days, no prompts, and Kaggle smart sync."
+    )
 
     args = parser.parse_args()
-    channels = load_channels()
+    if args.profile == "hungary":
+        channels = load_channel_group("hungary")
+        if not channels:
+            sys.exit(1)
+        if args.days is None:
+            args.days = 30
+        args.no_prompt = True
+        args.sync_kaggle = True
+        args.skip_postgres_sync = True
+    else:
+        channels = load_channels()
 
     stop_known = args.stop_on_known == "true"
 
@@ -495,11 +593,28 @@ def main():
                 selected_channel = args.channel
 
             days = args.days if args.days is not None else 7
-            run_multi_scraping([selected_channel], days, stop_on_known=stop_known, single_channel_mode=True, no_prompt=args.no_prompt)
+            run_multi_scraping(
+                [selected_channel],
+                days,
+                stop_on_known=stop_known,
+                single_channel_mode=True,
+                no_prompt=args.no_prompt,
+                cloud_sync=not args.no_cloud_sync,
+                sync_kaggle=args.sync_kaggle,
+                sync_postgres=not args.skip_postgres_sync,
+            )
         else:
             # Default run: 180 days (6 months) for all channels
             days = args.days if args.days is not None else 180
-            run_multi_scraping(channels, days, stop_on_known=stop_known, no_prompt=args.no_prompt)
+            run_multi_scraping(
+                channels,
+                days,
+                stop_on_known=stop_known,
+                no_prompt=args.no_prompt,
+                cloud_sync=not args.no_cloud_sync,
+                sync_kaggle=args.sync_kaggle,
+                sync_postgres=not args.skip_postgres_sync,
+            )
     except KeyboardInterrupt:
         print("\n\n[!] Process interrupted by user. Exiting...")
         sys.exit(0)

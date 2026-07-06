@@ -398,3 +398,9 @@ Format: short English bullets only. Keep durable facts.
 ## 2026-06-23
 - fix: Resolved a fatal `SyntaxError` in `static/js/app.js` caused by a duplicate `loadReviewQueue` import from both `ui.js` and `briefs.js` which blocked frontend mounting.
 - fix: Removed redundant `loadReviewQueue` and `reviewQueueAction` implementations from `static/js/ui.js` in favor of the updated localized version in `briefs.js`.
+
+## 2026-06-25
+- fix: `setup_and_run_venv()` in `scraper/utils.py` only checked that `venv_auto/` existed, not that its `bin/python` interpreter actually resolved. A `venv_auto` copied from macOS to another machine/OS (cloud agent run) keeps the directory but its `bin/python*` symlinks point at macOS-only absolute paths, so they're broken there; the bootstrap skipped rebuilding it, then crashed with an uncaught `FileNotFoundError`, aborting `run_weekly.sh` (`set -e`) before any scrape ran — root cause of the 2026-06-24/25 missed weekly update reported via a remote run.
+- fix: Condition now also checks `os.path.exists(python_exe)`, so a broken/missing interpreter triggers an automatic venv rebuild + dependency reinstall instead of failing.
+- verified: `venv_auto/bin/python -m compileall scraper/utils.py` passed; reproduced the stale-check vs fixed-check behavior against a simulated broken-symlink venv dir (old condition: skip; new condition: rebuild).
+- note: confirmed via DB query that `videos` table has no rows after `2026-06-23`, matching the reported gap.

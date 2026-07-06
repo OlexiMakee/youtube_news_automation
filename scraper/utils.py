@@ -70,8 +70,9 @@ def setup_and_run_venv(entry_script, required_libs=None):
         load_env()
         return
 
-    # Construct the venv if the folder doesn't exist
-    if not os.path.exists(venv_dir):
+    # Construct the venv if the folder is missing, or rebuild it if the interpreter
+    # inside is a broken/missing symlink (e.g. venv_dir copied from another OS/machine).
+    if not os.path.exists(venv_dir) or not os.path.exists(python_exe):
         print("[*] Bootstrapping: creating isolated virtual environment...")
         try:
             subprocess.run([sys.executable, "-m", "venv", venv_dir], check=True)

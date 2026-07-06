@@ -122,7 +122,7 @@ class BaseWidget {
         this.workspace = workspace;
         this.id = config.id || `widget-${Date.now()}-${Math.random().toString(16).slice(2)}`;
         this.type = config.type;
-        this.width = config.width || '';
+        this.span = config.span || 12;
         this.height = config.height || '';
         this.collapsed = !!config.collapsed;
         this.dateStart = config.dateStart || '';
@@ -146,7 +146,7 @@ class BaseWidget {
         el.dataset.widgetType = this.type;
         el.style.position = 'relative';
 
-        if (this.width) el.style.width = this.width;
+        el.classList.add(`widget-span-${this.span}`);
         if (this.height) el.style.height = this.height;
         if (this.collapsed) {
             el.classList.add('collapsed');
@@ -200,7 +200,6 @@ class BaseWidget {
             const startX = point.clientX;
             const startY = point.clientY;
             if (!Number.isFinite(startX) || !Number.isFinite(startY)) return;
-            const startWidth = this.element.offsetWidth;
             const startHeight = this.element.offsetHeight;
 
             const onResize = (moveEvent) => {
@@ -209,14 +208,10 @@ class BaseWidget {
                 const currentY = movePoint.clientY;
                 if (!Number.isFinite(currentX) || !Number.isFinite(currentY)) return;
 
-                const { maxWidth, maxHeight } = this.dimensionLimits();
-                const newWidth = Math.min(maxWidth, Math.max(MIN_WIDGET_WIDTH, startWidth + (currentX - startX)));
+                const { maxHeight } = this.dimensionLimits();
                 const newHeight = Math.min(maxHeight, Math.max(MIN_WIDGET_HEIGHT, startHeight + (currentY - startY)));
 
-                this.element.style.width = `${newWidth}px`;
                 this.element.style.height = `${newHeight}px`;
-
-                this.width = `${newWidth}px`;
                 this.height = `${newHeight}px`;
 
                 window.dispatchEvent(new Event('resize'));
@@ -249,14 +244,8 @@ class BaseWidget {
 
     clampStoredDimensions() {
         if (!this.element || this.collapsed) return;
-        const { maxWidth, maxHeight } = this.dimensionLimits();
-        const storedWidth = parsePixelSize(this.width);
+        const { maxHeight } = this.dimensionLimits();
         const storedHeight = parsePixelSize(this.height);
-        if (storedWidth !== null) {
-            const nextWidth = Math.min(maxWidth, Math.max(MIN_WIDGET_WIDTH, storedWidth));
-            this.width = `${nextWidth}px`;
-            this.element.style.width = this.width;
-        }
         if (storedHeight !== null) {
             const nextHeight = Math.min(maxHeight, Math.max(MIN_WIDGET_HEIGHT, storedHeight));
             this.height = `${nextHeight}px`;
@@ -333,7 +322,7 @@ class BaseWidget {
         return {
             id: this.id,
             type: this.type,
-            width: this.width,
+            span: this.span,
             height: this.height,
             collapsed: this.collapsed,
             dateStart: this.dateStart,
@@ -582,7 +571,26 @@ class ChannelAnalyticsWidget extends BaseWidget {
                             <option value="200">200</option>
                         </select>
                     </div>
-                    <span class="task-badge idle widget-status"></span>
+                    <!-- Update DB button -->
+                    <button class="btn-primary widget-update-db" type="button" style="padding: 6px 12px; font-size: 11px; display: flex; align-items: center; gap: 6px;">
+                        <i class="fa-solid fa-arrows-rotate"></i>
+                        <span data-i18n="btn_update_db">Update DB</span>
+                    </button>
+                    <!-- Update Views dropdown -->
+                    <div class="dropdown-views-container" style="position: relative; display: inline-block;">
+                        <button class="btn-warning widget-update-views-btn" type="button" style="padding: 6px 12px; font-size: 11px; display: flex; align-items: center; gap: 6px;">
+                            <i class="fa-solid fa-chart-line"></i>
+                            <span data-i18n="btn_update_views">Update Views</span>
+                        </button>
+                        <div class="dropdown-views-menu widget-views-menu" style="display: none; position: absolute; left: 0; top: 32px; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; min-width: 150px; padding: 4px 0;">
+                            <a href="#" data-period="1w" style="display: block; padding: 8px 12px; font-size: 11px; color: var(--text-color); text-decoration: none;" data-i18n="views_1w">Тиждень (Швидко)</a>
+                            <a href="#" data-period="1m" style="display: block; padding: 8px 12px; font-size: 11px; color: var(--text-color); text-decoration: none;" data-i18n="views_1m">Місяць (Довго)</a>
+                            <a href="#" data-period="3m" style="display: block; padding: 8px 12px; font-size: 11px; color: var(--text-color); text-decoration: none;" data-i18n="views_3m">3 місяці (Довго)</a>
+                            <a href="#" data-period="6m" style="display: block; padding: 8px 12px; font-size: 11px; color: var(--text-color); text-decoration: none;" data-i18n="views_6m">6 місяців (Довго)</a>
+                            <a href="#" data-period="1y" style="display: block; padding: 8px 12px; font-size: 11px; color: var(--text-color); text-decoration: none;" data-i18n="views_1y">Рік і більше (Дуже довго)</a>
+                        </div>
+                    </div>
+                    <span class="task-badge idle widget-status" id="update-badge-${this.id}"></span>
                 </div>
                 <div class="card-header-right widget-chart-controls"></div>
             </div>
@@ -655,10 +663,36 @@ class ChannelAnalyticsWidget extends BaseWidget {
             this.workspace.removeWidget(this.id);
         });
 
+        const updateDbBtn = this.element.querySelector('.widget-update-db');
+        if (updateDbBtn) {
+            updateDbBtn.addEventListener('click', () => {
+                if (window.triggerAction) window.triggerAction('update');
+            });
+        }
+
+        const viewsBtn = this.element.querySelector('.widget-update-views-btn');
+        const viewsMenu = this.element.querySelector('.widget-views-menu');
+        if (viewsBtn && viewsMenu) {
+            viewsBtn.addEventListener('click', event => {
+                event.preventDefault();
+                event.stopPropagation();
+                viewsMenu.style.display = viewsMenu.style.display === 'block' ? 'none' : 'block';
+            });
+            viewsMenu.querySelectorAll('a').forEach(link => {
+                link.addEventListener('click', event => {
+                    event.preventDefault();
+                    viewsMenu.style.display = 'none';
+                    const period = link.getAttribute('data-period');
+                    if (window.runViewsUpdate) window.runViewsUpdate(period, event);
+                });
+            });
+        }
+
         this.handleDocumentClick = event => {
             if (!this.element || this.element.contains(event.target)) return;
             const menu = this.element.querySelector('.widget-channel-menu');
             if (menu) menu.style.display = 'none';
+            if (viewsMenu) viewsMenu.style.display = 'none';
         };
         document.addEventListener('click', this.handleDocumentClick);
     }

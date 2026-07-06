@@ -319,11 +319,18 @@ export async function checkProcessStatus() {
         const status = await res.json();
         
         const badge = document.getElementById("task-badge");
-        const updateBadge = document.getElementById("update-badge");
+        const updateBadges = document.querySelectorAll(".widget-status");
+        if (updateBadges.length > 0) {
+            updateBadges.forEach(badge => {
+                badge.style.display = "inline-block";
+                badge.className = "task-badge in-progress widget-status";
+                badge.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${state.currentLang === 'ua' ? 'Оновлюється' : 'Updating'}...`;
+            });
+        }
         const btnScrape = document.getElementById("btn-run-scrape");
         const btnSync = document.getElementById("btn-run-sync");
-        const btnUpdate = document.getElementById("btn-run-update");
-        const btnViewsUpdate = document.getElementById("btn-run-views-update");
+        const btnUpdate = document.querySelector(".widget-update-db");
+        const btnViewsUpdate = document.querySelector(".widget-update-views-btn");
         
         const isBusy = status.status !== "idle";
         
@@ -359,18 +366,20 @@ export async function checkProcessStatus() {
         }
         
         // Handle updateBadge next to the button
-        if (updateBadge) {
-            if (status.status === "updating") {
-                updateBadge.innerText = translations[state.currentLang].status_updating;
-                updateBadge.className = "task-badge active";
-                updateBadge.style.display = "inline-block";
-            } else if (status.status === "updating_views") {
-                updateBadge.innerText = translations[state.currentLang].status_updating_views;
-                updateBadge.className = "task-badge active";
-                updateBadge.style.display = "inline-block";
-            } else {
-                updateBadge.style.display = "none";
-            }
+        if (updateBadges.length > 0) {
+            updateBadges.forEach(updateBadge => {
+                if (status.status === "updating") {
+                    updateBadge.innerText = translations[state.currentLang].status_updating;
+                    updateBadge.className = "task-badge active widget-status";
+                    updateBadge.style.display = "inline-block";
+                } else if (status.status === "updating_views") {
+                    updateBadge.innerText = translations[state.currentLang].status_updating_views;
+                    updateBadge.className = "task-badge active widget-status";
+                    updateBadge.style.display = "inline-block";
+                } else {
+                    updateBadge.style.display = "none";
+                }
+            });
         }
         
         // Handle main Operations tab badge

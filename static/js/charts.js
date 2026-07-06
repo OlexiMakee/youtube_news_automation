@@ -161,8 +161,7 @@ export function selectChart(chartType) {
     if (!chartType) return;
     state.activeChartType = chartType;
     
-    const legacyCard = document.getElementById('card-visualizations-container');
-    const scope = legacyCard || document;
+    const scope = document;
     scope.querySelectorAll('.split-btn, .promo-tab-btn').forEach(el => el.classList.remove('active'));
     
     const activeEl = document.getElementById(`chart-btn-${chartType}`);
@@ -195,7 +194,7 @@ export function renderActiveChart(dashboardCard, chartState = state) {
     const chartRawData = chartState.chartRawData;
     if (!chartRawData || !chartType) return;
     
-    const card = dashboardCard || document.getElementById('card-visualizations-container');
+    const card = dashboardCard;
     const d3Root      = card ? (card.querySelector('#d3-chart-root')      || card.querySelector('.d3-chart-root'))      : document.getElementById('d3-chart-root');
     const canvasEl    = card ? (card.querySelector('#analytics-chart')    || card.querySelector('canvas'))              : document.getElementById('analytics-chart');
     const tableRoot   = card ? (card.querySelector('#table-view-root')    || card.querySelector('.table-view-root'))    : document.getElementById('table-view-root');

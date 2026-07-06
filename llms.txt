@@ -3,65 +3,66 @@
 A self-hosted, source-aware intelligence workspace for media, OSINT, and crisis monitoring teams.
 
 ## Agent Workflow
-- [agent_context/WORKFLOWS.md](file:///Users/oleksii/Documents/News%20Research%20Automation/agent_context/WORKFLOWS.md): Product/memos workflow split and 12-step task scale.
-- [agent_context/AGENT_RULES.md](file:///Users/oleksii/Documents/News%20Research%20Automation/agent_context/AGENT_RULES.md): Mandatory behavior, safety, testing, and handoff rules.
-- [scripts/memos.py](file:///Users/oleksii/Documents/News%20Research%20Automation/scripts/memos.py): Portable Memory OS CLI wrapper for audit, validation, quantization, snapshots, and proposal loops (entry: `python scripts/memos.py audit`). `memos` is an internal alias, not the final product name.
+- [agent_context/WORKFLOWS.md](file:///Users/oleksii/Documents/sandbox/News%20Research%20Automation/agent_context/WORKFLOWS.md): Product/memos workflow split and 12-step task scale.
+- [agent_context/AGENT_RULES.md](file:///Users/oleksii/Documents/sandbox/News%20Research%20Automation/agent_context/AGENT_RULES.md): Mandatory behavior, safety, testing, and handoff rules.
+- [scripts/memos.py](file:///Users/oleksii/Documents/sandbox/News%20Research%20Automation/scripts/memos.py): Portable Memory OS CLI wrapper for audit, validation, quantization, snapshots, and proposal loops (entry: `python scripts/memos.py audit`). `memos` is an internal alias, not the final product name.
 
 ## Entry Points
-- [web_app.py](file:///Users/oleksii/Documents/News%20Research%20Automation/web_app.py): Flask application bootstrap.
-- [app/__init__.py](file:///Users/oleksii/Documents/News%20Research%20Automation/app/__init__.py): App factory and blueprint router registration.
+- [web_app.py](file:///Users/oleksii/Documents/sandbox/News%20Research%20Automation/web_app.py): Flask application bootstrap.
+- [app/__init__.py](file:///Users/oleksii/Documents/sandbox/News%20Research%20Automation/app/__init__.py): App factory and blueprint router registration.
+- [run_weekly.sh](file:///Users/oleksii/Documents/sandbox/News%20Research%20Automation/run_weekly.sh): Data refresh entrypoint (scrape 7 days + analytics). Run `./run_weekly.sh --no-dashboard` for non-interactive/remote callers (e.g. a cloud agent run) — it exits after the refresh instead of blocking on the Flask dev server. `scraper/utils.py:setup_and_run_venv()` self-heals `venv_auto/` if the interpreter symlink is broken (e.g. copied from a different OS/machine).
 
 ## Blueprints (app/routes/)
-- [main.py](file:///Users/oleksii/Documents/News%20Research%20Automation/app/routes/main.py): Public root paths.
-- [stats.py](file:///Users/oleksii/Documents/News%20Research%20Automation/app/routes/stats.py): Public dashboard metadata and explorer.
-- [videos.py](file:///Users/oleksii/Documents/News%20Research%20Automation/app/routes/videos.py): Admin-gated video operations.
-- [charts.py](file:///Users/oleksii/Documents/News%20Research%20Automation/app/routes/charts.py): Visualization aggregate data.
-- [actions.py](file:///Users/oleksii/Documents/News%20Research%20Automation/app/routes/actions.py): Scraper daemon runtime triggers.
-- [analytics.py](file:///Users/oleksii/Documents/News%20Research%20Automation/app/routes/analytics.py): Admin-gated anomalies metrics.
-- [governance.py](file:///Users/oleksii/Documents/News%20Research%20Automation/app/routes/governance.py): Admin-gated policy status, governed sources, ingestion, connector runs, and source-record previews.
+- [main.py](file:///Users/oleksii/Documents/sandbox/News%20Research%20Automation/app/routes/main.py): Public root paths.
+- [stats.py](file:///Users/oleksii/Documents/sandbox/News%20Research%20Automation/app/routes/stats.py): Public dashboard metadata and explorer.
+- [videos.py](file:///Users/oleksii/Documents/sandbox/News%20Research%20Automation/app/routes/videos.py): Admin-gated video operations.
+- [charts.py](file:///Users/oleksii/Documents/sandbox/News%20Research%20Automation/app/routes/charts.py): Visualization aggregate data.
+- [actions.py](file:///Users/oleksii/Documents/sandbox/News%20Research%20Automation/app/routes/actions.py): Scraper daemon runtime triggers.
+- [analytics.py](file:///Users/oleksii/Documents/sandbox/News%20Research%20Automation/app/routes/analytics.py): Admin-gated anomalies metrics.
+- [governance.py](file:///Users/oleksii/Documents/sandbox/News%20Research%20Automation/app/routes/governance.py): Admin-gated policy status, governed sources, ingestion, connector runs, and source-record previews.
 
 ## Core Services (app/services/)
-- [agent.py](file:///Users/oleksii/Documents/News%20Research%20Automation/app/services/agent.py): AI chat orchestrator and prompt context parser.
-- [chat_logger.py](file:///Users/oleksii/Documents/News%20Research%20Automation/app/services/chat_logger.py): SQLite chat audit logger.
-- [prompt_builder.py](file:///Users/oleksii/Documents/News%20Research%20Automation/app/services/prompt_builder.py): Dashboard context and system instructions assembler.
-- [llm_clients.py](file:///Users/oleksii/Documents/News%20Research%20Automation/app/services/llm_clients.py): LLM provider connection implementations and client factory.
-- [cloud_rotation.py](file:///Users/oleksii/Documents/News%20Research%20Automation/app/services/cloud_rotation.py): LLM provider quota/retry scoring.
-- [governance.py](file:///Users/oleksii/Documents/News%20Research%20Automation/app/services/governance.py): Policy verification, source registry, ingestion, connector run, evidence, credential, and source-record preview layer.
-- [data_method_review.py](file:///Users/oleksii/Documents/News%20Research%20Automation/app/services/data_method_review.py): Data-access method log review service for API/scheduler use.
-- [rbac.py](file:///Users/oleksii/Documents/News%20Research%20Automation/app/services/rbac.py): Session-token auth hooks.
-- [telemetry.py](file:///Users/oleksii/Documents/News%20Research%20Automation/app/services/telemetry.py): Performance metrics thread.
-- [memory_os/](file:///Users/oleksii/Documents/News%20Research%20Automation/app/services/memory_os): Context registry, prompt versioning, telemetry, route optimization, custom toml parser, and prompt formatting helpers.
-- [app/services/memory_os/toml_parser.py](file:///Users/oleksii/Documents/News%20Research%20Automation/app/services/memory_os/toml_parser.py): Custom lightweight TOML parser module.
-- [app/services/memory_os/prompt_formatter.py](file:///Users/oleksii/Documents/News%20Research%20Automation/app/services/memory_os/prompt_formatter.py): Token-optimized XML wrapper and HTML tables formatter.
-- [configs/settings.toml](file:///Users/oleksii/Documents/News%20Research%20Automation/configs/settings.toml): Global Memory OS settings config.
+- [agent.py](file:///Users/oleksii/Documents/sandbox/News%20Research%20Automation/app/services/agent.py): AI chat orchestrator and prompt context parser.
+- [chat_logger.py](file:///Users/oleksii/Documents/sandbox/News%20Research%20Automation/app/services/chat_logger.py): SQLite chat audit logger.
+- [prompt_builder.py](file:///Users/oleksii/Documents/sandbox/News%20Research%20Automation/app/services/prompt_builder.py): Dashboard context and system instructions assembler.
+- [llm_clients.py](file:///Users/oleksii/Documents/sandbox/News%20Research%20Automation/app/services/llm_clients.py): LLM provider connection implementations and client factory.
+- [cloud_rotation.py](file:///Users/oleksii/Documents/sandbox/News%20Research%20Automation/app/services/cloud_rotation.py): LLM provider quota/retry scoring.
+- [governance.py](file:///Users/oleksii/Documents/sandbox/News%20Research%20Automation/app/services/governance.py): Policy verification, source registry, ingestion, connector run, evidence, credential, and source-record preview layer.
+- [data_method_review.py](file:///Users/oleksii/Documents/sandbox/News%20Research%20Automation/app/services/data_method_review.py): Data-access method log review service for API/scheduler use.
+- [rbac.py](file:///Users/oleksii/Documents/sandbox/News%20Research%20Automation/app/services/rbac.py): Session-token auth hooks.
+- [telemetry.py](file:///Users/oleksii/Documents/sandbox/News%20Research%20Automation/app/services/telemetry.py): Performance metrics thread.
+- [memory_os/](file:///Users/oleksii/Documents/sandbox/News%20Research%20Automation/app/services/memory_os): Context registry, prompt versioning, telemetry, route optimization, custom toml parser, and prompt formatting helpers.
+- [app/services/memory_os/toml_parser.py](file:///Users/oleksii/Documents/sandbox/News%20Research%20Automation/app/services/memory_os/toml_parser.py): Custom lightweight TOML parser module.
+- [app/services/memory_os/prompt_formatter.py](file:///Users/oleksii/Documents/sandbox/News%20Research%20Automation/app/services/memory_os/prompt_formatter.py): Token-optimized XML wrapper and HTML tables formatter.
+- [configs/settings.toml](file:///Users/oleksii/Documents/sandbox/News%20Research%20Automation/configs/settings.toml): Global Memory OS settings config.
 
 ## Analytics Automation
-- [scripts/analytics/topic_study.py](file:///Users/oleksii/Documents/News%20Research%20Automation/scripts/analytics/topic_study.py): Customer-scoped deep topic study with probabilities, correlations, anomalies, evidence, and caveats.
-- [scripts/analytics/phrase_performance.py](file:///Users/oleksii/Documents/News%20Research%20Automation/scripts/analytics/phrase_performance.py): Generic n-gram performance scorer with YouTube SQLite adapter.
-- [scripts/analytics/data_method_evaluator.py](file:///Users/oleksii/Documents/News%20Research%20Automation/scripts/analytics/data_method_evaluator.py): File-backed data-access experiment logs, method ranking, and scheduler snapshot writing.
-- [scripts/analytics/method_review_proposals.py](file:///Users/oleksii/Documents/News%20Research%20Automation/scripts/analytics/method_review_proposals.py): Converts repeated data-method review insights into deduplicated admin proposals and optional lifecycle events.
-- [scripts/analytics/anomaly_detector.py](file:///Users/oleksii/Documents/News%20Research%20Automation/scripts/analytics/anomaly_detector.py): Z-score anomaly detection.
-- [scripts/analytics/trend_analyzer.py](file:///Users/oleksii/Documents/News%20Research%20Automation/scripts/analytics/trend_analyzer.py): View-history trend fitting and forecasts.
-- [scripts/analytics/metrics_engine.py](file:///Users/oleksii/Documents/News%20Research%20Automation/scripts/analytics/metrics_engine.py): KPI medians, quartiles, and engagement rates.
+- [scripts/analytics/topic_study.py](file:///Users/oleksii/Documents/sandbox/News%20Research%20Automation/scripts/analytics/topic_study.py): Customer-scoped deep topic study with probabilities, correlations, anomalies, evidence, and caveats.
+- [scripts/analytics/phrase_performance.py](file:///Users/oleksii/Documents/sandbox/News%20Research%20Automation/scripts/analytics/phrase_performance.py): Generic n-gram performance scorer with YouTube SQLite adapter.
+- [scripts/analytics/data_method_evaluator.py](file:///Users/oleksii/Documents/sandbox/News%20Research%20Automation/scripts/analytics/data_method_evaluator.py): File-backed data-access experiment logs, method ranking, and scheduler snapshot writing.
+- [scripts/analytics/method_review_proposals.py](file:///Users/oleksii/Documents/sandbox/News%20Research%20Automation/scripts/analytics/method_review_proposals.py): Converts repeated data-method review insights into deduplicated admin proposals and optional lifecycle events.
+- [scripts/analytics/anomaly_detector.py](file:///Users/oleksii/Documents/sandbox/News%20Research%20Automation/scripts/analytics/anomaly_detector.py): Z-score anomaly detection.
+- [scripts/analytics/trend_analyzer.py](file:///Users/oleksii/Documents/sandbox/News%20Research%20Automation/scripts/analytics/trend_analyzer.py): View-history trend fitting and forecasts.
+- [scripts/analytics/metrics_engine.py](file:///Users/oleksii/Documents/sandbox/News%20Research%20Automation/scripts/analytics/metrics_engine.py): KPI medians, quartiles, and engagement rates.
 
 ## Memory OS Kernel
-- [memory/](file:///Users/oleksii/Documents/News%20Research%20Automation/memory/): Core schemas, active nodes, edges graph, journal events, and memory_events.jsonl.
-- [memory/workflow_manifest.json](file:///Users/oleksii/Documents/News%20Research%20Automation/memory/workflow_manifest.json): Generated workflow TOML validation manifest.
-- [workflows/](file:///Users/oleksii/Documents/News%20Research%20Automation/workflows/): Declarative TOML workflow specs.
-- [scripts/memory/validate_memory.py](file:///Users/oleksii/Documents/News%20Research%20Automation/scripts/memory/validate_memory.py): Offline schema and evidence checker.
-- [scripts/memory/validate_workflows.py](file:///Users/oleksii/Documents/News%20Research%20Automation/scripts/memory/validate_workflows.py): Workflow TOML validator and manifest writer for 12-step coverage.
-- [scripts/memory/quantize_task.py](file:///Users/oleksii/Documents/News%20Research%20Automation/scripts/memory/quantize_task.py): Task score calculator and profile resolver.
-- [scripts/memory/search_memory.py](file:///Users/oleksii/Documents/News%20Research%20Automation/scripts/memory/search_memory.py): Symbol-graph and lexical keyword retriever.
-- [scripts/memory/lifecycle.py](file:///Users/oleksii/Documents/News%20Research%20Automation/scripts/memory/lifecycle.py): Transition event log proposer, validator, and stale node pruner.
-- [scripts/memory/audit_memos.py](file:///Users/oleksii/Documents/News%20Research%20Automation/scripts/memory/audit_memos.py): Memory OS control-plane audit for handoff, capsules, lifecycle files, roadmap, and next recommendations.
+- [memory/](file:///Users/oleksii/Documents/sandbox/News%20Research%20Automation/memory/): Core schemas, active nodes, edges graph, journal events, and memory_events.jsonl.
+- [memory/workflow_manifest.json](file:///Users/oleksii/Documents/sandbox/News%20Research%20Automation/memory/workflow_manifest.json): Generated workflow TOML validation manifest.
+- [workflows/](file:///Users/oleksii/Documents/sandbox/News%20Research%20Automation/workflows/): Declarative TOML workflow specs.
+- [scripts/memory/validate_memory.py](file:///Users/oleksii/Documents/sandbox/News%20Research%20Automation/scripts/memory/validate_memory.py): Offline schema and evidence checker.
+- [scripts/memory/validate_workflows.py](file:///Users/oleksii/Documents/sandbox/News%20Research%20Automation/scripts/memory/validate_workflows.py): Workflow TOML validator and manifest writer for 12-step coverage.
+- [scripts/memory/quantize_task.py](file:///Users/oleksii/Documents/sandbox/News%20Research%20Automation/scripts/memory/quantize_task.py): Task score calculator and profile resolver.
+- [scripts/memory/search_memory.py](file:///Users/oleksii/Documents/sandbox/News%20Research%20Automation/scripts/memory/search_memory.py): Symbol-graph and lexical keyword retriever.
+- [scripts/memory/lifecycle.py](file:///Users/oleksii/Documents/sandbox/News%20Research%20Automation/scripts/memory/lifecycle.py): Transition event log proposer, validator, and stale node pruner.
+- [scripts/memory/audit_memos.py](file:///Users/oleksii/Documents/sandbox/News%20Research%20Automation/scripts/memory/audit_memos.py): Memory OS control-plane audit for handoff, capsules, lifecycle files, roadmap, and next recommendations.
 
 
 ## Database & Collection
-- [news_scraper/db_client.py](file:///Users/oleksii/Documents/News%20Research%20Automation/news_scraper/db_client.py): SQLite WAL client interface.
-- [scrape_multi.py](file:///Users/oleksii/Documents/News%20Research%20Automation/scrape_multi.py): sequential collector.
-- [news_scraper/connectors/](file:///Users/oleksii/Documents/News%20Research%20Automation/news_scraper/connectors): Migration-safe source connector normalization layer.
+- [news_scraper/db_client.py](file:///Users/oleksii/Documents/sandbox/News%20Research%20Automation/news_scraper/db_client.py): SQLite WAL client interface.
+- [scrape_multi.py](file:///Users/oleksii/Documents/sandbox/News%20Research%20Automation/scrape_multi.py): sequential collector.
+- [news_scraper/connectors/](file:///Users/oleksii/Documents/sandbox/News%20Research%20Automation/news_scraper/connectors): Migration-safe source connector normalization layer.
 
 ## Frontend Layouts
-- [templates/index.html](file:///Users/oleksii/Documents/News%20Research%20Automation/templates/index.html): SPA dashboard structure.
-- [static/js/app.js](file:///Users/oleksii/Documents/News%20Research%20Automation/static/js/app.js): Frontend lifecycle hub.
-- [static/css/style.css](file:///Users/oleksii/Documents/News%20Research%20Automation/static/css/style.css): Vanilla styling variables.
+- [templates/index.html](file:///Users/oleksii/Documents/sandbox/News%20Research%20Automation/templates/index.html): SPA dashboard structure.
+- [static/js/app.js](file:///Users/oleksii/Documents/sandbox/News%20Research%20Automation/static/js/app.js): Frontend lifecycle hub.
+- [static/css/style.css](file:///Users/oleksii/Documents/sandbox/News%20Research%20Automation/static/css/style.css): Vanilla styling variables.

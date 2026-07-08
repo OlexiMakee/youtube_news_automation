@@ -10,7 +10,7 @@ A self-hosted, source-aware intelligence workspace for media, OSINT, and crisis 
 ## Entry Points
 - [web_app.py](file:///Users/oleksii/Documents/sandbox/News%20Research%20Automation/web_app.py): Flask application bootstrap.
 - [app/__init__.py](file:///Users/oleksii/Documents/sandbox/News%20Research%20Automation/app/__init__.py): App factory and blueprint router registration.
-- [run_weekly.sh](file:///Users/oleksii/Documents/sandbox/News%20Research%20Automation/run_weekly.sh): Data refresh entrypoint (scrape 7 days + analytics). Run `./run_weekly.sh --no-dashboard` for non-interactive/remote callers (e.g. a cloud agent run) — it exits after the refresh instead of blocking on the Flask dev server. `scraper/utils.py:setup_and_run_venv()` self-heals `venv_auto/` if the interpreter symlink is broken (e.g. copied from a different OS/machine).
+- [run_weekly.sh](file:///Users/oleksii/Documents/sandbox/News%20Research%20Automation/run_weekly.sh): Data refresh entrypoint (scrape 7 days + analytics). Use `./run_weekly.sh --profile english --no-dashboard` for UATV English editorial automation. Non-interactive runs skip the Flask dev server automatically. `scraper/utils.py:setup_and_run_venv()` self-heals `venv_auto/` if the interpreter symlink is broken (e.g. copied from a different OS/machine).
 
 ## Blueprints (app/routes/)
 - [main.py](file:///Users/oleksii/Documents/sandbox/News%20Research%20Automation/app/routes/main.py): Public root paths.

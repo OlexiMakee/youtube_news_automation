@@ -2,6 +2,14 @@
 
 Format: short English bullets only. Keep durable facts.
 
+## 2026-07-08
+- Diagnosed broken `venv_auto/`: cloud env had hardcoded shebang path `/Users/oleksii/Documents/News Research Automation/...` (missing `sandbox/`) and `pyvenv.cfg` pointing to Python 3.10.12 from cloud host; all pip scripts non-executable locally.
+- Fix: removed `venv_auto/`, rebuilt with local `python3.11` (`/Users/oleksii/.local/bin/python3.11`).
+- Reinstalled full stack: `yt-dlp 2026.7.4`, `flask`, `requests`, `memory_os`, `pandas`, `cryptography`, `pytest` etc.
+- Ran `update_db.py --cron` locally; completed successfully (~18 min).
+- DB result: 32,082 total videos / 270 new in last 2 days / latest date 2026-07-08 / 58 channels.
+- Members-only video errors (8 videos) are expected and non-blocking.
+
 ## 2026-05-27
 - Built Flask dashboard MVP: stats, channels, charts, video table, modal, exports, actions.
 - Added 4 themes and UA/EN i18n.

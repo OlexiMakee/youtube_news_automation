@@ -1,5 +1,6 @@
 # Channels for scrape_multi.py.
 # One YouTube channel URL or handle per line. Default scrape window: last 180 days.
+https://www.youtube.com/@UATVEnglish
 https://www.youtube.com/@UATVEspanol
 https://www.youtube.com/@UATVPortugu%C3%AAs
 https://www.youtube.com/@UATVpopolsku

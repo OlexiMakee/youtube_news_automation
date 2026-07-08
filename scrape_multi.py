@@ -56,13 +56,42 @@ def _dedupe_channels(channels):
     return deduped
 
 
+PROFILE_GROUP_HEADINGS = {
+    "hungarymediamonitoringset",
+}
+
+
+ENGLISH_EXCLUDE_MARKERS = (
+    "uatvespanol",
+    "uatvportugu",
+    "uatvpopolsku",
+    "uatvdeutsch",
+    "uatvmagyarul",
+    "uatvarabic",
+    "uatvfran",
+    "freedom_tv",
+    "freedom_live",
+    "freedom_kavkaz",
+    "insiderussia",
+    "@tsn",
+    "/@tsn",
+)
+
+
 def _read_channels_file(channels_path):
-    """Reads a newline-delimited channel list while preserving order and removing duplicate channels."""
+    """Read the default channel list, excluding named profile-only sections."""
     channels = []
+    in_profile_group = False
     with open(channels_path, "r", encoding="utf-8") as f:
         for line in f:
             line = line.strip()
-            if not line or line.startswith("#"):
+            if not line:
+                continue
+            if line.startswith("#"):
+                label = _normalize_group_name(line.lstrip("#").strip())
+                in_profile_group = label in PROFILE_GROUP_HEADINGS
+                continue
+            if in_profile_group:
                 continue
             channels.append(line)
     return _dedupe_channels(channels)
@@ -177,6 +206,18 @@ def load_channel_group(group_name):
             print(f"[!] Warning: Could not read group '{group_name}' from {channels_path}: {e}")
     print(f"[!] Channel group '{group_name}' was not found.")
     return []
+
+
+def load_english_channels():
+    """Load the default list and keep only channels relevant to UATV English analysis."""
+    channels = load_channels()
+    english_channels = []
+    for channel in channels:
+        normalized = channel.lower()
+        if any(marker in normalized for marker in ENGLISH_EXCLUDE_MARKERS):
+            continue
+        english_channels.append(channel)
+    return _dedupe_channels(english_channels)
 
 
 def get_history_cutoff_yyyymmdd(days):
@@ -557,12 +598,24 @@ def main():
     )
     parser.add_argument(
         "--profile",
-        choices=["hungary"],
-        help="Run a predefined scraping profile. 'hungary' uses the Hungary channel group, 30 days, no prompts, and Kaggle smart sync."
+        choices=["english", "hungary"],
+        help=(
+            "Run a predefined scraping profile. 'english' uses UATV English "
+            "and English-language competitors. 'hungary' uses the Hungary "
+            "channel group, 30 days, no prompts, and Kaggle smart sync."
+        )
     )
 
     args = parser.parse_args()
-    if args.profile == "hungary":
+    if args.profile == "english":
+        channels = load_english_channels()
+        if not channels:
+            sys.exit(1)
+        if args.days is None:
+            args.days = 7
+        args.no_prompt = True
+        args.skip_postgres_sync = True
+    elif args.profile == "hungary":
         channels = load_channel_group("hungary")
         if not channels:
             sys.exit(1)

@@ -36,6 +36,11 @@ A self-hosted, source-aware intelligence workspace for media, OSINT, and crisis 
 - [app/services/memory_os/prompt_formatter.py](file:///Users/oleksii/Documents/sandbox/News%20Research%20Automation/app/services/memory_os/prompt_formatter.py): Token-optimized XML wrapper and HTML tables formatter.
 - [configs/settings.toml](file:///Users/oleksii/Documents/sandbox/News%20Research%20Automation/configs/settings.toml): Global Memory OS settings config.
 
+## Editorial Skills
+- [SKILL_uatv_english_daily_brief.md](file:///Users/oleksii/Documents/sandbox/News%20Research%20Automation/SKILL_uatv_english_daily_brief.md): UATV English daily brief SOP — DB refresh, competitive analysis, Drive scan, strict <=24h-freshness news brief, recommendations, dashboard regen. Registered in memory graph as `workflow.uatv_english_daily_brief.sop`.
+- [SKILL_uatv_magyarul_daily_brief.md](file:///Users/oleksii/Documents/sandbox/News%20Research%20Automation/SKILL_uatv_magyarul_daily_brief.md): UATV Magyarul daily brief SOP (Hungarian-market equivalent) — 2-command DB refresh, competitive analysis, strict <=24h-freshness news brief, recommendations. No Drive scan, no dashboard. Registered in memory graph as `workflow.uatv_magyarul_daily_brief.sop`.
+- `SKILL_magyarul_updated.md` (superseded, kept for reference only — see task_capsules for the 2026-08-19 discrepancy note): older version, saves to `data/reports/magyarul/` (not the actual `data/reports/hungary/` output path), includes a Google Drive upload step no longer used, and an explicit forbidden-sources list (index.hu, origo.hu, blikk.hu, tenyek.hu, hirado.hu) that the current prompt does not carry forward — index.hu is now listed as an allowed doc2 source. Not confirmed whether that drop is intentional.
+
 ## Analytics Automation
 - [scripts/analytics/topic_study.py](file:///Users/oleksii/Documents/sandbox/News%20Research%20Automation/scripts/analytics/topic_study.py): Customer-scoped deep topic study with probabilities, correlations, anomalies, evidence, and caveats.
 - [scripts/analytics/phrase_performance.py](file:///Users/oleksii/Documents/sandbox/News%20Research%20Automation/scripts/analytics/phrase_performance.py): Generic n-gram performance scorer with YouTube SQLite adapter.

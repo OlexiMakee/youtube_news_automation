@@ -72,14 +72,25 @@ def setup_and_run_venv(entry_script, required_libs=None):
 
     # Construct the venv if the folder is missing, or rebuild it if the interpreter
     # inside is a broken/missing symlink (e.g. venv_dir copied from another OS/machine).
+    #
+    # NOTE: venv_auto/ is a disposable local build artifact (see .gitignore) that can end
+    # up shared between machines/OSes when the project folder itself is synced (e.g. a
+    # cloud sandbox mounting the same directory as a local Mac checkout). When that
+    # happens, venv_dir already exists and is non-empty (old pyvenv.cfg, dangling
+    # python3.x symlinks pointing at a path on a *different* machine), and `python -m venv`
+    # WITHOUT --clear can fail outright instead of repairing it (CalledProcessError),
+    # which used to send us down the network-dependent get-pip.py fallback below even
+    # though ensurepip (bundled, no network needed) would have worked fine on a clean dir.
+    # Passing --clear makes this rebuild deterministic and self-healing regardless of what
+    # (possibly foreign/incompatible) content is already sitting in venv_dir.
     if not os.path.exists(venv_dir) or not os.path.exists(python_exe):
         print("[*] Bootstrapping: creating isolated virtual environment...")
         try:
-            subprocess.run([sys.executable, "-m", "venv", venv_dir], check=True)
+            subprocess.run([sys.executable, "-m", "venv", "--clear", venv_dir], check=True)
         except subprocess.CalledProcessError:
             print("[!] Warning: Failed to create venv using default arguments (ensurepip might have failed).")
             print("[*] Attempting to create environment without pip...")
-            subprocess.run([sys.executable, "-m", "venv", "--without-pip", venv_dir], check=True)
+            subprocess.run([sys.executable, "-m", "venv", "--clear", "--without-pip", venv_dir], check=True)
             
             # Fetch and run get-pip.py to install pip manually
             get_pip_path = os.path.join(venv_dir, "get-pip.py")
